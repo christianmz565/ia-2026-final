@@ -179,3 +179,5 @@ pyrightconfig.json
 
 # Pipeline intermediate results
 partials/
+
+dataset/

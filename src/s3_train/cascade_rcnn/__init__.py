@@ -1,7 +1,5 @@
-"""Cascade R-CNN training wrapper (MMDetection).
-
-Standalone usage:
-    uv run python -m src.s3_train.cascade_rcnn [--data-dir PATH] [--epochs 12]
+"""Cascade R-CNN Baseline package for wood surface defect detection.
+Includes ConvNeXt backbone, PAFPN neck, data sanitization, timing calibration, AMP, and early stopping.
 """
 
 from __future__ import annotations
@@ -16,6 +14,28 @@ from src.constants import S3_OUTPUT, SPLIT_DATASET
 from src.s3_train.base import Trainer, register_trainer
 
 logger = structlog.get_logger(__name__)
+
+__version__ = "0.1.0"
+
+
+def _build_pipeline_config(cfg: CascadeRCNNConfig):
+    """Build internal PipelineConfig from CascadeRCNNConfig."""
+    from src.s3_train.cascade_rcnn.config import DatasetConfig, ModelConfig, PipelineConfig, TrainingConfig
+
+    data_dir = Path(cfg.data_dir) if cfg.data_dir else SPLIT_DATASET
+    output_dir = Path(cfg.output_dir) if cfg.output_dir else S3_OUTPUT / "cascade_rcnn"
+
+    dataset = DatasetConfig(
+        data_dir=data_dir,
+        train_json=data_dir / "train_coco.json",
+        val_json=data_dir / "val_coco.json",
+        output_dir=output_dir,
+    )
+    training = TrainingConfig(
+        batch_size=cfg.batch_size,
+        lr=cfg.lr,
+    )
+    return PipelineConfig(dataset=dataset, model=ModelConfig(), training=training)
 
 
 class CascadeRCNNTrainer(Trainer):
@@ -37,21 +57,17 @@ class CascadeRCNNTrainer(Trainer):
             Path to best checkpoint file.
         """
         config = config or self.config
-        data_dir = Path(config.data_dir) if config.data_dir else SPLIT_DATASET
         output_dir = Path(config.output_dir) if config.output_dir else S3_OUTPUT / "cascade_rcnn"
 
         def _do_train() -> Path:
-            output_dir.mkdir(parents=True, exist_ok=True)
-            logger.info(
-                "cascade_rcnn_train_stub",
-                data_dir=str(data_dir),
-                output=str(output_dir),
-                epochs=config.epochs,
-            )
-            ckpt = output_dir / "best.pth"
-            if not ckpt.exists():
-                ckpt.touch()
-            return ckpt
+            from src.s3_train.cascade_rcnn.train import run_pipeline
+
+            pipeline_cfg = _build_pipeline_config(config)
+            run_pipeline(pipeline_cfg)
+            summary_path = output_dir / "summary_report.json"
+            if summary_path.exists():
+                return summary_path
+            return output_dir
 
         return run_cached_step(
             step_name="train_cascade_rcnn",
@@ -76,14 +92,3 @@ class CascadeRCNNTrainer(Trainer):
 
 
 register_trainer("cascade_rcnn", CascadeRCNNTrainer)
-
-
-if __name__ == "__main__":
-    from src.cli_helpers import standalone_main
-
-    standalone_main(
-        config_model=CascadeRCNNConfig,
-        run_fn=lambda cfg: CascadeRCNNTrainer(cfg).train(cfg),
-        description="Train Cascade R-CNN",
-        required_fields=["data_dir"],
-    )
