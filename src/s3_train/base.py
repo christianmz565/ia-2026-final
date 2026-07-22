@@ -18,9 +18,8 @@ class Trainer(Protocol):
 
     def train(
         self,
-        data_dir: Path,
-        output_dir: Path,
         config: Any,
+        force: bool = False,
     ) -> Path:
         """Train the model and return path to the best checkpoint.
 

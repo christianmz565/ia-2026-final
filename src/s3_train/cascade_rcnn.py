@@ -13,12 +13,12 @@ import structlog
 from src.caching import run_cached_step
 from src.config import CascadeRCNNConfig
 from src.constants import S3_OUTPUT, SPLIT_DATASET
-from src.s3_train.base import register_trainer
+from src.s3_train.base import Trainer, register_trainer
 
 logger = structlog.get_logger(__name__)
 
 
-class CascadeRCNNTrainer:
+class CascadeRCNNTrainer(Trainer):
     """Train Cascade R-CNN via MMDetection."""
 
     name = "cascade_rcnn"
