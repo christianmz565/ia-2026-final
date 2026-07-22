@@ -1,4 +1,4 @@
-"""Explore the downloaded dataset: class distribution, bbox statistics, sample images.
+"""Explore the dataset: class distribution, bbox statistics, sample images.
 
 Standalone usage:
     uv run python -m src.s1_prepare.explore [--input-dir PATH]
@@ -9,9 +9,11 @@ from __future__ import annotations
 from pathlib import Path
 
 import structlog
+from pydantic import BaseModel, Field
+from tqdm import tqdm
 
-from src.constants import CLASS_NAMES, ID_TO_CLASS, RAW_DATASET
-from src.utils import read_yolo_labels, resolve_labels_dir
+from src.constants import CLASS_NAMES, ID_TO_CLASS, PROCESSED_DATASET, RAW_DATASET
+from src.utils import find_image_label_pairs, read_yolo_labels
 
 logger = structlog.get_logger(__name__)
 
@@ -21,24 +23,23 @@ def explore_dataset(input_dir: Path | str | None = None) -> dict[str, object]:
 
     Args:
         input_dir: Directory with images/ and labels/ sub-dirs.
-                   Defaults to ``RAW_DATASET``.
+                   Defaults to ``PROCESSED_DATASET`` if exists, else ``RAW_DATASET``.
 
     Returns:
         Dict with keys: total_images, total_annotations, class_counts,
         avg_boxes_per_image, bbox_stats.
     """
-    input_dir = Path(input_dir or RAW_DATASET)
-    labels_dir = resolve_labels_dir(input_dir)
+    resolved_input = Path(input_dir) if input_dir else PROCESSED_DATASET if PROCESSED_DATASET.exists() else RAW_DATASET
 
-    label_files = list(labels_dir.rglob("*.txt"))
-    logger.info("scanning_labels", directory=str(labels_dir), count=len(label_files))
+    pairs = find_image_label_pairs(resolved_input)
+    logger.info("scanning_dataset", directory=str(resolved_input), count=len(pairs))
 
     class_counts: dict[str, int] = dict.fromkeys(CLASS_NAMES, 0)
     total_annotations = 0
     widths, heights, aspects, areas = [], [], [], []
 
-    for lf in label_files:
-        bboxes = read_yolo_labels(lf)
+    for _, label_path in tqdm(pairs, desc="Exploring dataset", unit="img"):
+        bboxes = read_yolo_labels(label_path)
         total_annotations += len(bboxes)
         for b in bboxes:
             name = ID_TO_CLASS.get(b.class_id, f"unknown_{b.class_id}")
@@ -49,10 +50,10 @@ def explore_dataset(input_dir: Path | str | None = None) -> dict[str, object]:
             areas.append(b.area())
 
     stats: dict[str, object] = {
-        "total_images": len(label_files),
+        "total_images": len(pairs),
         "total_annotations": total_annotations,
         "class_counts": class_counts,
-        "avg_boxes_per_image": total_annotations / max(len(label_files), 1),
+        "avg_boxes_per_image": total_annotations / max(len(pairs), 1),
         "bbox_stats": {
             "mean_width": sum(widths) / max(len(widths), 1),
             "mean_height": sum(heights) / max(len(heights), 1),
@@ -68,12 +69,18 @@ def explore_dataset(input_dir: Path | str | None = None) -> dict[str, object]:
     return stats
 
 
+class ExploreConfig(BaseModel):
+    """Configuration for explore step."""
+
+    input_dir: str = Field(default="", description="Input dataset directory")
+
+
 if __name__ == "__main__":
     from src.cli_helpers import standalone_main
 
     standalone_main(
-        config_model=type("ExploreConfig", (), {"input_dir": RAW_DATASET}),
-        run_fn=lambda cfg: explore_dataset(cfg.input_dir),
+        config_model=ExploreConfig,
+        run_fn=lambda cfg: explore_dataset(cfg.input_dir or None),
         description="Explore wood-surface-defects dataset",
         skip_fields=[],
     )

@@ -18,7 +18,7 @@ S5_OUTPUT = PARTIALS_DIR / "s5_analysis"
 
 # S1 intermediate paths
 RAW_DATASET = S1_OUTPUT / "raw"
-COCO_DATASET = S1_OUTPUT / "coco"
+PROCESSED_DATASET = S1_OUTPUT / "processed"
 SPLIT_DATASET = S1_OUTPUT / "split"
 
 # S2 intermediate paths — derived from augmentation method names
@@ -52,9 +52,9 @@ ID_TO_CLASS: dict[int, str] = {idx: name for name, idx in CLASS_TO_ID.items()}
 # ---------------------------------------------------------------------------
 
 DEFAULT_SPLIT_RATIOS: dict[str, float] = {
-    "train": 0.70,
-    "val": 0.15,
-    "test": 0.15,
+    "train": 0.80,
+    "test": 0.10,
+    "val": 0.10,
 }
 
 DEFAULT_SEED = 42

@@ -1,4 +1,4 @@
-"""s1_prepare pipeline — runs download -> explore -> convert -> split.
+"""s1_prepare pipeline — runs download -> preprocess -> explore -> split.
 
 Standalone usage:
     uv run python -m src.s1_prepare.pipeline [--log-level INFO]
@@ -9,14 +9,14 @@ from __future__ import annotations
 import structlog
 
 from src.config import S1Config
-from src.s1_prepare.convert import convert_yolo_to_coco
 from src.s1_prepare.download import download_dataset
 from src.s1_prepare.explore import explore_dataset
+from src.s1_prepare.preprocess import preprocess_dataset
 from src.s1_prepare.split import split_dataset
 
 logger = structlog.get_logger(__name__)
 
-STEPS = ["download", "explore", "convert", "split"]
+STEPS = ["download", "preprocess", "explore", "split"]
 
 
 def run_pipeline(config: S1Config | None = None) -> None:
@@ -31,11 +31,11 @@ def run_pipeline(config: S1Config | None = None) -> None:
     logger.info("s1_step", step="download")
     download_dataset(config.download)
 
+    logger.info("s1_step", step="preprocess")
+    preprocess_dataset(config.preprocess)
+
     logger.info("s1_step", step="explore")
     explore_dataset()
-
-    logger.info("s1_step", step="convert")
-    convert_yolo_to_coco()
 
     logger.info("s1_step", step="split")
     split_dataset(config.split)
@@ -50,5 +50,5 @@ if __name__ == "__main__":
         config_model=S1Config,
         run_fn=run_pipeline,
         description="s1_prepare pipeline",
-        skip_fields=["download", "split"],
+        skip_fields=["download", "preprocess", "split"],
     )

@@ -25,6 +25,16 @@ class DownloadConfig(BaseModel):
     force_redownload: bool = Field(default=False, description="Re-download even if exists")
 
 
+class PreprocessConfig(BaseModel):
+    """Configuration for image downscaling, cropping, and label filtering."""
+
+    scale_factor: float = Field(default=0.5, description="Factor to resize image (e.g. 0.5 for 50%)")
+    min_label_size_px: float = Field(
+        default=4.0, description="Minimum width or height in pixels after downscale to keep label"
+    )
+    black_threshold: int = Field(default=10, description="Grayscale intensity threshold for non-black wood pixels")
+
+
 class SplitConfig(BaseModel):
     """Configuration for train/val/test splitting."""
 
@@ -37,6 +47,7 @@ class S1Config(BaseModel):
     """Configuration for the s1_prepare section."""
 
     download: DownloadConfig = Field(default_factory=DownloadConfig)
+    preprocess: PreprocessConfig = Field(default_factory=PreprocessConfig)
     split: SplitConfig = Field(default_factory=SplitConfig)
 
 

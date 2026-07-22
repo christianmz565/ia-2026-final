@@ -135,44 +135,45 @@ def ensure_dir(path: Path | str) -> Path:
 
 
 def resolve_labels_dir(input_dir: Path) -> Path:
-    """Return the labels directory, falling back to input_dir if no ``labels/`` sub-dir exists."""
+    """Return the labels directory if it exists, falling back to input_dir."""
     labels_dir = input_dir / "labels"
-    return labels_dir if labels_dir.exists() else input_dir
+    if labels_dir.exists():
+        return labels_dir
+    # Check for Kaggle or nested Bounding Boxes directory
+    bbox_dirs = list(input_dir.rglob("*Bounding Boxes*")) + list(input_dir.rglob("*labels*"))
+    for d in bbox_dirs:
+        if d.is_dir():
+            return d
+    return input_dir
 
 
 def find_image_label_pairs(input_dir: Path) -> list[tuple[Path, Path]]:
-    """Find all (image_path, label_path) pairs in a YOLO-structured dataset.
+    """Find all (image_path, label_path) pairs in a dataset.
 
-    Expects either::
-
-        input_dir/
-            images/
-            labels/
-
-    or a flat layout where images and labels sit side by side.
+    Handles structured (images/, labels/), flat, or Kaggle-extracted layouts.
 
     Args:
         input_dir: Root dataset directory.
 
     Returns:
-        Sorted list of ``(image_path, label_path)`` tuples. If a label
-        file is missing for an image, the label path still points to the
-        expected (non-existent) location.
+        Sorted list of ``(image_path, label_path)`` tuples.
     """
     images_dir = input_dir / "images"
-    labels_dir = resolve_labels_dir(input_dir)
-
     if images_dir.exists():
         image_files = sorted(images_dir.rglob("*.jpg")) + sorted(images_dir.rglob("*.png"))
     else:
         image_files = sorted(input_dir.rglob("*.jpg")) + sorted(input_dir.rglob("*.png"))
 
+    txt_files = list(input_dir.rglob("*.txt"))
+    label_map: dict[str, Path] = {f.stem: f for f in txt_files}
+    labels_dir = resolve_labels_dir(input_dir)
+
     pairs: list[tuple[Path, Path]] = []
     for img_path in image_files:
-        label_path = labels_dir / img_path.with_suffix(".txt").name
-        if not label_path.exists():
-            # Try sub-directory match (e.g. images/sub/img.jpg → labels/sub/img.txt)
-            label_path = labels_dir / img_path.parent.name / img_path.with_suffix(".txt").name
+        if img_path.stem in label_map:
+            label_path = label_map[img_path.stem]
+        else:
+            label_path = labels_dir / img_path.with_suffix(".txt").name
         pairs.append((img_path, label_path))
 
     return pairs
