@@ -26,8 +26,6 @@ from pydantic import BaseModel
 
 from src.logging import configure_logging
 
-# ── Field-type → argparse kwargs mapping ─────────────────────────────────────
-
 _ARGPARSE_TYPE_MAP: dict[type, dict[str, Any]] = {
     str: {"type": str},
     int: {"type": int},
@@ -50,19 +48,15 @@ def _resolve_type(field_annotation: type) -> type | None:
     """
     origin = getattr(field_annotation, "__origin__", None)
 
-    # list[X] → str (comma-separated)
     if origin is list:
         return str
 
-    # dict[...] → str (JSON)
     if origin is dict:
         return str
 
-    # Path
     if field_annotation is Path or (origin is Path):
         return Path
 
-    # Simple builtins
     if field_annotation in _ARGPARSE_TYPE_MAP:
         return field_annotation
 
@@ -108,7 +102,6 @@ def add_model_args(
             continue
 
         if resolved is str and field_info.metadata:
-            # Check for enum-like choices
             for meta in field_info.metadata:
                 if hasattr(meta, "get") and "choices" in meta:
                     parser.add_argument(flag, choices=meta["choices"], default=None)
@@ -125,7 +118,6 @@ def add_model_args(
             parser.add_argument(flag, **kwargs)
             continue
 
-        # Fallback: accept as string, we'll parse it later
         parser.add_argument(flag, type=str, default=None)
 
 
@@ -151,12 +143,9 @@ def model_from_args[T: BaseModel](
     kwargs: dict[str, Any] = {}
     for field_name in model.model_fields:
         flag_name = f"{prefix}{field_name}" if prefix else field_name
-        # argparse converts hyphens to underscores in dest, but our flag
-        # is already using underscores internally
         attr_name = flag_name.replace("-", "_")
         value = getattr(args, attr_name, None)
         if value is not None:
-            # Handle list[str] from comma-separated string
             annotation = model.model_fields[field_name].annotation
             origin = getattr(annotation, "__origin__", None)
             if origin is list and isinstance(value, str):

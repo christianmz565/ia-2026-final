@@ -12,6 +12,7 @@ from typing import Any
 
 import structlog
 
+from src.caching import run_cached_step
 from src.constants import S5_OUTPUT
 
 logger = structlog.get_logger(__name__)
@@ -21,6 +22,7 @@ def generate_tables(
     aggregated: dict[str, Any],
     output_dir: Path | str | None = None,
     fmt: str = "latex",
+    force: bool = False,
 ) -> Path:
     """Generate comparison tables from aggregated results.
 
@@ -28,25 +30,31 @@ def generate_tables(
         aggregated: Output of ``aggregate_results()``.
         output_dir: Where to write table files.
         fmt: Output format — ``latex``, ``markdown``, or ``csv``.
+        force: If True, bypass cache and re-generate tables.
 
     Returns:
         Path to the generated table file.
     """
-    output_dir = Path(output_dir or S5_OUTPUT / "tables")
-    output_dir.mkdir(parents=True, exist_ok=True)
+    resolved_output_dir = Path(output_dir or S5_OUTPUT / "tables")
+    table_path = resolved_output_dir / f"comparison_table.{fmt}"
 
-    # TODO: build per-model and per-augmentation comparison tables
-    logger.info(
-        "generate_tables_stub",
-        rows=len(aggregated.get("rows", [])),
-        format=fmt,
-        output=str(output_dir),
+    def _do_generate() -> Path:
+        resolved_output_dir.mkdir(parents=True, exist_ok=True)
+        logger.info(
+            "generate_tables_stub",
+            rows=len(aggregated.get("rows", [])),
+            format=fmt,
+            output=str(resolved_output_dir),
+        )
+        table_path.write_text("% Table generation not yet implemented\n")
+        return table_path
+
+    return run_cached_step(
+        step_name="generate_tables",
+        target_path=table_path,
+        fn=_do_generate,
+        force=force,
     )
-
-    # Placeholder: write empty table
-    table_path = output_dir / f"comparison_table.{fmt}"
-    table_path.write_text("% Table generation not yet implemented\n")
-    return table_path
 
 
 if __name__ == "__main__":

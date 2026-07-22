@@ -8,8 +8,6 @@ from pathlib import Path
 import cv2
 import numpy as np
 
-# ── Bounding Box ─────────────────────────────────────────────────────────────
-
 
 @dataclass
 class BBox:
@@ -24,8 +22,6 @@ class BBox:
     w: float
     h: float
     confidence: float | None = None
-
-    # ── conversions ──────────────────────────────────────────────────────
 
     def to_xyxy(self, img_w: int, img_h: int) -> tuple[int, int, int, int]:
         """Convert to absolute (x1, y1, x2, y2) pixel coordinates."""
@@ -66,9 +62,6 @@ class BBox:
         return self.w / self.h if self.h > 0 else 0.0
 
 
-# ── I/O helpers ──────────────────────────────────────────────────────────────
-
-
 def read_image(path: Path | str, *, color: bool = True) -> np.ndarray:
     """Read an image from disk.
 
@@ -90,9 +83,6 @@ def write_image(path: Path | str, image: np.ndarray) -> None:
     """Write an image to disk, creating parent directories."""
     Path(path).parent.mkdir(parents=True, exist_ok=True)
     cv2.imwrite(str(path), image)
-
-
-# ── YOLO annotation I/O ─────────────────────────────────────────────────────
 
 
 def read_yolo_labels(label_path: Path | str) -> list[BBox]:
@@ -124,9 +114,6 @@ def write_yolo_labels(label_path: Path | str, bboxes: list[BBox]) -> None:
             f.write(line + "\n")
 
 
-# ── Path helpers ─────────────────────────────────────────────────────────────
-
-
 def ensure_dir(path: Path | str) -> Path:
     """Create directory (and parents) if it doesn't exist, return Path."""
     p = Path(path)
@@ -139,7 +126,6 @@ def resolve_labels_dir(input_dir: Path) -> Path:
     labels_dir = input_dir / "labels"
     if labels_dir.exists():
         return labels_dir
-    # Check for Kaggle or nested Bounding Boxes directory
     bbox_dirs = list(input_dir.rglob("*Bounding Boxes*")) + list(input_dir.rglob("*labels*"))
     for d in bbox_dirs:
         if d.is_dir():

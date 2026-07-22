@@ -1,7 +1,7 @@
 """Photometric augmentations: color jitter, brightness, contrast, noise.
 
 Standalone usage:
-    uv run python -m src.s2_augments.photometric [--brightness-limit 0.2] [--contrast-limit 0.2]
+    uv run python -m src.s2_augments.augmentations.photometric [--brightness-limit 0.2] [--contrast-limit 0.2]
 """
 
 from __future__ import annotations

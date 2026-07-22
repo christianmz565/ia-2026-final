@@ -15,8 +15,6 @@ from src.constants import (
     KAGGLE_DATASET,
 )
 
-# ── S1: Prepare ─────────────────────────────────────────────────────────────
-
 
 class DownloadConfig(BaseModel):
     """Configuration for dataset download."""
@@ -49,9 +47,6 @@ class S1Config(BaseModel):
     download: DownloadConfig = Field(default_factory=DownloadConfig)
     preprocess: PreprocessConfig = Field(default_factory=PreprocessConfig)
     split: SplitConfig = Field(default_factory=SplitConfig)
-
-
-# ── S2: Augments ─────────────────────────────────────────────────────────────
 
 
 class GeometricConfig(BaseModel):
@@ -109,17 +104,14 @@ class S2Config(BaseModel):
     augment: AugmentConfig = Field(default_factory=AugmentConfig)
 
 
-# ── S3: Train ────────────────────────────────────────────────────────────────
-
-
-class YOLOv8Config(BaseModel):
-    """YOLOv8 training hyper-parameters."""
+class YOLO26Config(BaseModel):
+    """YOLO26 training hyper-parameters."""
 
     model_config = {"protected_namespaces": ()}
 
     data_dir: str = Field(default="", description="Path to training data directory")
     output_dir: str = Field(default="", description="Path to output directory")
-    model_size: str = Field(default="yolov8n.pt", description="YOLOv8 variant")
+    model_size: str = Field(default="yolo26n.pt", description="YOLO26 variant")
     epochs: int = Field(default=100)
     imgsz: int = Field(default=640)
     batch: int = Field(default=16)
@@ -127,26 +119,26 @@ class YOLOv8Config(BaseModel):
     device: str = Field(default="cuda:0")
 
 
-class FasterRCNNConfig(BaseModel):
-    """Faster R-CNN training hyper-parameters (MMDetection)."""
+class CascadeRCNNConfig(BaseModel):
+    """Cascade R-CNN training hyper-parameters (MMDetection)."""
 
     data_dir: str = Field(default="", description="Path to training data directory")
     output_dir: str = Field(default="", description="Path to output directory")
-    config_file: str = Field(default="faster_rcnn_r50_fpn_1x_coco.py")
+    config_file: str = Field(default="cascade_rcnn_r50_fpn_1x_coco.py")
     epochs: int = Field(default=12)
     batch_size: int = Field(default=8)
     lr: float = Field(default=0.01)
     device: str = Field(default="cuda:0")
 
 
-class RTDETRConfig(BaseModel):
-    """RT-DETR training hyper-parameters."""
+class RFDETRConfig(BaseModel):
+    """RF-DETR training hyper-parameters."""
 
     model_config = {"protected_namespaces": ()}
 
     data_dir: str = Field(default="", description="Path to training data directory")
     output_dir: str = Field(default="", description="Path to output directory")
-    model_size: str = Field(default="rtdetr-l.pt", description="RT-DETR variant")
+    model_size: str = Field(default="rfdetr-l.pt", description="RF-DETR variant")
     epochs: int = Field(default=100)
     imgsz: int = Field(default=640)
     batch: int = Field(default=8)
@@ -158,15 +150,12 @@ class S3Config(BaseModel):
     """Configuration for the s3_train section."""
 
     models: list[str] = Field(
-        default_factory=lambda: ["yolov8", "faster_rcnn", "rt_detr"],
+        default_factory=lambda: ["rf_detr", "cascade_rcnn", "yolo26"],
         description="Model paradigms to train",
     )
-    yolov8: YOLOv8Config = Field(default_factory=YOLOv8Config)
-    faster_rcnn: FasterRCNNConfig = Field(default_factory=FasterRCNNConfig)
-    rt_detr: RTDETRConfig = Field(default_factory=RTDETRConfig)
-
-
-# ── S4: Evaluate ─────────────────────────────────────────────────────────────
+    rf_detr: RFDETRConfig = Field(default_factory=RFDETRConfig)
+    cascade_rcnn: CascadeRCNNConfig = Field(default_factory=CascadeRCNNConfig)
+    yolo26: YOLO26Config = Field(default_factory=YOLO26Config)
 
 
 class EvalConfig(BaseModel):
@@ -190,9 +179,6 @@ class S4Config(BaseModel):
     eval: EvalConfig = Field(default_factory=EvalConfig)
 
 
-# ── S5: Analysis ─────────────────────────────────────────────────────────────
-
-
 class AnalysisConfig(BaseModel):
     """Analysis and output preferences."""
 
@@ -208,9 +194,6 @@ class S5Config(BaseModel):
 
     results_dir: str = Field(default="", description="Path to results directory")
     analysis: AnalysisConfig = Field(default_factory=AnalysisConfig)
-
-
-# ── Global pipeline config ───────────────────────────────────────────────────
 
 
 class PipelineConfig(BaseModel):

@@ -42,8 +42,6 @@ class Augmentor(Protocol):
         ...
 
 
-# ── Albumentations base ─────────────────────────────────────────────────────
-
 _BBOX_PARAMS = A.BboxParams(
     format="yolo",
     label_fields=["class_labels"],
@@ -70,7 +68,7 @@ class AlbumentationsAugmentor:
         """Return the effective config, rebuilding the pipeline if config changes."""
         if config is not None:
             self._pipeline = self._build_pipeline(config)
-        return config  # type: ignore[return-value]
+        return config
 
     def apply(
         self,
@@ -104,8 +102,6 @@ class AlbumentationsAugmentor:
         ]
         return result["image"], new_bboxes
 
-
-# ── Global registry ──────────────────────────────────────────────────────────
 
 _AUGMENTATION_REGISTRY: dict[str, type[Augmentor]] = {}
 

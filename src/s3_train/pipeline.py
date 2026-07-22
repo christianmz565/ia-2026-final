@@ -1,19 +1,19 @@
 """s3_train pipeline — trains all configured models on all augmented datasets.
 
 Standalone usage:
-    uv run python -m src.s3_train.pipeline [--models yolov8,faster_rcnn,rt_detr]
+    uv run python -m src.s3_train.pipeline [--models rf_detr,cascade_rcnn,yolo26]
 """
 
 from __future__ import annotations
 
+from pathlib import Path
+from typing import Any
+
 import structlog
 
+from src.caching import run_cached_step
 from src.config import S3Config
-from src.s3_train import (
-    faster_rcnn,  # noqa: F401 — triggers registration
-    rt_detr,  # noqa: F401 — triggers registration
-    yolov8,  # noqa: F401 — triggers registration
-)
+from src.constants import S3_OUTPUT
 from src.s3_train.base import get_trainer, list_trainers
 
 logger = structlog.get_logger(__name__)
@@ -31,13 +31,20 @@ def run_pipeline(config: S3Config | None = None) -> None:
     logger.info("s3_pipeline_start", models=models, available=list_trainers())
 
     for model_name in models:
-        logger.info("s3_step", model=model_name)
-        try:
-            _trainer = get_trainer(model_name)
-            # TODO: iterate over augmented datasets from s2, call _trainer.train()
-            logger.info("s3_step_complete", model=model_name)
-        except KeyError:
-            logger.error("s3_unknown_model", model=model_name)
+        target_dir = S3_OUTPUT / model_name
+        model_config = getattr(config, model_name, None)
+
+        def _run_train(name: str = model_name, cfg: Any = model_config, out_dir: Path = target_dir) -> Path:
+            trainer = get_trainer(name)
+            if cfg and hasattr(cfg, "output_dir") and not cfg.output_dir:
+                cfg.output_dir = str(out_dir)
+            return trainer.train(cfg)
+
+        run_cached_step(
+            step_name=f"train_{model_name}",
+            target_path=target_dir,
+            fn=_run_train,
+        )
 
     logger.info("s3_pipeline_complete")
 
@@ -49,5 +56,5 @@ if __name__ == "__main__":
         config_model=S3Config,
         run_fn=run_pipeline,
         description="s3_train pipeline",
-        skip_fields=["yolov8", "faster_rcnn", "rt_detr"],
+        skip_fields=["yolo26", "cascade_rcnn", "rf_detr"],
     )

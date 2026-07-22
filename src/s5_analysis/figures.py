@@ -12,6 +12,7 @@ from typing import Any
 
 import structlog
 
+from src.caching import run_cached_step
 from src.config import AnalysisConfig
 from src.constants import S5_OUTPUT
 
@@ -22,6 +23,7 @@ def generate_figures(
     aggregated: dict[str, Any],
     output_dir: Path | str | None = None,
     config: AnalysisConfig | None = None,
+    force: bool = False,
 ) -> list[Path]:
     """Generate comparison figures from aggregated results.
 
@@ -29,24 +31,33 @@ def generate_figures(
         aggregated: Output of ``aggregate_results()``.
         output_dir: Where to write figure files.
         config: Analysis configuration (DPI, backend).
+        force: If True, bypass cache and re-generate figures.
 
     Returns:
         List of paths to generated figure files.
     """
     config = config or AnalysisConfig()
-    output_dir = Path(output_dir or S5_OUTPUT / "figures")
-    output_dir.mkdir(parents=True, exist_ok=True)
+    resolved_output_dir = Path(output_dir or S5_OUTPUT / "figures")
 
-    # TODO: generate per-metric bar charts, radar plots, heatmaps
-    logger.info(
-        "generate_figures_stub",
-        rows=len(aggregated.get("rows", [])),
-        dpi=config.figure_dpi,
-        output=str(output_dir),
+    def _do_generate() -> list[Path]:
+        resolved_output_dir.mkdir(parents=True, exist_ok=True)
+        logger.info(
+            "generate_figures_stub",
+            rows=len(aggregated.get("rows", [])),
+            dpi=config.figure_dpi,
+            output=str(resolved_output_dir),
+        )
+        marker = resolved_output_dir / ".figures_generated"
+        marker.touch()
+        return [marker]
+
+    res = run_cached_step(
+        step_name="generate_figures",
+        target_path=resolved_output_dir,
+        fn=_do_generate,
+        force=force,
     )
-
-    # Placeholder: return empty list
-    return []
+    return res if isinstance(res, list) else list(resolved_output_dir.glob("*"))
 
 
 if __name__ == "__main__":

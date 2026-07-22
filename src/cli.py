@@ -57,7 +57,6 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Log level for structlog.",
     )
 
-    # Per-section flags: --<section>.<key> <value>
     for section in ALL_SECTIONS:
         parser.add_argument(
             f"--{section}",
@@ -84,7 +83,6 @@ def _parse_section_flags(section: str, raw_flags: list[str] | None) -> dict[str,
         key, value = token.split("=", 1)
         parts = key.split(".")
 
-        # Coerce value types
         coerced: Any = value
         if value.lower() in ("true", "yes", "1"):
             coerced = True
@@ -99,7 +97,6 @@ def _parse_section_flags(section: str, raw_flags: list[str] | None) -> dict[str,
                 except ValueError:
                     coerced = value
 
-        # Build nested dict
         d = overrides
         for part in parts[:-1]:
             d = d.setdefault(part, {})
@@ -143,7 +140,6 @@ def main() -> None:
 
     config = PipelineConfig(log_level=args.log_level)
 
-    # Apply per-section overrides
     for section in ALL_SECTIONS:
         raw = getattr(args, section, None)
         if raw:
@@ -152,7 +148,6 @@ def main() -> None:
                 _apply_overrides(config, section, overrides)
                 logger.debug("section_overrides", section=section, overrides=overrides)
 
-    # Determine which sections to run
     sections_to_run = args.only or ALL_SECTIONS
 
     logger.info(

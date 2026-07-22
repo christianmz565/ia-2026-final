@@ -1,7 +1,7 @@
 """Geometric augmentations: flip, rotate, scale, crop.
 
 Standalone usage:
-    uv run python -m src.s2_augments.geometric [--horizontal-flip-prob 0.5] [--rotation-limit 15]
+    uv run python -m src.s2_augments.augmentations.geometric [--horizontal-flip-prob 0.5] [--rotation-limit 15]
 """
 
 from __future__ import annotations

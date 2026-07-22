@@ -1,7 +1,7 @@
 """Mosaic augmentation: combine 4 images into a single training sample.
 
 Standalone usage:
-    uv run python -m src.s2_augments.mosaic [--log-level INFO]
+    uv run python -m src.s2_augments.augmentations.mosaic [--log-level INFO]
 """
 
 from __future__ import annotations
@@ -56,7 +56,6 @@ class MosaicAugmentor:
             logger.warning("mosaic_insufficient_images", provided=len(other_images or []))
             return image, bboxes
 
-        # Placeholder: actual mosaic stitching logic goes here
         pass
 
     def _place_image(

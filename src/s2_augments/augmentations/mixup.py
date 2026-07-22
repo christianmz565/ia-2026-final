@@ -1,7 +1,7 @@
 """MixUp augmentation: blend two images and their annotations.
 
 Standalone usage:
-    uv run python -m src.s2_augments.mixup [--log-level INFO]
+    uv run python -m src.s2_augments.augmentations.mixup [--log-level INFO]
 """
 
 from __future__ import annotations
@@ -52,7 +52,6 @@ class MixupAugmentor:
             logger.warning("mixup_missing_pair")
             return image, bboxes
 
-        # Placeholder: actual MixUp blending logic goes here
         pass
 
 

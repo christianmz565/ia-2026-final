@@ -48,8 +48,6 @@ class Trainer(Protocol):
         ...
 
 
-# ── Registry ─────────────────────────────────────────────────────────────────
-
 _TRAINER_REGISTRY: dict[str, type[Trainer]] = {}
 
 

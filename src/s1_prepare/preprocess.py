@@ -15,6 +15,7 @@ import numpy as np
 import structlog
 from tqdm import tqdm
 
+from src.caching import run_cached_step
 from src.config import PreprocessConfig
 from src.constants import PROCESSED_DATASET, RAW_DATASET
 from src.utils import BBox, find_image_label_pairs, read_yolo_labels, write_yolo_labels
@@ -38,14 +39,11 @@ def crop_black_borders(img: np.ndarray, threshold: int = 10) -> tuple[np.ndarray
     h_orig, w_orig = img.shape[:2]
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY) if img.ndim == 3 else img
 
-    # Otsu thresholding to segment wood plank from dark background
     _, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
 
-    # Morphological closing to smooth internal wood defects
     kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (15, 15))
     cleaned = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
 
-    # Column bounds (left / right black border detection)
     col_counts = np.sum(cleaned > 0, axis=0)
     col_indices = np.where(col_counts > h_orig * 0.05)[0]
 
@@ -55,7 +53,6 @@ def crop_black_borders(img: np.ndarray, threshold: int = 10) -> tuple[np.ndarray
         xmin = int(col_indices[0])
         xmax = int(col_indices[-1]) + 1
 
-    # Row bounds (top / bottom black border detection)
     row_counts = np.sum(cleaned > 0, axis=1)
     row_indices = np.where(row_counts > w_orig * 0.05)[0]
 
@@ -110,13 +107,11 @@ def process_image_and_labels(
     bboxes_final: list[BBox] = []
 
     for b in bboxes_orig:
-        # Convert normalized YOLO to absolute original coordinates
         x1_orig = (b.cx - b.w / 2.0) * w_orig
         y1_orig = (b.cy - b.h / 2.0) * h_orig
         x2_orig = (b.cx + b.w / 2.0) * w_orig
         y2_orig = (b.cy + b.h / 2.0) * h_orig
 
-        # Shift to crop coordinates and clip to cropped image bounds
         x1_crop = max(0.0, min(float(w_crop), x1_orig - xmin))
         y1_crop = max(0.0, min(float(h_crop), y1_orig - ymin))
         x2_crop = max(0.0, min(float(w_crop), x2_orig - xmin))
@@ -125,15 +120,12 @@ def process_image_and_labels(
         box_w_crop = x2_crop - x1_crop
         box_h_crop = y2_crop - y1_crop
 
-        # Box dimensions in downscaled image space
         box_w_px = box_w_crop * config.scale_factor
         box_h_px = box_h_crop * config.scale_factor
 
-        # Filter labels less than min_label_size_px after downscale
         if box_w_px < config.min_label_size_px or box_h_px < config.min_label_size_px:
             continue
 
-        # Convert back to normalized YOLO coordinates relative to cropped/downscaled image
         cx_norm = ((x1_crop + x2_crop) / 2.0) / w_crop
         cy_norm = ((y1_crop + y2_crop) / 2.0) / h_crop
         w_norm = box_w_crop / w_crop
@@ -178,6 +170,7 @@ def preprocess_dataset(
     input_dir: Path | str | None = None,
     output_dir: Path | str | None = None,
     max_workers: int | None = None,
+    force: bool = False,
 ) -> Path:
     """Execute preprocessing across all images and labels in input_dir in parallel.
 
@@ -186,60 +179,69 @@ def preprocess_dataset(
         input_dir: Input raw dataset path.
         output_dir: Output preprocessed dataset path.
         max_workers: Number of worker processes (defaults to CPU count).
+        force: If True, bypass cache and re-process dataset.
 
     Returns:
         Path to output directory containing images/ and labels/ subdirectories.
     """
     config = config or PreprocessConfig()
-    input_dir = Path(input_dir or RAW_DATASET)
-    output_dir = Path(output_dir or PROCESSED_DATASET)
+    resolved_input = Path(input_dir or RAW_DATASET)
+    resolved_output = Path(output_dir or PROCESSED_DATASET)
 
-    out_images_dir = output_dir / "images"
-    out_labels_dir = output_dir / "labels"
-    out_images_dir.mkdir(parents=True, exist_ok=True)
-    out_labels_dir.mkdir(parents=True, exist_ok=True)
+    def _preprocess() -> Path:
+        out_images_dir = resolved_output / "images"
+        out_labels_dir = resolved_output / "labels"
+        out_images_dir.mkdir(parents=True, exist_ok=True)
+        out_labels_dir.mkdir(parents=True, exist_ok=True)
 
-    pairs = find_image_label_pairs(input_dir)
-    if not pairs:
-        raise FileNotFoundError(f"No images found in {input_dir}")
+        pairs = find_image_label_pairs(resolved_input)
+        if not pairs:
+            raise FileNotFoundError(f"No images found in {resolved_input}")
 
-    workers = max_workers or os.cpu_count() or 4
+        workers = max_workers or os.cpu_count() or 4
 
-    logger.info(
-        "preprocessing_dataset_parallel",
-        total_images=len(pairs),
-        scale_factor=config.scale_factor,
-        min_label_size_px=config.min_label_size_px,
-        workers=workers,
+        logger.info(
+            "preprocessing_dataset_parallel",
+            total_images=len(pairs),
+            scale_factor=config.scale_factor,
+            min_label_size_px=config.min_label_size_px,
+            workers=workers,
+        )
+
+        tasks = [(img_path, label_path, config, out_images_dir, out_labels_dir) for img_path, label_path in pairs]
+
+        total_orig_boxes = 0
+        total_kept_boxes = 0
+
+        with ProcessPoolExecutor(max_workers=workers) as executor:
+            futures = [executor.submit(_process_single_pair, task) for task in tasks]
+            for future in tqdm(
+                as_completed(futures),
+                total=len(futures),
+                desc="Preprocessing dataset (parallel)",
+                unit="img",
+            ):
+                orig_c, kept_c = future.result()
+                total_orig_boxes += orig_c
+                total_kept_boxes += kept_c
+
+        logger.info(
+            "preprocessing_complete",
+            total_images=len(pairs),
+            orig_boxes=total_orig_boxes,
+            kept_boxes=total_kept_boxes,
+            removed_boxes=total_orig_boxes - total_kept_boxes,
+            output_dir=str(resolved_output),
+        )
+
+        return resolved_output
+
+    return run_cached_step(
+        step_name="preprocess",
+        target_path=resolved_output,
+        fn=_preprocess,
+        force=force,
     )
-
-    tasks = [(img_path, label_path, config, out_images_dir, out_labels_dir) for img_path, label_path in pairs]
-
-    total_orig_boxes = 0
-    total_kept_boxes = 0
-
-    with ProcessPoolExecutor(max_workers=workers) as executor:
-        futures = [executor.submit(_process_single_pair, task) for task in tasks]
-        for future in tqdm(
-            as_completed(futures),
-            total=len(futures),
-            desc="Preprocessing dataset (parallel)",
-            unit="img",
-        ):
-            orig_c, kept_c = future.result()
-            total_orig_boxes += orig_c
-            total_kept_boxes += kept_c
-
-    logger.info(
-        "preprocessing_complete",
-        total_images=len(pairs),
-        orig_boxes=total_orig_boxes,
-        kept_boxes=total_kept_boxes,
-        removed_boxes=total_orig_boxes - total_kept_boxes,
-        output_dir=str(output_dir),
-    )
-
-    return output_dir
 
 
 if __name__ == "__main__":

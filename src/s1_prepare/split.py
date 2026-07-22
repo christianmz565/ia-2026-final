@@ -14,6 +14,7 @@ import numpy as np
 import structlog
 from tqdm import tqdm
 
+from src.caching import run_cached_step
 from src.config import SplitConfig
 from src.constants import CLASS_NAMES, PROCESSED_DATASET, RAW_DATASET, SPLIT_DATASET
 from src.utils import find_image_label_pairs, read_yolo_labels
@@ -42,7 +43,6 @@ def greedy_iterative_stratified_split(
     n_samples = len(pairs)
     n_classes = len(CLASS_NAMES)
 
-    # Construct label matrix Y (n_samples x n_classes)
     Y = np.zeros((n_samples, n_classes), dtype=int)
     for idx, (_, label_path) in enumerate(pairs):
         boxes = read_yolo_labels(label_path)
@@ -63,7 +63,6 @@ def greedy_iterative_stratified_split(
 
     unassigned = set(range(n_samples))
 
-    # Process samples containing bounding boxes
     while True:
         labeled_unassigned = [i for i in unassigned if Y[i].sum() > 0]
         if not labeled_unassigned:
@@ -75,11 +74,9 @@ def greedy_iterative_stratified_split(
         if len(pos_classes) == 0:
             break
 
-        # Pick rarest class among remaining labeled samples
         rarest_class = int(pos_classes[np.argmin(rem_class_totals[pos_classes])])
 
         candidate_indices = [i for i in labeled_unassigned if Y[i, rarest_class] > 0]
-        # Sort candidates deterministically (highest rarest class count, total count, index)
         candidate_indices.sort(key=lambda i: (-Y[i, rarest_class], -Y[i].sum(), i))
 
         for i in candidate_indices:
@@ -96,12 +93,10 @@ def greedy_iterative_stratified_split(
             rng.shuffle(split_indices)
 
             for s_idx in split_indices:
-                # 1. Deficit ratio for rarest class
                 c_target = target_class_counts[s_idx, rarest_class]
                 c_curr = current_class_counts[s_idx, rarest_class]
                 rarest_deficit_ratio = (c_target - c_curr) / max(c_target, 1.0)
 
-                # 2. Mean deficit ratio for all present classes in sample
                 deficits = [
                     (target_class_counts[s_idx, c] - current_class_counts[s_idx, c])
                     / max(target_class_counts[s_idx, c], 1.0)
@@ -109,7 +104,6 @@ def greedy_iterative_stratified_split(
                 ]
                 mean_deficit_ratio = float(np.mean(deficits))
 
-                # 3. Sample count deficit ratio
                 samp_target = target_sample_counts[s_idx]
                 samp_curr = current_sample_counts[s_idx]
                 samp_deficit_ratio = (samp_target - samp_curr) / max(samp_target, 1.0)
@@ -124,7 +118,6 @@ def greedy_iterative_stratified_split(
             current_sample_counts[best_split_idx] += 1
             unassigned.remove(i)
 
-    # Process remaining unlabeled samples
     remaining = list(unassigned)
     rng.shuffle(remaining)
     for i in remaining:
@@ -139,7 +132,6 @@ def greedy_iterative_stratified_split(
         assignments[i] = split_names[best_split_idx]
         current_sample_counts[best_split_idx] += 1
 
-    # Map indices back to pairs
     result: dict[str, list[tuple[Path, Path]]] = {s: [] for s in split_names}
     for idx, pair in enumerate(pairs):
         split_name = assignments[idx]
@@ -152,6 +144,7 @@ def split_dataset(
     config: SplitConfig | None = None,
     input_dir: Path | str | None = None,
     output_dir: Path | str | None = None,
+    force: bool = False,
 ) -> Path:
     """Split preprocessed dataset into train/test/val folders with greedy iterative stratification.
 
@@ -159,53 +152,60 @@ def split_dataset(
         config: Split configuration with ratios and seed.
         input_dir: Directory with preprocessed images/ and labels/ sub-dirs.
         output_dir: Root output directory for splits.
+        force: If True, bypass cache and re-split dataset.
 
     Returns:
         Path to the split output root.
     """
     config = config or SplitConfig()
     resolved_input = Path(input_dir) if input_dir else PROCESSED_DATASET if PROCESSED_DATASET.exists() else RAW_DATASET
+    resolved_output = Path(output_dir or SPLIT_DATASET)
 
-    output_dir = Path(output_dir or SPLIT_DATASET)
+    def _split() -> Path:
+        pairs = find_image_label_pairs(resolved_input)
+        if not pairs:
+            raise FileNotFoundError(f"No images found in {resolved_input}")
 
-    pairs = find_image_label_pairs(resolved_input)
-    if not pairs:
-        raise FileNotFoundError(f"No images found in {resolved_input}")
+        logger.info(
+            "splitting_dataset",
+            total_images=len(pairs),
+            ratios=config.ratios,
+            seed=config.seed,
+            input_dir=str(resolved_input),
+        )
 
-    logger.info(
-        "splitting_dataset",
-        total_images=len(pairs),
-        ratios=config.ratios,
-        seed=config.seed,
-        input_dir=str(resolved_input),
+        ratio_sum = sum(config.ratios.values())
+        assert abs(ratio_sum - 1.0) < 1e-6, f"Ratios must sum to 1.0, got {ratio_sum}"
+
+        split_pairs = greedy_iterative_stratified_split(
+            pairs=pairs,
+            ratios=config.ratios,
+            seed=config.seed,
+        )
+
+        for split_name, s_pairs in split_pairs.items():
+            split_images = resolved_output / split_name / "images"
+            split_labels = resolved_output / split_name / "labels"
+            split_images.mkdir(parents=True, exist_ok=True)
+            split_labels.mkdir(parents=True, exist_ok=True)
+
+            for img_path, label_path in tqdm(s_pairs, desc=f"Writing {split_name} split", unit="img"):
+                shutil.copy2(img_path, split_images / img_path.name)
+                if label_path.exists():
+                    shutil.copy2(label_path, split_labels / img_path.with_suffix(".txt").name)
+                else:
+                    (split_labels / img_path.with_suffix(".txt").name).touch()
+
+            logger.info("split_complete", split=split_name, count=len(s_pairs))
+
+        return resolved_output
+
+    return run_cached_step(
+        step_name="split",
+        target_path=resolved_output,
+        fn=_split,
+        force=force,
     )
-
-    ratio_sum = sum(config.ratios.values())
-    assert abs(ratio_sum - 1.0) < 1e-6, f"Ratios must sum to 1.0, got {ratio_sum}"
-
-    split_pairs = greedy_iterative_stratified_split(
-        pairs=pairs,
-        ratios=config.ratios,
-        seed=config.seed,
-    )
-
-    for split_name, s_pairs in split_pairs.items():
-        split_images = output_dir / split_name / "images"
-        split_labels = output_dir / split_name / "labels"
-        split_images.mkdir(parents=True, exist_ok=True)
-        split_labels.mkdir(parents=True, exist_ok=True)
-
-        for img_path, label_path in tqdm(s_pairs, desc=f"Writing {split_name} split", unit="img"):
-            shutil.copy2(img_path, split_images / img_path.name)
-            if label_path.exists():
-                shutil.copy2(label_path, split_labels / img_path.with_suffix(".txt").name)
-            else:
-                # Ensure empty label file exists if no defect
-                (split_labels / img_path.with_suffix(".txt").name).touch()
-
-        logger.info("split_complete", split=split_name, count=len(s_pairs))
-
-    return output_dir
 
 
 if __name__ == "__main__":

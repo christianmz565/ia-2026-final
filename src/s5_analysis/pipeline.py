@@ -9,6 +9,7 @@ from __future__ import annotations
 import structlog
 
 from src.config import S5Config
+from src.constants import S4_OUTPUT, S5_OUTPUT
 from src.s5_analysis.aggregate import aggregate_results
 from src.s5_analysis.figures import generate_figures
 from src.s5_analysis.tables import generate_tables
@@ -26,14 +27,25 @@ def run_pipeline(config: S5Config | None = None) -> None:
 
     logger.info("s5_pipeline_start")
 
-    logger.info("s5_step", step="aggregate")
-    aggregated = aggregate_results()
+    aggregated_path = S5_OUTPUT / "aggregated.json"
+    aggregated = aggregate_results(
+        results_dir=config.results_dir or S4_OUTPUT,
+        output_path=aggregated_path,
+    )
 
-    logger.info("s5_step", step="tables")
-    generate_tables(aggregated, fmt=config.analysis.output_format)
+    table_dir = S5_OUTPUT / "tables"
+    generate_tables(
+        aggregated=aggregated if isinstance(aggregated, dict) else {},
+        output_dir=table_dir,
+        fmt=config.analysis.output_format,
+    )
 
-    logger.info("s5_step", step="figures")
-    generate_figures(aggregated, config=config.analysis)
+    figures_dir = S5_OUTPUT / "figures"
+    generate_figures(
+        aggregated=aggregated if isinstance(aggregated, dict) else {},
+        output_dir=figures_dir,
+        config=config.analysis,
+    )
 
     logger.info("s5_pipeline_complete")
 

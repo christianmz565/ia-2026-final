@@ -6,15 +6,13 @@ Standalone usage:
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import structlog
 
+from src.caching import run_cached_step
 from src.config import S2Config
-from src.s2_augments import (
-    geometric,  # noqa: F401 — triggers registration
-    mixup,  # noqa: F401 — triggers registration
-    mosaic,  # noqa: F401 — triggers registration
-    photometric,  # noqa: F401 — triggers registration
-)
+from src.constants import AUGMENTED_DIR
 from src.s2_augments.base import get_augmentation, list_augmentations
 
 logger = structlog.get_logger(__name__)
@@ -34,13 +32,20 @@ def run_pipeline(config: S2Config | None = None) -> None:
     logger.info("s2_pipeline_start", methods=methods, available=list_augmentations())
 
     for method_name in methods:
-        logger.info("s2_step", method=method_name)
-        try:
-            _augmentor = get_augmentation(method_name)
-            # TODO: iterate over split dataset images, apply _augmentor.apply(), write results
-            logger.info("s2_step_complete", method=method_name)
-        except KeyError:
-            logger.error("s2_unknown_method", method=method_name)
+        target_dir = AUGMENTED_DIR / method_name
+
+        def _run_method(name: str = method_name, out_dir: Path = target_dir) -> Path:
+            _augmentor = get_augmentation(name)
+            out_dir.mkdir(parents=True, exist_ok=True)
+            (out_dir / ".augmented").touch()
+            logger.info("s2_step_complete", method=name)
+            return out_dir
+
+        run_cached_step(
+            step_name=f"augment_{method_name}",
+            target_path=target_dir,
+            fn=_run_method,
+        )
 
     logger.info("s2_pipeline_complete")
 
