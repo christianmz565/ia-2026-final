@@ -41,9 +41,10 @@ def run_pipeline(config: S4Config | None = None) -> None:
             conf_threshold=config.eval.conf_threshold,
         )
         metrics_path = out_dir / "metrics.json"
+        gt_path = config.eval.ground_truth or ((config.eval.data_dir or (SPLIT_DATASET / "test")) / "_annotations.coco.json")
         metrics = compute_metrics(
             predictions=config.eval.predictions or pred_path,
-            ground_truth=config.eval.ground_truth or (SPLIT_DATASET / "test" / "labels"),
+            ground_truth=gt_path,
             iou_threshold=config.eval.iou_threshold,
             output_path=metrics_path,
         )
@@ -78,9 +79,13 @@ def run_pipeline(config: S4Config | None = None) -> None:
             )
 
             metrics_path = eval_out_dir / "metrics.json"
+            gt_path = config.eval.ground_truth or (data_dir / "_annotations.coco.json")
+            if not Path(gt_path).exists():
+                gt_path = SPLIT_DATASET / "test" / "_annotations.coco.json"
+
             metrics = compute_metrics(
                 predictions=config.eval.predictions or pred_path,
-                ground_truth=config.eval.ground_truth or (SPLIT_DATASET / "test" / "labels"),
+                ground_truth=gt_path,
                 iou_threshold=config.eval.iou_threshold,
                 output_path=metrics_path,
             )

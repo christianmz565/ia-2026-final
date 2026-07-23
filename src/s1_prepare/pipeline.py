@@ -9,6 +9,7 @@ from __future__ import annotations
 import structlog
 
 from src.config import S1Config
+from src.s1_prepare.convert_coco import convert_coco_dataset
 from src.s1_prepare.download import download_dataset
 from src.s1_prepare.explore import explore_dataset
 from src.s1_prepare.preprocess import preprocess_dataset
@@ -16,7 +17,7 @@ from src.s1_prepare.split import split_dataset
 
 logger = structlog.get_logger(__name__)
 
-STEPS = ["download", "preprocess", "explore", "split"]
+STEPS = ["download", "preprocess", "explore", "split", "convert_coco"]
 
 
 def run_pipeline(config: S1Config | None = None) -> None:
@@ -39,6 +40,9 @@ def run_pipeline(config: S1Config | None = None) -> None:
 
     logger.info("s1_step", step="split")
     split_dataset(config.split)
+
+    logger.info("s1_step", step="convert_coco")
+    convert_coco_dataset()
 
     logger.info("s1_pipeline_complete")
 
