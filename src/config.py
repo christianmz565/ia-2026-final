@@ -100,7 +100,8 @@ class CascadeRCNNConfig(BaseModel):
     output_dir: str = Field(default="", description="Path to output directory")
     config_file: str = Field(default="cascade_rcnn_r50_fpn_1x_coco.py")
     epochs: int = Field(default=12)
-    batch_size: int = Field(default=2)
+    imgsz: int = Field(default=640)
+    batch_size: int = Field(default=16)
     lr: float = Field(default=0.0001)
     device: str = Field(default_factory=_default_device)
 
@@ -115,7 +116,7 @@ class RFDETRConfig(BaseModel):
     model_size: str = Field(default="rfdetr-l.pt", description="RF-DETR variant")
     epochs: int = Field(default=100)
     imgsz: int = Field(default=640)
-    batch: int = Field(default=8)
+    batch: int = Field(default=2)
     lr0: float = Field(default=0.001)
     device: str = Field(default_factory=_default_device)
 

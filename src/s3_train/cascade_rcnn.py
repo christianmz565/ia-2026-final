@@ -237,7 +237,10 @@ class CascadeRCNNTrainer:
             }
 
             # Register custom progress hook
-            cfg.custom_hooks = [{"type": EpochMetricsHook}]
+            cfg.custom_hooks = [
+                {"type": EpochMetricsHook},
+                {"type": "EarlyStoppingHook", "monitor": "coco/bbox_mAP", "patience": 10, "min_delta": 0.001},
+            ]
 
             # Checkpoint hook
             cfg.default_hooks.checkpoint = {

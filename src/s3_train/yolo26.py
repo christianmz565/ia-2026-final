@@ -176,6 +176,7 @@ class YOLO26Trainer:
                     name=out_dir.name,
                     exist_ok=True,
                     amp=True,
+                    patience=10,
                     workers=2,
                     save=True,
                     save_period=5,
