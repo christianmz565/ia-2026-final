@@ -17,6 +17,7 @@ members = [
     "final",
     "libcom",
 ]
+build-constraints = [{ name = "setuptools", specifier = "<82.0.0" }]
 
 [[package]]
 name = "accelerate"
@@ -760,6 +761,7 @@ dependencies = [
     { name = "libcom" },
     { name = "lpips" },
     { name = "matplotlib" },
+    { name = "mmcv" },
     { name = "mmdet" },
     { name = "mmengine" },
     { name = "mmpose" },
@@ -813,6 +815,7 @@ requires-dist = [
     { name = "libcom", editable = "deps/libcom" },
     { name = "lpips", specifier = "==0.1.4" },
     { name = "matplotlib", specifier = ">=3.9.0" },
+    { name = "mmcv", specifier = ">=2.2.0" },
     { name = "mmdet", specifier = "==3.2.0" },
     { name = "mmengine", specifier = ">=0.10.7" },
     { name = "mmpose", specifier = "==1.2.0" },
@@ -1763,6 +1766,25 @@ sdist = { url = "https://files.pythonhosted.org/packages/d6/54/cfe61301667036ec9
 wheels = [
     { url = "https://files.pythonhosted.org/packages/b3/38/89ba8ad64ae25be8de66a6d463314cf1eb366222074cfda9ee839c56a4b4/mdurl-0.1.2-py3-none-any.whl", hash = "sha256:84008a41e51615a49fc9966191ff91509e3c40b939176e643fd50a5c2196b8f8", size = 9979, upload-time = "2022-08-14T12:40:09.779Z" },
 ]
+
+[[package]]
+name = "mmcv"
+version = "2.2.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "addict" },
+    { name = "mmengine" },
+    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.11.*'" },
+    { name = "numpy", version = "2.5.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
+    { name = "opencv-python" },
+    { name = "packaging" },
+    { name = "pillow" },
+    { name = "pyyaml" },
+    { name = "regex", marker = "sys_platform == 'win32'" },
+    { name = "yapf" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/e9/a2/57a733e7e84985a8a0e3101dfb8170fc9db92435c16afad253069ae3f9df/mmcv-2.2.0.tar.gz", hash = "sha256:ac479247e808d8802f89eadf04d4118de86bdfe81361ec5aed0cc1bf731c67c9", size = 479121, upload-time = "2024-04-24T14:24:28.064Z" }
 
 [[package]]
 name = "mmdet"

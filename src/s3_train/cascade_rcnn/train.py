@@ -16,6 +16,7 @@ import time
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+import mmdet.models  # noqa: F401 — registers CascadeRCNN in mmengine registry
 from mmengine.runner import Runner
 
 from src.constants import CLASS_NAMES, TRAIN_SPLIT, VALID_SPLIT
