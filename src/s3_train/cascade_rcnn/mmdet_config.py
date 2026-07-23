@@ -14,10 +14,8 @@ def build_mmdet_config(config: PipelineConfig) -> Config:
     num_classes = config.dataset.num_classes
     work_dir = str(config.dataset.output_dir)
 
-    # Class names mapping
     classes = tuple(config.dataset.class_names)
 
-    # Data pipeline for native resolution baseline (No Resize, No Augmentation)
     train_pipeline = [
         {"type": "LoadImageFromFile", "backend_args": None},
         {"type": "LoadAnnotations", "with_bbox": True},
@@ -30,7 +28,6 @@ def build_mmdet_config(config: PipelineConfig) -> Config:
         {"type": "PackDetInputs"},
     ]
 
-    # Model Dictionary: Cascade R-CNN + ConvNeXt + PAFPN
     model_cfg = {
         "type": "CascadeRCNN",
         "data_preprocessor": {
@@ -253,7 +250,6 @@ def build_mmdet_config(config: PipelineConfig) -> Config:
         },
     }
 
-    # Datasets
     data_root = str(config.dataset.data_dir)
     train_dataloader = {
         "batch_size": config.training.batch_size,
@@ -296,7 +292,6 @@ def build_mmdet_config(config: PipelineConfig) -> Config:
         "classwise": True,
     }
 
-    # Optimization & AMP
     optim_wrapper = {
         "type": "AmpOptimWrapper" if config.training.amp_enabled else "OptimWrapper",
         "optimizer": {
@@ -313,7 +308,6 @@ def build_mmdet_config(config: PipelineConfig) -> Config:
         },
     }
 
-    # Default Hooks
     default_hooks = {
         "timer": {"type": "IterTimerHook"},
         "logger": {"type": "LoggerHook", "interval": 10},
@@ -328,7 +322,6 @@ def build_mmdet_config(config: PipelineConfig) -> Config:
         "sampler_seed": {"type": "DistSamplerSeedHook"},
     }
 
-    # Base configuration dictionary
     cfg_dict = {
         "model": model_cfg,
         "train_dataloader": train_dataloader,

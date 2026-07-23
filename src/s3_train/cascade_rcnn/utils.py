@@ -37,9 +37,9 @@ def configure_cuda_optimizations(benchmark: bool = True) -> torch.device:
     return device
 
 
-def get_amp_scaler(enabled: bool = True) -> torch.amp.GradScaler:  # pyright: ignore[reportPrivateImportUsage]
+def get_amp_scaler(enabled: bool = True) -> torch.amp.GradScaler:
     """Return PyTorch Automatic Mixed Precision (AMP FP16) GradScaler."""
-    return torch.amp.GradScaler("cuda", enabled=enabled)  # pyright: ignore[reportPrivateImportUsage]
+    return torch.amp.GradScaler("cuda", enabled=enabled)
 
 
 def setup_logger(output_dir: Path) -> logging.Logger:
@@ -51,14 +51,12 @@ def setup_logger(output_dir: Path) -> logging.Logger:
     logger.setLevel(logging.INFO)
     logger.handlers.clear()
 
-    # Console Handler
     c_handler = logging.StreamHandler(sys.stdout)
     c_handler.setLevel(logging.INFO)
     c_format = logging.Formatter("[%(asctime)s] %(levelname)s [%(name)s]: %(message)s", datefmt="%H:%M:%S")
     c_handler.setFormatter(c_format)
     logger.addHandler(c_handler)
 
-    # File Handler
     f_handler = logging.FileHandler(log_file, mode="a", encoding="utf-8")
     f_handler.setLevel(logging.INFO)
     f_format = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
@@ -114,7 +112,6 @@ def evaluate_coco_metrics(
     """Evaluate object detection performance using COCO evaluation metrics (mAP_50, mAP_50:95)."""
     model.eval()
 
-    # Convert val_coco_dict to in-memory COCO object
     tmp_coco_path = Path("/tmp/val_coco_eval_tmp.json")
     import json
 
@@ -123,7 +120,6 @@ def evaluate_coco_metrics(
 
     coco_gt = COCO(str(tmp_coco_path))
 
-    # Reverse category map: 1-indexed dataset label -> original category_id
     categories = val_coco_dict.get("categories", [])
     label_to_cat_id = {i + 1: cat["id"] for i, cat in enumerate(categories)}
 
@@ -132,7 +128,7 @@ def evaluate_coco_metrics(
     for images, targets in val_loader:
         images = [img.to(device) for img in images]
 
-        with torch.amp.autocast("cuda", enabled=amp_enabled and device.type == "cuda"):  # pyright: ignore[reportPrivateImportUsage]
+        with torch.amp.autocast("cuda", enabled=amp_enabled and device.type == "cuda"):
             outputs = model(images)
 
         for target, output in zip(targets, outputs, strict=False):
@@ -174,7 +170,7 @@ def evaluate_coco_metrics(
     coco_eval.summarize()
 
     stats = coco_eval.stats
-    mAP_50_95 = float(stats[0])  # mAP @ IoU=0.50:0.95
-    mAP_50 = float(stats[1])  # mAP @ IoU=0.50
+    mAP_50_95 = float(stats[0])
+    mAP_50 = float(stats[1])
 
     return {"mAP_50": mAP_50, "mAP_50:95": mAP_50_95}

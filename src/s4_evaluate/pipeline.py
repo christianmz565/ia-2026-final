@@ -29,7 +29,6 @@ def run_pipeline(config: S4Config | None = None) -> None:
 
     logger.info("s4_pipeline_start", models=config.models, augments=config.augments)
 
-    # If single explicit model_path is specified, evaluate that single model
     if config.eval.model_path:
         out_dir = S4_OUTPUT
         out_dir.mkdir(parents=True, exist_ok=True)

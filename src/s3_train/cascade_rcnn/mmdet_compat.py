@@ -51,7 +51,7 @@ def setup_mmdet_compat() -> None:
                     ) -> torch.Tensor:
                         if isinstance(output_size, int):
                             output_size = (output_size, output_size)
-                        return torchvision.ops.roi_align(  # pyright: ignore[reportCallIssue]
+                        return torchvision.ops.roi_align(
                             input,
                             rois,
                             output_size,
@@ -86,7 +86,6 @@ def setup_mmdet_compat() -> None:
         ext_mod.__file__ = "/tmp/mmcv_ext_fallback.py"
         sys.modules["mmcv._ext"] = ext_mod
 
-    # Register MMDetection modules
     try:
         from mmdet.utils import register_all_modules
 
@@ -95,5 +94,4 @@ def setup_mmdet_compat() -> None:
         pass
 
 
-# Auto-execute setup on import
 setup_mmdet_compat()

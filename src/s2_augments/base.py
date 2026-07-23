@@ -1,13 +1,12 @@
-"""Augmentation protocol, base classes, and registry.
+"""Augmentation protocol, base classes, registry, and spatial priors.
 
-Every augmentation module must implement the ``Augmentor`` protocol and call
-``register_augmentation()`` to make itself discoverable by the pipeline.
-``AlbumentationsAugmentor`` provides a shared implementation for augmentations
-that use albumentations as their backend (geometric, photometric, etc.).
+Every augmentation method implements the ``Augmentor`` protocol and registers itself via
+``register_augmentation()``.
 """
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any, Protocol, runtime_checkable
 
 import albumentations as A
@@ -27,48 +26,96 @@ class Augmentor(Protocol):
         self,
         image: np.ndarray,
         bboxes: list[BBox],
-        config: Any,
+        config: Any = None,
     ) -> tuple[np.ndarray, list[BBox]]:
-        """Apply augmentation to an image and its bounding boxes.
+        """Apply augmentation to a single image and its bounding boxes."""
+        ...
 
-        Args:
-            image: Input image (H, W, 3) in BGR format.
-            bboxes: List of bounding boxes associated with the image.
-            config: Method-specific configuration object.
-
-        Returns:
-            Tuple of (augmented_image, transformed_bboxes).
-        """
+    def generate_dataset(
+        self,
+        input_dir: Path,
+        output_dir: Path,
+        config: Any = None,
+    ) -> Path:
+        """Generate full augmented dataset split under output_dir."""
         ...
 
 
-_BBOX_PARAMS = A.BboxParams(
-    format="yolo",
-    label_fields=["class_labels"],
-    min_area=0.0,
-    min_visibility=0.3,
-)
+CLASS_SPATIAL_PRIORS: dict[str, dict[str, Any]] = {
+    "Knot_missing": {"cx_ranges": [(0.005, 0.08), (0.92, 0.995)], "cy_range": (0.05, 0.95)},
+    "Marrow": {"cx_ranges": [(0.35, 0.65)], "cy_range": (0.05, 0.95)},
+    "Crack": {"cx_ranges": [(0.35, 0.65)], "cy_range": (0.05, 0.95)},
+    "Quartzity": {"cx_ranges": [(0.15, 0.85)], "cy_range": (0.05, 0.95)},
+    "Live_Knot": {"cx_ranges": [(0.10, 0.90)], "cy_range": (0.05, 0.95)},
+    "Dead_Knot": {"cx_ranges": [(0.10, 0.90)], "cy_range": (0.05, 0.95)},
+    "resin": {"cx_ranges": [(0.05, 0.95)], "cy_range": (0.05, 0.95)},
+    "knot_with_crack": {"cx_ranges": [(0.10, 0.90)], "cy_range": (0.05, 0.95)},
+}
+
+
+
+
+def sample_spatial_location(class_name: str, bbox_w: float, bbox_h: float) -> tuple[float, float]:
+    """Sample valid (cx, cy) center coordinates adhering to empirical class spatial priors."""
+    prior = CLASS_SPATIAL_PRIORS.get(
+        class_name,
+        {"cx_ranges": [(0.1, 0.9)], "cy_range": (0.05, 0.95)},
+    )
+    cx_ranges: list[tuple[float, float]] = prior["cx_ranges"]
+    range_idx = int(np.random.randint(0, len(cx_ranges)))
+    cx_min, cx_max = cx_ranges[range_idx]
+    half_w = bbox_w / 2.0
+    half_h = bbox_h / 2.0
+
+    margin_w = half_w + 0.005
+    margin_h = half_h + 0.005
+
+    cx_low = max(margin_w, cx_min)
+
+    cx_high = min(1.0 - margin_w, cx_max)
+    cx = (cx_min + cx_max) / 2.0 if cx_low >= cx_high else float(np.random.uniform(cx_low, cx_high))
+
+    cy_min, cy_max = prior["cy_range"]
+    cy_low = max(margin_h, cy_min)
+    cy_high = min(1.0 - margin_h, cy_max)
+    cy = (cy_min + cy_max) / 2.0 if cy_low >= cy_high else float(np.random.uniform(cy_low, cy_high))
+
+    return cx, cy
+
+
+
+def check_overlap(box1: BBox, box2: BBox, iou_threshold: float = 0.05) -> bool:
+    """Check if two normalized bboxes overlap beyond iou_threshold."""
+    x1_1, y1_1 = box1.cx - box1.w / 2, box1.cy - box1.h / 2
+    x2_1, y2_1 = box1.cx + box1.w / 2, box1.cy + box1.h / 2
+
+    x1_2, y1_2 = box2.cx - box2.w / 2, box2.cy - box2.h / 2
+    x2_2, y2_2 = box2.cx + box2.w / 2, box2.cy + box2.h / 2
+
+    inter_x1 = max(x1_1, x1_2)
+    inter_y1 = max(y1_1, y1_2)
+    inter_x2 = min(x2_1, x2_2)
+    inter_y2 = min(y2_1, y2_2)
+
+    if inter_x2 <= inter_x1 or inter_y2 <= inter_y1:
+        return False
+
+    inter_area = (inter_x2 - inter_x1) * (inter_y2 - inter_y1)
+    area1 = box1.w * box1.h
+    area2 = box2.w * box2.h
+    union_area = area1 + area2 - inter_area
+    iou = inter_area / union_area if union_area > 0 else 0.0
+    return iou > iou_threshold
 
 
 class AlbumentationsAugmentor:
-    """Base class for augmentations backed by albumentations.
-
-    Subclasses only need to implement ``_build_pipeline(config)`` which
-    returns an ``A.Compose`` instance.  The shared ``apply()`` method
-    handles bbox extraction, transform invocation, and BBox reconstruction.
-    """
+    """Base class for augmentations backed by Albumentations."""
 
     name: str = ""
 
     def _build_pipeline(self, config: BaseModel) -> A.Compose:
-        """Build the albumentations pipeline from config. Must be overridden."""
+        """Build the albumentations pipeline from config."""
         raise NotImplementedError
-
-    def _apply_config(self, config: BaseModel | None) -> BaseModel:
-        """Return the effective config, rebuilding the pipeline if config changes."""
-        if config is not None:
-            self._pipeline = self._build_pipeline(config)
-        return config
 
     def apply(
         self,
@@ -76,25 +123,37 @@ class AlbumentationsAugmentor:
         bboxes: list[BBox],
         config: BaseModel | None = None,
     ) -> tuple[np.ndarray, list[BBox]]:
-        """Apply albumentations transform with automatic bbox handling.
+        """Apply albumentations transform with automatic bbox handling."""
+        if config is not None:
+            self._pipeline = self._build_pipeline(config)
 
-        Args:
-            image: Input image (H, W, 3) BGR.
-            bboxes: Original bounding boxes.
-            config: Optional config override. If provided, rebuilds the pipeline.
+        yolo_boxes = []
+        for b in bboxes:
+            cx = max(0.0001, min(0.9999, b.cx))
+            cy = max(0.0001, min(0.9999, b.cy))
+            w = max(0.0001, min(0.9999, b.w))
+            h = max(0.0001, min(0.9999, b.h))
 
-        Returns:
-            Tuple of (augmented_image, transformed_bboxes).
-        """
-        if not hasattr(self, "_pipeline"):
-            raise RuntimeError(f"{self.__class__.__name__}._build_pipeline() was never called")
+            x1 = max(0.0, cx - w / 2.0)
+            y1 = max(0.0, cy - h / 2.0)
+            x2 = min(1.0, cx + w / 2.0)
+            y2 = min(1.0, cy + h / 2.0)
 
-        self._apply_config(config)
+            clean_w = x2 - x1
+            clean_h = y2 - y1
+            clean_cx = (x1 + x2) / 2.0
+            clean_cy = (y1 + y2) / 2.0
 
-        yolo_boxes = [[b.cx, b.cy, b.w, b.h] for b in bboxes]
-        class_labels = [b.class_id for b in bboxes]
+            if clean_w > 0 and clean_h > 0:
+                yolo_boxes.append([clean_cx, clean_cy, clean_w, clean_h])
+
+        class_labels = [b.class_id for b in bboxes[: len(yolo_boxes)]]
+
+        if not yolo_boxes:
+            return image, bboxes
 
         result = self._pipeline(image=image, bboxes=yolo_boxes, class_labels=class_labels)
+
 
         new_bboxes = [
             BBox(class_id=cls, cx=cx, cy=cy, w=w, h=h)
@@ -107,24 +166,12 @@ _AUGMENTATION_REGISTRY: dict[str, type[Augmentor]] = {}
 
 
 def register_augmentation(name: str, cls: type[Augmentor]) -> None:
-    """Register an augmentation class by name.
-
-    Args:
-        name: String key used in pipeline config (e.g. ``"geometric"``).
-        cls: The Augmentor implementation class.
-    """
+    """Register an augmentation class by name."""
     _AUGMENTATION_REGISTRY[name] = cls
 
 
 def get_augmentation(name: str) -> Augmentor:
-    """Instantiate and return an augmentation by registered name.
-
-    Args:
-        name: Key used during registration.
-
-    Raises:
-        KeyError: If name is not registered.
-    """
+    """Instantiate and return an augmentation by registered name."""
     if name not in _AUGMENTATION_REGISTRY:
         available = ", ".join(sorted(_AUGMENTATION_REGISTRY))
         raise KeyError(f"Unknown augmentation '{name}'. Available: {available}")

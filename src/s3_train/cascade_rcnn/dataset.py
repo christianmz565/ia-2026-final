@@ -153,7 +153,6 @@ class DataSanitizer:
         json_path = Path(json_path)
 
         if not json_path.exists():
-            # Auto-detect split name from json path (e.g. train_coco.json -> train, val_coco.json -> val)
             stem = json_path.stem.lower()
             if "train" in stem:
                 split_name = "train"
@@ -187,7 +186,6 @@ class DataSanitizer:
             },
         }
 
-        # Build image_id -> image_info map
         images_by_id = {img["id"]: img for img in raw_coco.get("images", [])}
         annotations_by_img_id: dict[int, list[dict[str, Any]]] = {}
 
@@ -216,7 +214,6 @@ class DataSanitizer:
                     logger.warning(f"Image file missing: {img_path}")
                     continue
 
-            # Verify image file readability & dimensions
             try:
                 with Image.open(img_path) as img:
                     img.verify()
@@ -241,26 +238,22 @@ class DataSanitizer:
                 x, y, w, h = bbox
                 xmin, ymin, xmax, ymax = x, y, x + w, y + h
 
-                # Check area
                 area = ann.get("area", w * h)
                 if area <= 0 or w <= 0 or h <= 0:
                     stats["invalid_annotations_discarded"] += 1
                     stats["discard_reasons"]["zero_or_negative_area"] += 1
                     continue
 
-                # Check coordinate validity
                 if xmax <= xmin or ymax <= ymin:
                     stats["invalid_annotations_discarded"] += 1
                     stats["discard_reasons"]["invalid_coordinates"] += 1
                     continue
 
-                # Check out of bounds (1px tolerance)
                 if xmin < -1 or ymin < -1 or xmax > width + 1 or ymax > height + 1:
                     stats["invalid_annotations_discarded"] += 1
                     stats["discard_reasons"]["out_of_bounds"] += 1
                     continue
 
-                # Clip coordinates to image boundaries for safety
                 xmin_c = max(0.0, float(xmin))
                 ymin_c = max(0.0, float(ymin))
                 xmax_c = min(float(width), float(xmax))

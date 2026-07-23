@@ -39,12 +39,11 @@ class ConvNeXtFeatureExtractor(nn.Module):
         else:
             raise ValueError(f"Unsupported ConvNeXt variant: {variant}")
 
-        # ConvNeXt features stages
-        self.stage0 = model.features[0]  # Stem: 4x downsampling
-        self.stage1 = model.features[1]  # Stage 1: C2 (96 ch, stride 4)
-        self.stage2 = model.features[2:4]  # Downsample + Stage 2: C3 (192 ch, stride 8)
-        self.stage3 = model.features[4:6]  # Downsample + Stage 3: C4 (384 ch, stride 16)
-        self.stage4 = model.features[6:8]  # Downsample + Stage 4: C5 (768 ch, stride 32)
+        self.stage0 = model.features[0]
+        self.stage1 = model.features[1]
+        self.stage2 = model.features[2:4]
+        self.stage3 = model.features[4:6]
+        self.stage4 = model.features[6:8]
 
     def forward(self, x: torch.Tensor) -> dict[str, torch.Tensor]:
         x0 = self.stage0(x)
@@ -65,28 +64,23 @@ class PAFPN(nn.Module):
         super().__init__()
         self.out_channels = out_channels
 
-        # Top-down 1x1 lateral convolutions
         self.lateral_convs = nn.ModuleList(
             [nn.Conv2d(in_ch, out_channels, kernel_size=1) for in_ch in in_channels_list]
         )
-        # FPN 3x3 smoothing convolutions
         self.fpn_convs = nn.ModuleList(
             [nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1) for _ in in_channels_list]
         )
-        # Bottom-up PAFPN 3x3 stride-2 downsampling convolutions
         self.pafpn_convs = nn.ModuleList(
             [
                 nn.Conv2d(out_channels, out_channels, kernel_size=3, stride=2, padding=1)
                 for _ in range(len(in_channels_list) - 1)
             ]
         )
-        # Extra 3x3 stride-2 maxpool / conv for stage 6 (RPN)
         self.extra_pooling = nn.MaxPool2d(kernel_size=1, stride=2)
 
     def forward(self, inputs: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
         feats = [inputs[str(i)] for i in range(len(inputs))]
 
-        # 1. Top-down FPN path
         laterals = [lateral_conv(feats[i]) for i, lateral_conv in enumerate(self.lateral_convs)]
 
         for i in range(len(laterals) - 1, 0, -1):
@@ -95,13 +89,11 @@ class PAFPN(nn.Module):
 
         fpn_outs = [self.fpn_convs[i](laterals[i]) for i in range(len(laterals))]
 
-        # 2. Bottom-up path augmentation (PAFPN)
         pafpn_outs = [fpn_outs[0]]
         for i in range(len(fpn_outs) - 1):
             downsampled = self.pafpn_convs[i](pafpn_outs[-1])
             pafpn_outs.append(downsampled + fpn_outs[i + 1])
 
-        # Add extra scale for RPN
         pafpn_outs.append(self.extra_pooling(pafpn_outs[-1]))
 
         out_dict = {str(i): pafpn_outs[i] for i in range(len(pafpn_outs) - 1)}
@@ -140,7 +132,7 @@ class CascadeRCNN(nn.Module):
 
     def __init__(
         self,
-        num_classes: int = 9,  # 8 defect classes + 1 background class
+        num_classes: int = 9,
         backbone_variant: str = "convnext_tiny",
         pretrained: bool = True,
         out_channels: int = 256,
@@ -151,11 +143,9 @@ class CascadeRCNN(nn.Module):
         self.num_classes = num_classes
         self.backbone_variant = backbone_variant
 
-        # 1. ConvNeXt Backbone & PAFPN Neck
         self.backbone = ConvNeXtFeatureExtractor(variant=backbone_variant, pretrained=pretrained)
         self.neck = PAFPN(in_channels_list=self.backbone.in_channels, out_channels=out_channels)
 
-        # 2. Anchor Generator & RPN
         anchor_sizes = ((32,), (64,), (128,), (256,), (512,))
         aspect_ratios = ((0.5, 1.0, 2.0),) * len(anchor_sizes)
         self.anchor_generator = AnchorGenerator(anchor_sizes, aspect_ratios)
@@ -173,10 +163,8 @@ class CascadeRCNN(nn.Module):
             nms_thresh=0.7,
         )
 
-        # 3. Multi-Scale RoI Align
         self.box_roi_pool = MultiScaleRoIAlign(featmap_names=["0", "1", "2", "3"], output_size=7, sampling_ratio=2)
 
-        # 4. Cascade Stages (3 stages with IoU thresholds 0.5, 0.6, 0.7)
         self.cascade_stages = nn.ModuleList(
             [
                 CascadeRCNNStage(
@@ -191,7 +179,6 @@ class CascadeRCNN(nn.Module):
 
         self.box_coder = BoxCoder(weights=(10.0, 10.0, 5.0, 5.0))
 
-        # Transform for standard image normalization check
         self.transform = GeneralizedRCNNTransform(
             min_size=800,
             max_size=1333,
@@ -214,7 +201,6 @@ class CascadeRCNN(nn.Module):
             val = img.shape[-2:]
             original_image_sizes.append((val[0], val[1]))
 
-        # Extract features (Pad images to max H, W multiple of 32 without resizing)
         if isinstance(images, list):
             max_h = max(img.shape[-2] for img in images)
             max_w = max(img.shape[-1] for img in images)
@@ -235,11 +221,10 @@ class CascadeRCNN(nn.Module):
         pafpn_feats = self.neck(conv_feats)
 
         image_shapes: list[tuple[int, int]] = [(int(s[0]), int(s[1])) for s in (img.shape[-2:] for img in images)]
-        image_list_obj = torchvision.models.detection.image_list.ImageList(  # pyright: ignore[reportAttributeAccessIssue]
+        image_list_obj = torchvision.models.detection.image_list.ImageList(
             image_tensors, image_shapes
         )
 
-        # RPN proposals
         proposals, rpn_losses = self.rpn(image_list_obj, pafpn_feats, targets)
 
         if self.training:
@@ -248,16 +233,13 @@ class CascadeRCNN(nn.Module):
 
             curr_proposals = proposals
             for stage_idx, stage in enumerate(self.cascade_stages):
-                # RoI Align
                 box_features = self.box_roi_pool(pafpn_feats, curr_proposals, image_shapes)
                 class_logits, box_regression = stage(box_features)
 
-                # Match targets for stage IoU threshold
                 matched_idxs, labels = self._select_training_samples(
                     curr_proposals, targets, cast(float, stage.iou_threshold)
                 )
 
-                # Compute stage classification and regression losses
                 loss_cls, loss_reg = self._compute_stage_loss(
                     class_logits, box_regression, curr_proposals, targets, labels
                 )
@@ -265,14 +247,12 @@ class CascadeRCNN(nn.Module):
                 losses[f"loss_classifier_stage_{stage_idx + 1}"] = loss_cls
                 losses[f"loss_box_reg_stage_{stage_idx + 1}"] = loss_reg
 
-                # Refine proposals for next cascade stage
                 if stage_idx < len(self.cascade_stages) - 1:
                     curr_proposals = self._refine_proposals(curr_proposals, box_regression, image_shapes)
 
             return losses
 
         else:
-            # Inference pass across cascade stages
             curr_proposals = proposals
             final_class_logits = None
             final_box_regression = None
@@ -286,7 +266,6 @@ class CascadeRCNN(nn.Module):
                 if stage_idx < len(self.cascade_stages) - 1:
                     curr_proposals = self._refine_proposals(curr_proposals, box_regression, image_shapes)
 
-            # Post-process predictions
             assert final_class_logits is not None
             assert final_box_regression is not None
             result = self._post_process(
@@ -316,9 +295,8 @@ class CascadeRCNN(nn.Module):
             match_quality_matrix = box_ops.box_iou(gt_boxes, props)
             matched_vals, matches = match_quality_matrix.max(dim=0)
 
-            # Assign labels based on stage IoU threshold
             matched_labels = gt_labels[matches].clone()
-            matched_labels[matched_vals < iou_thresh] = 0  # Background
+            matched_labels[matched_vals < iou_thresh] = 0
 
             labels.append(matched_labels)
             matched_idxs.append(matches)
@@ -336,7 +314,6 @@ class CascadeRCNN(nn.Module):
         concat_labels = torch.cat(labels, dim=0)
         loss_cls = F.cross_entropy(class_logits, concat_labels)
 
-        # Box regression loss on positive samples only
         pos_inds = torch.where(concat_labels > 0)[0]
         if pos_inds.numel() == 0:
             loss_reg = class_logits.sum() * 0.0
@@ -345,7 +322,6 @@ class CascadeRCNN(nn.Module):
             box_regression = box_regression.reshape(class_logits.shape[0], -1, 4)
             pos_box_regression = box_regression[pos_inds, sampled_pos_labels]
 
-            # Targets
             concat_proposals = torch.cat(proposals, dim=0)
             pos_proposals = concat_proposals[pos_inds]
 
@@ -353,7 +329,6 @@ class CascadeRCNN(nn.Module):
             for target in targets:
                 gt_boxes_list.append(target["boxes"])
 
-            # Map positive proposal targets
             target_boxes_list = []
             offset = 0
             for props, target, lbls in zip(proposals, targets, labels, strict=False):
@@ -384,7 +359,6 @@ class CascadeRCNN(nn.Module):
     ) -> list[torch.Tensor]:
         boxes_per_image = [len(p) for p in proposals]
         box_regression = box_regression.reshape(-1, self.num_classes, 4)
-        # Use mean class delta or class 1 delta for proposal refinement
         mean_deltas = box_regression[:, 1:, :].mean(dim=1)
 
         split_deltas = mean_deltas.split(boxes_per_image, dim=0)
@@ -420,28 +394,22 @@ class CascadeRCNN(nn.Module):
             zip(split_scores, split_boxes, proposals, image_shapes, strict=False)
         ):
             decoded_boxes = self.box_coder.decode(boxes, [props] * num_classes)
-            # Clip boxes
             decoded_boxes = box_ops.clip_boxes_to_image(decoded_boxes, shape)
 
-            # Keep foreground classes
             labels = torch.arange(num_classes, device=device)
             labels = labels.view(1, -1).expand_as(scores)
 
-            # Drop background (label 0)
             scores = scores[:, 1:]
             boxes = decoded_boxes[:, 1:]
             labels = labels[:, 1:]
 
-            # Batch NMS across classes
             boxes = boxes.reshape(-1, 4)
             scores = scores.reshape(-1)
             labels = labels.reshape(-1)
 
-            # Filter low scores
             keep = torch.where(scores > score_thresh)[0]
             boxes, scores, labels = boxes[keep], scores[keep], labels[keep]
 
-            # NMS per class
             keep = box_ops.batched_nms(boxes, scores, labels, nms_thresh)
             keep = keep[:detections_per_img]
 

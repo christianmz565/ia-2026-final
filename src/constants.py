@@ -17,25 +17,23 @@ SPLIT_DATASET = S1_OUTPUT / "split"
 
 AUGMENTED_DIR = S2_OUTPUT / "augmented"
 
-
 KAGGLE_DATASET = "nomihsa965/large-scale-image-dataset-of-wood-surface-defects"
 
 CLASS_NAMES: list[str] = [
-    "Live_Knot",
-    "Dead_Knot",
-    "resin",
-    "knot_with_crack",
-    "Crack",
-    "Marrow",
     "Quartzity",
+    "Live_Knot",
+    "Marrow",
+    "resin",
+    "Dead_Knot",
+    "knot_with_crack",
     "Knot_missing",
+    "Crack",
 ]
 
 NUM_CLASSES = len(CLASS_NAMES)
 
 CLASS_TO_ID: dict[str, int] = {name: idx for idx, name in enumerate(CLASS_NAMES)}
 ID_TO_CLASS: dict[int, str] = {idx: name for name, idx in CLASS_TO_ID.items()}
-
 
 DEFAULT_SPLIT_RATIOS: dict[str, float] = {
     "train": 0.80,

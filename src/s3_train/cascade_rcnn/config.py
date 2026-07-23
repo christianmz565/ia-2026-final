@@ -40,7 +40,7 @@ class DatasetConfig:
 class ModelConfig:
     """Architecture configuration."""
 
-    backbone_variant: str = "convnext_tiny"  # 'convnext_tiny' or 'convnext_small'
+    backbone_variant: str = "convnext_tiny"
     pretrained: bool = True
     neck_type: str = "PAFPN"
     in_channels: list[int] = field(default_factory=lambda: [96, 192, 384, 768])

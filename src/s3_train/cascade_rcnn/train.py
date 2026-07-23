@@ -47,10 +47,8 @@ def run_pipeline(config: "PipelineConfig | None" = None) -> dict[str, Any]:
     set_seed(config.training.seed)
     _device = configure_cuda_optimizations(benchmark=config.training.cudnn_benchmark)
 
-    # Save pipeline config
     config.save_json(output_dir / "pipeline_config.json")
 
-    # 1. Dataset Sanitization & Inspection Report
     logger.info("--- PHASE 1: DATASET SANITIZATION & INSPECTION ---")
     sanitizer = DataSanitizer(data_dir=config.dataset.data_dir)
 
@@ -73,7 +71,6 @@ def run_pipeline(config: "PipelineConfig | None" = None) -> dict[str, Any]:
         f"Val set: {val_stats['valid_images_retained']} valid images ({val_stats['valid_annotations_retained']} annotations)"
     )
 
-    # Save sanitized JSON annotations for MMDetection
     sanitized_train_json = output_dir / "sanitized_train.json"
     sanitized_val_json = output_dir / "sanitized_val.json"
     with open(sanitized_train_json, "w", encoding="utf-8") as f:
@@ -81,15 +78,12 @@ def run_pipeline(config: "PipelineConfig | None" = None) -> dict[str, Any]:
     with open(sanitized_val_json, "w", encoding="utf-8") as f:
         json.dump(val_coco, f)
 
-    # Update config paths to use sanitized annotation files
     config.dataset.train_json = sanitized_train_json
     config.dataset.val_json = sanitized_val_json
 
-    # 2. Build MMDetection Config
     logger.info("--- PHASE 2: BUILDING MMDETECTION CONFIG (Cascade R-CNN + ConvNeXt + PAFPN) ---")
     mmdet_cfg = build_mmdet_config(config)
 
-    # 3. MMDetection Runner Execution
     logger.info("--- PHASE 3: EXECUTING MMDETECTION RUNNER ---")
     start_total_time = time.time()
 
@@ -99,7 +93,6 @@ def run_pipeline(config: "PipelineConfig | None" = None) -> dict[str, Any]:
 
     total_pipeline_time_sec = time.time() - start_total_time
 
-    # Read metric results from MMEngine metrics log
     metrics_file = output_dir / "vis_data" / "scalars.json"
     history = []
     best_mAP_50_95 = 0.0
@@ -127,7 +120,6 @@ def run_pipeline(config: "PipelineConfig | None" = None) -> dict[str, Any]:
                 except Exception:
                     pass
 
-    # 4. Generate Final Deliverables & Summary Report
     logger.info("--- PHASE 4: FINAL DELIVERABLES & SUMMARY REPORT ---")
     summary = {
         "pipeline_name": "MMDetection Cascade R-CNN Baseline (ConvNeXt + PAFPN)",
