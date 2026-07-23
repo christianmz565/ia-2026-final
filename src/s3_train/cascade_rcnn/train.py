@@ -4,9 +4,8 @@ Executes complete MMDetection pipeline:
 1. Data sanitization & report generation (discarding corrupt files and invalid bboxes).
 2. MMDetection Config building (Cascade R-CNN + ConvNeXt + PAFPN).
 3. CUDA & AMP optimization setup.
-4. Timing calibration (dynamically setting max_epochs to 3-5 hours).
-5. MMEngine Runner execution with Early Stopping and per-epoch evaluation.
-6. Summary report generation (sanitization, execution metrics, mAP_50, mAP_50:95).
+4. MMEngine Runner execution with Early Stopping and per-epoch evaluation.
+5. Summary report generation (sanitization, execution metrics, mAP_50, mAP_50:95).
 """
 
 import json
@@ -17,17 +16,13 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from src.s3_train.cascade_rcnn.config import PipelineConfig
 
-import torch
 from mmengine.runner import Runner
 
-from src.s3_train.cascade_rcnn.calibrate import calibrate_training_epochs
 from src.s3_train.cascade_rcnn.config import parse_config
-from src.s3_train.cascade_rcnn.dataset import DataSanitizer, WoodDataset, collate_fn
+from src.s3_train.cascade_rcnn.dataset import DataSanitizer
 from src.s3_train.cascade_rcnn.mmdet_config import build_mmdet_config
-from src.s3_train.cascade_rcnn.model import CascadeRCNN
 from src.s3_train.cascade_rcnn.utils import (
     configure_cuda_optimizations,
-    get_amp_scaler,
     set_seed,
     setup_logger,
 )
@@ -50,7 +45,7 @@ def run_pipeline(config: "PipelineConfig | None" = None) -> dict[str, Any]:
     logger.info("==========================================================")
 
     set_seed(config.training.seed)
-    device = configure_cuda_optimizations(benchmark=config.training.cudnn_benchmark)
+    _device = configure_cuda_optimizations(benchmark=config.training.cudnn_benchmark)
 
     # Save pipeline config
     config.save_json(output_dir / "pipeline_config.json")
@@ -94,57 +89,8 @@ def run_pipeline(config: "PipelineConfig | None" = None) -> dict[str, Any]:
     logger.info("--- PHASE 2: BUILDING MMDETECTION CONFIG (Cascade R-CNN + ConvNeXt + PAFPN) ---")
     mmdet_cfg = build_mmdet_config(config)
 
-    # 3. Build Datasets and DataLoaders for Calibration
-    logger.info("--- PHASE 3: CALIBRATION & TIMING ADJUSTMENT ---")
-    train_dataset = WoodDataset(coco_dict=train_coco, data_dir=config.dataset.data_dir)
-    train_loader = torch.utils.data.DataLoader(
-        train_dataset,
-        batch_size=config.training.batch_size,
-        shuffle=True,
-        num_workers=config.training.num_workers,
-        pin_memory=config.training.pin_memory and device.type == "cuda",
-        collate_fn=collate_fn,
-    )
-
-    # Micro calibration model
-    calib_model = CascadeRCNN(
-        num_classes=len(train_coco.get("categories", [])) + 1,
-        backbone_variant=config.model.backbone_variant,
-        pretrained=config.model.pretrained,
-        out_channels=config.model.out_channels,
-        cascade_iou_thresholds=config.model.cascade_iou_thresholds,
-    ).to(device)
-
-    optimizer = torch.optim.AdamW(
-        calib_model.parameters(),
-        lr=config.training.lr,
-        weight_decay=config.training.weight_decay,
-    )
-    scaler = get_amp_scaler(enabled=config.training.amp_enabled)
-
-    target_epochs, _, _ = calibrate_training_epochs(
-        model=calib_model,
-        train_loader=train_loader,
-        optimizer=optimizer,
-        scaler=scaler,
-        device=device,
-        amp_enabled=config.training.amp_enabled,
-        calibration_batches=config.training.calibration_batches,
-        target_min_hours=config.training.target_min_hours,
-        target_max_hours=config.training.target_max_hours,
-    )
-
-    # Free memory from calibration model
-    del calib_model
-    torch.cuda.empty_cache()
-
-    # Configure max_epochs in MMDetection config
-    mmdet_cfg.train_cfg = {"type": "EpochBasedTrainLoop", "max_epochs": target_epochs, "val_interval": 1}
-    mmdet_cfg.val_cfg = {"type": "ValLoop"}
-    mmdet_cfg.test_cfg = {"type": "TestLoop"}
-
-    # 4. MMDetection Runner Execution
-    logger.info("--- PHASE 4: EXECUTING MMDETECTION RUNNER ---")
+    # 3. MMDetection Runner Execution
+    logger.info("--- PHASE 3: EXECUTING MMDETECTION RUNNER ---")
     start_total_time = time.time()
 
     runner = Runner.from_cfg(mmdet_cfg)
@@ -181,16 +127,16 @@ def run_pipeline(config: "PipelineConfig | None" = None) -> dict[str, Any]:
                 except Exception:
                     pass
 
-    # 5. Generate Final Deliverables & Summary Report
-    logger.info("--- PHASE 5: FINAL DELIVERABLES & SUMMARY REPORT ---")
+    # 4. Generate Final Deliverables & Summary Report
+    logger.info("--- PHASE 4: FINAL DELIVERABLES & SUMMARY REPORT ---")
     summary = {
         "pipeline_name": "MMDetection Cascade R-CNN Baseline (ConvNeXt + PAFPN)",
         "framework": "MMDetection 3.3.0",
         "total_elapsed_seconds": total_pipeline_time_sec,
         "total_elapsed_hours": total_pipeline_time_sec / 3600.0,
-        "epochs_completed": len(history) if history else target_epochs,
-        "target_epochs": target_epochs,
-        "average_epoch_time_seconds": total_pipeline_time_sec / max(1, target_epochs),
+        "epochs_completed": len(history) if history else config.training.epochs,
+        "target_epochs": config.training.epochs,
+        "average_epoch_time_seconds": total_pipeline_time_sec / max(1, config.training.epochs),
         "best_epoch": best_epoch,
         "final_val_mAP_50": history[-1]["val_mAP_50"] if history else 0.0,
         "final_val_mAP_50_95": history[-1]["val_mAP_50:95"] if history else 0.0,
@@ -216,8 +162,8 @@ def run_pipeline(config: "PipelineConfig | None" = None) -> dict[str, Any]:
 
 ## 2. Execution & Timing Summary
 - **Total Elapsed Time:** {total_pipeline_time_sec / 3600.0:.2f} hours ({total_pipeline_time_sec / 60.0:.2f} minutes)
-- **Target Epochs:** {target_epochs}
-- **Average Time per Epoch:** {total_pipeline_time_sec / max(1, target_epochs):.1f} seconds
+- **Target Epochs:** {config.training.epochs}
+- **Average Time per Epoch:** {total_pipeline_time_sec / max(1, config.training.epochs):.1f} seconds
 
 ## 3. Evaluation Metrics
 - **Best Epoch:** {best_epoch}

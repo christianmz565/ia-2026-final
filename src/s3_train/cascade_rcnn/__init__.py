@@ -1,5 +1,5 @@
 """Cascade R-CNN Baseline package for wood surface defect detection.
-Includes ConvNeXt backbone, PAFPN neck, data sanitization, timing calibration, AMP, and early stopping.
+Includes ConvNeXt backbone, PAFPN neck, data sanitization, AMP, and early stopping.
 """
 
 from __future__ import annotations
@@ -32,6 +32,7 @@ def _build_pipeline_config(cfg: CascadeRCNNConfig):
         output_dir=output_dir,
     )
     training = TrainingConfig(
+        epochs=cfg.epochs,
         batch_size=cfg.batch_size,
         lr=cfg.lr,
     )

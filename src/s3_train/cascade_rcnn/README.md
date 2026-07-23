@@ -31,42 +31,29 @@ Antes de iniciar el entrenamiento, el pipeline ejecuta una fase de validación e
 
 ---
 
-## ⏱️ Calibración de Tiempos (Margen de 3 a 5 Horas)
-
-El script incluye un módulo de calibración (`calibrate.py`):
-1. Ejecuta 1 iteración de calentamiento CUDA (*warmup*, descartada de las métricas).
-2. Mide el tiempo promedio por batch sobre un número representativo de iteraciones.
-3. Calcula el total de épocas requeridas para que el entrenamiento transcurra **estrictamente entre 3 y 5 horas** en una sola GPU.
-
----
-
 ## 🚀 Guía de Ejecución
 
 ### Comandos de Ejecución
 
 ```bash
-# Cambiar al directorio final/
-cd final
-
 # Instalar/sincronizar dependencias
 uv sync
 
 # Ejecutar entrenamiento pipeline baseline
-uv run python -m src.casc_rcnn.agy.train
+uv run python -m src.s3_train.cascade_rcnn.train
 ```
 
 ### Argumentos de Línea de Comandos (Opcionales)
 
 ```bash
-uv run python -m src.casc_rcnn.agy.train \
-  --data-dir partial/s1_integration/s1_download/wood_defects \
-  --train-json partial/s1_integration/s1_download/wood_defects/train.json \
-  --val-json partial/s1_integration/s1_download/wood_defects/val.json \
-  --output-dir outputs/casc_rcnn_baseline \
+uv run python -m src.s3_train.cascade_rcnn.train \
+  --data-dir dataset/split \
+  --train-json dataset/split/train_coco.json \
+  --val-json dataset/split/val_coco.json \
+  --output-dir outputs/cascade_rcnn \
   --backbone convnext_tiny \
-  --batch-size 2 \
-  --target-min-hours 3.0 \
-  --target-max-hours 5.0
+  --epochs 12 \
+  --batch-size 2
 ```
 
 ---

@@ -55,6 +55,7 @@ class ModelConfig:
 class TrainingConfig:
     """Training, optimization, and resource configurations."""
 
+    epochs: int = 12
     batch_size: int = 2
     num_workers: int = 4
     lr: float = 0.0001
@@ -63,9 +64,6 @@ class TrainingConfig:
     cudnn_benchmark: bool = True
     pin_memory: bool = True
     early_stopping_patience: int = 5
-    target_min_hours: float = 3.0
-    target_max_hours: float = 5.0
-    calibration_batches: int = 15
     seed: int = 42
 
 
@@ -109,6 +107,7 @@ class PipelineConfig:
         )
 
         training = TrainingConfig(
+            epochs=training_data.get("epochs", TrainingConfig.epochs),
             batch_size=training_data.get("batch_size", TrainingConfig.batch_size),
             num_workers=training_data.get("num_workers", TrainingConfig.num_workers),
             lr=training_data.get("lr", TrainingConfig.lr),
@@ -119,9 +118,6 @@ class PipelineConfig:
             early_stopping_patience=training_data.get(
                 "early_stopping_patience", TrainingConfig.early_stopping_patience
             ),
-            target_min_hours=training_data.get("target_min_hours", TrainingConfig.target_min_hours),
-            target_max_hours=training_data.get("target_max_hours", TrainingConfig.target_max_hours),
-            calibration_batches=training_data.get("calibration_batches", TrainingConfig.calibration_batches),
             seed=training_data.get("seed", TrainingConfig.seed),
         )
 
@@ -148,6 +144,7 @@ class PipelineConfig:
                 "cascade_iou_thresholds": self.model.cascade_iou_thresholds,
             },
             "training": {
+                "epochs": self.training.epochs,
                 "batch_size": self.training.batch_size,
                 "num_workers": self.training.num_workers,
                 "lr": self.training.lr,
@@ -156,9 +153,6 @@ class PipelineConfig:
                 "cudnn_benchmark": self.training.cudnn_benchmark,
                 "pin_memory": self.training.pin_memory,
                 "early_stopping_patience": self.training.early_stopping_patience,
-                "target_min_hours": self.training.target_min_hours,
-                "target_max_hours": self.training.target_max_hours,
-                "calibration_batches": self.training.calibration_batches,
                 "seed": self.training.seed,
             },
         }
@@ -185,22 +179,11 @@ def get_cli_parser() -> ArgumentParser:
         default=None,
         help="ConvNeXt backbone variant",
     )
+    parser.add_argument("--epochs", type=int, default=None, help="Number of training epochs")
     parser.add_argument("--batch-size", type=int, default=None, help="Batch size per GPU")
     parser.add_argument("--num-workers", type=int, default=None, help="Number of DataLoader workers")
     parser.add_argument("--lr", type=float, default=None, help="Initial learning rate")
     parser.add_argument("--no-amp", action="store_true", help="Disable Automatic Mixed Precision (AMP)")
-    parser.add_argument(
-        "--target-min-hours",
-        type=float,
-        default=None,
-        help="Minimum target training duration in hours",
-    )
-    parser.add_argument(
-        "--target-max-hours",
-        type=float,
-        default=None,
-        help="Maximum target training duration in hours",
-    )
     return parser
 
 
@@ -221,6 +204,8 @@ def parse_config() -> PipelineConfig:
         config.dataset.output_dir = args.output_dir
     if args.backbone:
         config.model.backbone_variant = args.backbone
+    if args.epochs:
+        config.training.epochs = args.epochs
     if args.batch_size:
         config.training.batch_size = args.batch_size
     if args.num_workers is not None:
@@ -229,9 +214,5 @@ def parse_config() -> PipelineConfig:
         config.training.lr = args.lr
     if args.no_amp:
         config.training.amp_enabled = False
-    if args.target_min_hours:
-        config.training.target_min_hours = args.target_min_hours
-    if args.target_max_hours:
-        config.training.target_max_hours = args.target_max_hours
 
     return config

@@ -126,9 +126,10 @@ class CascadeRCNNConfig(BaseModel):
     output_dir: str = Field(default="", description="Path to output directory")
     config_file: str = Field(default="cascade_rcnn_r50_fpn_1x_coco.py")
     epochs: int = Field(default=12)
-    batch_size: int = Field(default=8)
-    lr: float = Field(default=0.01)
+    batch_size: int = Field(default=2)
+    lr: float = Field(default=0.0001)
     device: str = Field(default="cuda:0")
+
 
 
 class RFDETRConfig(BaseModel):
