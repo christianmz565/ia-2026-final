@@ -12,7 +12,7 @@ import structlog
 
 from src.caching import run_cached_step
 from src.config import RFDETRConfig
-from src.constants import S3_OUTPUT, SPLIT_DATASET
+from src.constants import CLASS_NAMES, S3_OUTPUT, SPLIT_DATASET
 from src.s3_train.base import register_trainer
 
 logger = structlog.get_logger(__name__)
@@ -34,24 +34,52 @@ class RFDETRTrainer:
             force: If True, bypass cache and re-train.
 
         Returns:
-            Path to ``best.pt`` weights.
+            Path to ``best_model.pth`` weights.
         """
         config = config or self.config
         data_dir = Path(config.data_dir) if config.data_dir else SPLIT_DATASET
         output_dir = Path(config.output_dir) if config.output_dir else S3_OUTPUT / "rf_detr"
 
         def _do_train() -> Path:
+            from rfdetr.detr import RFDETRLarge
+
             output_dir.mkdir(parents=True, exist_ok=True)
             logger.info(
-                "rf_detr_train_stub",
+                "rf_detr_train_start",
                 data_dir=str(data_dir),
                 output=str(output_dir),
                 epochs=config.epochs,
+                batch=config.batch,
+                lr=config.lr0,
             )
-            weights = output_dir / "best.pt"
-            if not weights.exists():
-                weights.touch()
-            return weights
+
+            model = RFDETRLarge()
+            model.train(
+                dataset_dir=str(data_dir),
+                output_dir=str(output_dir),
+                epochs=config.epochs,
+                batch_size=config.batch,
+                lr=config.lr0,
+                weight_decay=1e-4,
+                warmup_epochs=5,
+                early_stopping=True,
+                early_stopping_patience=10,
+                class_names=CLASS_NAMES,
+                square_resize_div_64=True,
+                num_workers=2,
+                tensorboard=True,
+            )
+
+            best = output_dir / "best_model.pth"
+            if not best.exists():
+                logger.warning("rf_detr_train_no_checkpoint", path=str(best))
+                checkpoints = list(output_dir.glob("*.pth"))
+                if checkpoints:
+                    best = max(checkpoints, key=lambda p: p.stat().st_mtime)
+                    logger.info("rf_detr_train_fallback_checkpoint", path=str(best))
+
+            logger.info("rf_detr_train_complete", checkpoint=str(best))
+            return best
 
         return run_cached_step(
             step_name="train_rf_detr",
@@ -64,7 +92,7 @@ class RFDETRTrainer:
         """Export RF-DETR model.
 
         Args:
-            checkpoint: Path to ``.pt`` weights.
+            checkpoint: Path to ``.pth`` weights.
             output_dir: Where to save the exported file.
             format: Export format.
 
