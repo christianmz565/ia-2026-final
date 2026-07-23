@@ -92,18 +92,22 @@ class YOLO26Trainer:
             out_dir, checkpoints_dir = setup_training_output_dir(output_dir)
             data_yaml = _ensure_yolo_data_yaml(data_dir)
 
+            model_variant = getattr(config, "model_size", "yolo26n.pt") or "yolo26n.pt"
+
             logger.info(
                 "yolo26_train_start",
                 data_dir=str(data_dir),
                 output_dir=str(out_dir),
+                model_size=model_variant,
                 epochs=config.epochs,
                 imgsz=config.imgsz,
                 batch=config.batch,
+                lr0=config.lr0,
+                device=config.device,
                 amp=True,
             )
 
             start_time = time.time()
-            model_variant = config.model_size if hasattr(config, "model_size") else "yolov8n.pt"
             model = YOLO(model_variant)
 
             history: list[dict[str, Any]] = []
@@ -166,11 +170,13 @@ class YOLO26Trainer:
                     epochs=config.epochs,
                     imgsz=config.imgsz,
                     batch=config.batch,
+                    lr0=config.lr0,
                     device=config.device,
                     project=str(out_dir.parent),
                     name=out_dir.name,
                     exist_ok=True,
                     amp=True,
+                    workers=2,
                     save=True,
                     save_period=5,
                     verbose=False,
