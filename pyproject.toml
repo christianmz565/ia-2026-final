@@ -96,4 +96,6 @@ disallow_untyped_defs = false
 dev = [
     "pyright>=1.1.391",
     "ruff>=0.15.22",
+    "types-pyyaml>=6.0.12.20260518",
+    "types-tqdm>=4.69.0.20260720",
 ]

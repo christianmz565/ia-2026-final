@@ -53,8 +53,6 @@ CLASS_SPATIAL_PRIORS: dict[str, dict[str, Any]] = {
 }
 
 
-
-
 def sample_spatial_location(class_name: str, bbox_w: float, bbox_h: float) -> tuple[float, float]:
     """Sample valid (cx, cy) center coordinates adhering to empirical class spatial priors."""
     prior = CLASS_SPATIAL_PRIORS.get(
@@ -81,7 +79,6 @@ def sample_spatial_location(class_name: str, bbox_w: float, bbox_h: float) -> tu
     cy = (cy_min + cy_max) / 2.0 if cy_low >= cy_high else float(np.random.uniform(cy_low, cy_high))
 
     return cx, cy
-
 
 
 def check_overlap(box1: BBox, box2: BBox, iou_threshold: float = 0.05) -> bool:
@@ -153,7 +150,6 @@ class AlbumentationsAugmentor:
             return image, bboxes
 
         result = self._pipeline(image=image, bboxes=yolo_boxes, class_labels=class_labels)
-
 
         new_bboxes = [
             BBox(class_id=cls, cx=cx, cy=cy, w=w, h=h)

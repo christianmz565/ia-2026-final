@@ -221,9 +221,7 @@ class CascadeRCNN(nn.Module):
         pafpn_feats = self.neck(conv_feats)
 
         image_shapes: list[tuple[int, int]] = [(int(s[0]), int(s[1])) for s in (img.shape[-2:] for img in images)]
-        image_list_obj = torchvision.models.detection.image_list.ImageList(
-            image_tensors, image_shapes
-        )
+        image_list_obj = torchvision.models.detection.image_list.ImageList(image_tensors, image_shapes)
 
         proposals, rpn_losses = self.rpn(image_list_obj, pafpn_feats, targets)
 

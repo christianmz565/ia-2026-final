@@ -5,8 +5,12 @@ Includes ConvNeXt backbone, PAFPN neck, data sanitization, AMP, and early stoppi
 from __future__ import annotations
 
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import structlog
+
+if TYPE_CHECKING:
+    from src.s3_train.cascade_rcnn.config import PipelineConfig
 
 from src.caching import run_cached_step
 from src.config import CascadeRCNNConfig
@@ -18,7 +22,7 @@ logger = structlog.get_logger(__name__)
 __version__ = "0.1.0"
 
 
-def _build_pipeline_config(cfg: CascadeRCNNConfig):
+def _build_pipeline_config(cfg: CascadeRCNNConfig) -> PipelineConfig:
     """Build internal PipelineConfig from CascadeRCNNConfig."""
     from src.s3_train.cascade_rcnn.config import DatasetConfig, ModelConfig, PipelineConfig, TrainingConfig
 

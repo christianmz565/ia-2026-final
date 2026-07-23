@@ -13,16 +13,16 @@ Features:
 """
 
 import json
-import logging
 from pathlib import Path
 from typing import Any
 
 import cv2
+import structlog
 import torch
 from PIL import Image
 from torch.utils.data import Dataset
 
-logger = logging.getLogger("CascadeRCNN.Dataset")
+logger = structlog.get_logger(__name__)
 
 DEFAULT_CLASSES = [
     "Quartzity",

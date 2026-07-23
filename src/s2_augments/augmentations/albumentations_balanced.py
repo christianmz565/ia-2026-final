@@ -152,7 +152,6 @@ class AlbumentationsBalancedAugmentor(AlbumentationsAugmentor):
                 write_image(out_img_dir / f"{out_name}.jpg", aug_img)
                 write_yolo_labels(out_lbl_dir / f"{out_name}.txt", aug_bboxes)
 
-
                 for b in aug_bboxes:
                     class_counts[b.class_id] += 1
                     if b.class_id == class_id:

@@ -1,15 +1,16 @@
 """Utility functions for PyTorch CUDA optimization, AMP, logging, COCO evaluation, and Early Stopping."""
 
-import logging
 import random
-import sys
 from pathlib import Path
 from typing import Any
 
 import numpy as np
+import structlog
 import torch
 from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
+
+logger = structlog.get_logger(__name__)
 
 
 def set_seed(seed: int = 42) -> None:
@@ -30,10 +31,10 @@ def configure_cuda_optimizations(benchmark: bool = True) -> torch.device:
         torch.backends.cudnn.allow_tf32 = True
         device_name = torch.cuda.get_device_name(0)
         vram_gb = torch.cuda.get_device_properties(0).total_memory / 1e9
-        logging.info(f"CUDA Enabled: Device='{device_name}' (VRAM={vram_gb:.2f} GB) | cuDNN benchmark={benchmark}")
+        logger.info("CUDA Enabled", device=device_name, vram_gb=round(vram_gb, 2), benchmark=benchmark)
     else:
         device = torch.device("cpu")
-        logging.warning("CUDA is NOT available. Running on CPU.")
+        logger.warning("CUDA is NOT available. Running on CPU.")
     return device
 
 
@@ -42,28 +43,10 @@ def get_amp_scaler(enabled: bool = True) -> torch.amp.GradScaler:
     return torch.amp.GradScaler("cuda", enabled=enabled)
 
 
-def setup_logger(output_dir: Path) -> logging.Logger:
-    """Configure logger to print to stdout and log file."""
+def setup_logger(output_dir: Path) -> structlog.stdlib.BoundLogger:
+    """Configure logger instance for output directory."""
     output_dir.mkdir(parents=True, exist_ok=True)
-    log_file = output_dir / "training_pipeline.log"
-
-    logger = logging.getLogger("CascadeRCNN")
-    logger.setLevel(logging.INFO)
-    logger.handlers.clear()
-
-    c_handler = logging.StreamHandler(sys.stdout)
-    c_handler.setLevel(logging.INFO)
-    c_format = logging.Formatter("[%(asctime)s] %(levelname)s [%(name)s]: %(message)s", datefmt="%H:%M:%S")
-    c_handler.setFormatter(c_format)
-    logger.addHandler(c_handler)
-
-    f_handler = logging.FileHandler(log_file, mode="a", encoding="utf-8")
-    f_handler.setLevel(logging.INFO)
-    f_format = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-    f_handler.setFormatter(f_format)
-    logger.addHandler(f_handler)
-
-    return logger
+    return structlog.get_logger("CascadeRCNN")
 
 
 class EarlyStopping:
@@ -93,8 +76,12 @@ class EarlyStopping:
             return True
         else:
             self.counter += 1
-            logging.info(
-                f"EarlyStopping counter: {self.counter} out of {self.patience} (Best: {self.best_score:.4f}, Current: {current_score:.4f})"
+            logger.info(
+                "EarlyStopping counter update",
+                counter=self.counter,
+                patience=self.patience,
+                best_score=self.best_score,
+                current_score=current_score,
             )
             if self.counter >= self.patience:
                 self.early_stop = True
@@ -156,7 +143,7 @@ def evaluate_coco_metrics(
                 )
 
     if len(coco_results) == 0:
-        logging.warning("No predictions produced by model during validation evaluation.")
+        logger.warning("No predictions produced by model during validation evaluation.")
         return {"mAP_50": 0.0, "mAP_50:95": 0.0}
 
     tmp_res_path = Path("/tmp/val_coco_results_tmp.json")
