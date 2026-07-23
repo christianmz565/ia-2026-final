@@ -84,9 +84,9 @@ def _parse_section_flags(section: str, raw_flags: list[str] | None) -> dict[str,
         parts = key.split(".")
 
         coerced: Any = value
-        if value.lower() in ("true", "yes", "1"):
+        if value.lower() in ("true", "yes"):
             coerced = True
-        elif value.lower() in ("false", "no", "0"):
+        elif value.lower() in ("false", "no"):
             coerced = False
         else:
             try:
@@ -95,7 +95,7 @@ def _parse_section_flags(section: str, raw_flags: list[str] | None) -> dict[str,
                 try:
                     coerced = float(value)
                 except ValueError:
-                    coerced = value
+                    coerced = [v.strip() for v in value.split(",")] if "," in value else value
 
         d = overrides
         for part in parts[:-1]:

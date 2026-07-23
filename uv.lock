@@ -761,7 +761,6 @@ dependencies = [
     { name = "libcom" },
     { name = "lpips" },
     { name = "matplotlib" },
-    { name = "mmcv" },
     { name = "mmdet" },
     { name = "mmengine" },
     { name = "mmpose" },
@@ -783,6 +782,7 @@ dependencies = [
     { name = "seaborn" },
     { name = "segment-anything" },
     { name = "sentencepiece" },
+    { name = "setuptools" },
     { name = "structlog" },
     { name = "tabulate" },
     { name = "taming-transformers-rom1504" },
@@ -791,6 +791,7 @@ dependencies = [
     { name = "tqdm" },
     { name = "transformers" },
     { name = "ultralytics" },
+    { name = "visdet" },
     { name = "xformers" },
 ]
 
@@ -815,7 +816,6 @@ requires-dist = [
     { name = "libcom", editable = "deps/libcom" },
     { name = "lpips", specifier = "==0.1.4" },
     { name = "matplotlib", specifier = ">=3.9.0" },
-    { name = "mmcv", specifier = ">=2.0.0rc4,<2.2.0" },
     { name = "mmdet", specifier = "==3.2.0" },
     { name = "mmengine", specifier = ">=0.10.7" },
     { name = "mmpose", specifier = "==1.2.0" },
@@ -836,6 +836,7 @@ requires-dist = [
     { name = "seaborn", specifier = ">=0.13.0" },
     { name = "segment-anything", specifier = ">=1.0" },
     { name = "sentencepiece", specifier = ">=0.2.2" },
+    { name = "setuptools", specifier = "<82.0.0" },
     { name = "structlog", specifier = ">=24.1.0" },
     { name = "tabulate", specifier = ">=0.9.0" },
     { name = "taming-transformers-rom1504", specifier = ">=0.0.6" },
@@ -844,6 +845,7 @@ requires-dist = [
     { name = "tqdm", specifier = ">=4.69.0" },
     { name = "transformers", specifier = "==4.44.2" },
     { name = "ultralytics", specifier = ">=8.2.0" },
+    { name = "visdet", specifier = ">=2.28.4" },
     { name = "xformers", specifier = ">=0.0.29.post3" },
 ]
 
@@ -1766,25 +1768,6 @@ sdist = { url = "https://files.pythonhosted.org/packages/d6/54/cfe61301667036ec9
 wheels = [
     { url = "https://files.pythonhosted.org/packages/b3/38/89ba8ad64ae25be8de66a6d463314cf1eb366222074cfda9ee839c56a4b4/mdurl-0.1.2-py3-none-any.whl", hash = "sha256:84008a41e51615a49fc9966191ff91509e3c40b939176e643fd50a5c2196b8f8", size = 9979, upload-time = "2022-08-14T12:40:09.779Z" },
 ]
-
-[[package]]
-name = "mmcv"
-version = "2.1.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "addict" },
-    { name = "mmengine" },
-    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
-    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.11.*'" },
-    { name = "numpy", version = "2.5.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
-    { name = "opencv-python" },
-    { name = "packaging" },
-    { name = "pillow" },
-    { name = "pyyaml" },
-    { name = "regex", marker = "sys_platform == 'win32'" },
-    { name = "yapf" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/a7/19/f97f0fd4d432113a232e75f965335be6b7bb6557ae9faf8051e9a012cadd/mmcv-2.1.0.tar.gz", hash = "sha256:d387bcab66b467479b6660310e23746cfc79c6e57acf04094680adb499a5cd3f", size = 471435, upload-time = "2023-10-17T11:30:52.431Z" }
 
 [[package]]
 name = "mmdet"
@@ -4181,11 +4164,11 @@ wheels = [
 
 [[package]]
 name = "setuptools"
-version = "83.0.0"
+version = "81.0.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/34/26/f5d29e25ffdb535afef2d35cdb55b325298f96debd670da4c325e08d70f4/setuptools-83.0.0.tar.gz", hash = "sha256:025bccbbf0fa05b6192bc64ae1e7b16e001fd6d6d4d5de03c97b1c1ade523bef", size = 1154254, upload-time = "2026-07-04T15:31:22.699Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/0d/1c/73e719955c59b8e424d015ab450f51c0af856ae46ea2da83eba51cc88de1/setuptools-81.0.0.tar.gz", hash = "sha256:487b53915f52501f0a79ccfd0c02c165ffe06631443a886740b91af4b7a5845a", size = 1198299, upload-time = "2026-02-06T21:10:39.601Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/5d/40/e1e72872c6354b306daef1703549e8e83b4d43cfea356311bf722a043752/setuptools-83.0.0-py3-none-any.whl", hash = "sha256:29b23c360f22f414dc7336bb39178cc7bcbf6021ed2733cde173f09dba19abb3", size = 1008090, upload-time = "2026-07-04T15:31:20.885Z" },
+    { url = "https://files.pythonhosted.org/packages/e1/e3/c164c88b2e5ce7b24d667b9bd83589cf4f3520d97cad01534cd3c4f55fdb/setuptools-81.0.0-py3-none-any.whl", hash = "sha256:fdd925d5c5d9f62e4b74b30d6dd7828ce236fd6ed998a08d81de62ce5a6310d6", size = 1062021, upload-time = "2026-02-06T21:10:37.175Z" },
 ]
 
 [[package]]
@@ -4810,6 +4793,28 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/53/0c/06f8b233b8fd13b9e5ee11424ef85419ba0d8ba0b3138bf360be2ff56953/urllib3-2.7.0.tar.gz", hash = "sha256:231e0ec3b63ceb14667c67be60f2f2c40a518cb38b03af60abc813da26505f4c", size = 433602, upload-time = "2026-05-07T16:13:18.596Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/7f/3e/5db95bcf282c52709639744ca2a8b149baccf648e39c8cc87553df9eae0c/urllib3-2.7.0-py3-none-any.whl", hash = "sha256:9fb4c81ebbb1ce9531cce37674bbc6f1360472bc18ca9a553ede278ef7276897", size = 131087, upload-time = "2026-05-07T16:13:17.151Z" },
+]
+
+[[package]]
+name = "visdet"
+version = "2.28.4"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "matplotlib" },
+    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.11.*'" },
+    { name = "numpy", version = "2.5.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
+    { name = "pycocotools" },
+    { name = "scipy", version = "1.15.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "scipy", version = "1.17.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.11.*'" },
+    { name = "scipy", version = "1.18.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
+    { name = "six" },
+    { name = "terminaltables" },
+    { name = "tqdm" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/d1/17/ba7fa0c01c6b20b51c7348ba62e9ff02268b8c99e864ff9c2cc467763cd0/visdet-2.28.4.tar.gz", hash = "sha256:8ff7e7e0f453575704e2a67b06beef70de843772fff525452cfb837833112ff3", size = 32236297, upload-time = "2025-10-21T10:41:01.709Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ea/c4/a72bfa91fbf613557daa69b8e21a0c023e8205c09543b6963da6b7a392ea/visdet-2.28.4-py3-none-any.whl", hash = "sha256:625f3ea44aeceb25c9c7427beb0c0f7a45010738573077308bde4be93ef0460e", size = 289110, upload-time = "2025-10-21T10:40:59.263Z" },
 ]
 
 [[package]]
