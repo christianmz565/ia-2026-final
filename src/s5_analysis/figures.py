@@ -10,6 +10,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+import matplotlib
+import matplotlib.pyplot as plt
 import structlog
 
 from src.caching import run_cached_step
@@ -37,19 +39,56 @@ def generate_figures(
         List of paths to generated figure files.
     """
     config = config or AnalysisConfig()
+    matplotlib.use(config.figure_backend or "Agg")
+
     resolved_output_dir = Path(output_dir or S5_OUTPUT / "figures")
+    fig_path = resolved_output_dir / "map_comparison.png"
 
     def _do_generate() -> list[Path]:
         resolved_output_dir.mkdir(parents=True, exist_ok=True)
+        rows = aggregated.get("rows", [])
         logger.info(
-            "generate_figures_stub",
-            rows=len(aggregated.get("rows", [])),
+            "generate_figures_start",
+            rows=len(rows),
             dpi=config.figure_dpi,
             output=str(resolved_output_dir),
         )
+
+        labels: list[str] = []
+        map50_scores: list[float] = []
+        map50_95_scores: list[float] = []
+
+        for r in rows:
+            lbl = f"{r.get('model', 'N/A')} ({r.get('augmentation', 'baseline')})"
+            labels.append(lbl)
+            map50_scores.append(float(r.get("mAP_50", 0.0)))
+            map50_95_scores.append(float(r.get("mAP_50_95", 0.0)))
+
+        fig, ax = plt.subplots(figsize=(10, 6))
+        if labels:
+            x = range(len(labels))
+            width = 0.35
+            ax.bar([i - width / 2 for i in x], map50_scores, width, label="mAP@50")
+            ax.bar([i + width / 2 for i in x], map50_95_scores, width, label="mAP@50:95")
+            ax.set_xticks(list(x))
+            ax.set_xticklabels(labels, rotation=45, ha="right")
+        else:
+            ax.text(0.5, 0.5, "No data available", ha="center", va="center")
+
+        ax.set_ylabel("mAP Score")
+        ax.set_title("Wood Defect Detection Model Benchmark")
+        ax.set_ylim(0, 1.0)
+        ax.legend()
+        plt.tight_layout()
+
+        fig.savefig(fig_path, dpi=config.figure_dpi)
+        plt.close(fig)
+
         marker = resolved_output_dir / ".figures_generated"
         marker.touch()
-        return [marker]
+
+        logger.info("generate_figures_complete", figure=str(fig_path))
+        return [fig_path, marker]
 
     res = run_cached_step(
         step_name="generate_figures",

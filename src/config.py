@@ -7,6 +7,7 @@ all section configs so that the CLI can override any leaf value via flags like
 
 from __future__ import annotations
 
+import torch
 from pydantic import BaseModel, Field
 
 from src.constants import (
@@ -19,6 +20,11 @@ from src.s2_augments.augmentations import (
     BoxAugLibcomConfig,
     BoxAugStandardConfig,
 )
+
+
+def _default_device() -> str:
+    """Return default device depending on CUDA availability."""
+    return "cuda:0" if torch.cuda.is_available() else "cpu"
 
 
 class DownloadConfig(BaseModel):
@@ -84,7 +90,7 @@ class YOLO26Config(BaseModel):
     imgsz: int = Field(default=640)
     batch: int = Field(default=16)
     lr0: float = Field(default=0.01)
-    device: str = Field(default="cuda:0")
+    device: str = Field(default_factory=_default_device)
 
 
 class CascadeRCNNConfig(BaseModel):
@@ -96,7 +102,7 @@ class CascadeRCNNConfig(BaseModel):
     epochs: int = Field(default=12)
     batch_size: int = Field(default=2)
     lr: float = Field(default=0.0001)
-    device: str = Field(default="cuda:0")
+    device: str = Field(default_factory=_default_device)
 
 
 class RFDETRConfig(BaseModel):
@@ -111,7 +117,7 @@ class RFDETRConfig(BaseModel):
     imgsz: int = Field(default=640)
     batch: int = Field(default=8)
     lr0: float = Field(default=0.001)
-    device: str = Field(default="cuda:0")
+    device: str = Field(default_factory=_default_device)
 
 
 class S3Config(BaseModel):
@@ -141,7 +147,7 @@ class EvalConfig(BaseModel):
     ground_truth: str = Field(default="", description="Path to ground truth annotations")
     output_path: str = Field(default="", description="Path to output results file")
     iou_threshold: float = Field(default=0.5, description="IoU threshold for mAP")
-    device: str = Field(default="cuda:0")
+    device: str = Field(default_factory=_default_device)
     conf_threshold: float = Field(default=0.25)
 
 
