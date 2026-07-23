@@ -193,8 +193,8 @@ class BoxAugLibcomAugmentor(Augmentor):
         src_dir = Path(input_dir or (SPLIT_DATASET / "train"))
         target_dir = Path(output_dir)
 
-        out_img_dir = target_dir / "images"
-        out_lbl_dir = target_dir / "labels"
+        out_img_dir = target_dir / "train" / "images"
+        out_lbl_dir = target_dir / "train" / "labels"
         out_img_dir.mkdir(parents=True, exist_ok=True)
         out_lbl_dir.mkdir(parents=True, exist_ok=True)
 
