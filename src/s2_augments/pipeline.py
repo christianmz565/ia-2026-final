@@ -13,7 +13,7 @@ import structlog
 
 from src.caching import run_cached_step
 from src.config import S2Config
-from src.constants import AUGMENTED_DIR, SPLIT_DATASET, TRAIN_SPLIT
+from src.constants import AUGMENTED_DIR, SPLIT_DATASET
 from src.s1_prepare.convert_coco import convert_split
 from src.s2_augments.base import get_augmentation, list_augmentations
 
@@ -46,7 +46,7 @@ def run_pipeline(config: S2Config | None = None) -> None:
                 output_dir=out_dir,
                 config=cfg,
             )
-            convert_split(out_dir, TRAIN_SPLIT)
+            convert_split(out_dir.parent, out_dir.name)
             (out_dir / ".augmented").touch()
             logger.info("s2_step_complete", method=name, output_dir=str(out_dir))
             return out_dir
