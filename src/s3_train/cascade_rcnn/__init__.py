@@ -69,9 +69,9 @@ class CascadeRCNNTrainer(Trainer):
 
             pipeline_cfg = _build_pipeline_config(config)
             run_pipeline(pipeline_cfg)
-            summary_path = output_dir / "summary_report.json"
-            if summary_path.exists():
-                return summary_path
+            best_pt = output_dir / "best.pt"
+            if best_pt.exists():
+                return best_pt
             return output_dir
 
         return run_cached_step(

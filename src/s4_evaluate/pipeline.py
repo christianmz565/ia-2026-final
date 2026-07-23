@@ -41,7 +41,9 @@ def run_pipeline(config: S4Config | None = None) -> None:
             conf_threshold=config.eval.conf_threshold,
         )
         metrics_path = out_dir / "metrics.json"
-        gt_path = config.eval.ground_truth or ((config.eval.data_dir or (SPLIT_DATASET / "test")) / "_annotations.coco.json")
+        gt_path = config.eval.ground_truth or (
+            (config.eval.data_dir or (SPLIT_DATASET / "test")) / "_annotations.coco.json"
+        )
         metrics = compute_metrics(
             predictions=config.eval.predictions or pred_path,
             ground_truth=gt_path,
