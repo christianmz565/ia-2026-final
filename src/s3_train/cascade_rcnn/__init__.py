@@ -31,8 +31,8 @@ def _build_pipeline_config(cfg: CascadeRCNNConfig) -> PipelineConfig:
 
     dataset = DatasetConfig(
         data_dir=data_dir,
-        train_json=data_dir / "train_coco.json",
-        val_json=data_dir / "val_coco.json",
+        train_json=data_dir / "train" / "_annotations.coco.json",
+        val_json=data_dir / "val" / "_annotations.coco.json",
         output_dir=output_dir,
     )
     training = TrainingConfig(

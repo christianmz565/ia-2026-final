@@ -12,28 +12,19 @@ from typing import Any
 
 import yaml
 
+from src.constants import CLASS_NAMES
+
 
 @dataclass
 class DatasetConfig:
     """Dataset and path configurations targeting dataset/split/."""
 
     data_dir: Path = Path("dataset/split")
-    train_json: Path = Path("dataset/split/train_coco.json")
-    val_json: Path = Path("dataset/split/val_coco.json")
+    train_json: Path = Path("dataset/split/train/_annotations.coco.json")
+    val_json: Path = Path("dataset/split/val/_annotations.coco.json")
     output_dir: Path = Path("outputs/casc_rcnn_baseline")
     num_classes: int = 8
-    class_names: list[str] = field(
-        default_factory=lambda: [
-            "Quartzity",
-            "Live_Knot",
-            "Marrow",
-            "resin",
-            "Dead_Knot",
-            "knot_with_crack",
-            "Knot_missing",
-            "Crack",
-        ]
-    )
+    class_names: list[str] = field(default_factory=lambda: list(CLASS_NAMES))
 
 
 @dataclass

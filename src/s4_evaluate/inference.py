@@ -20,6 +20,7 @@ import structlog
 import torch
 
 from src.caching import run_cached_step
+from src.coco_utils import SUPPORTED_IMAGE_SUFFIXES
 from src.constants import S4_OUTPUT
 
 if TYPE_CHECKING:
@@ -150,7 +151,9 @@ def run_inference(
         total_detections = 0
 
         inf_start = time.perf_counter()
-        for img_path in sorted(images_dir.glob("*.jpg")):
+        for img_path in sorted(images_dir.iterdir()):
+            if img_path.suffix.lower() not in SUPPORTED_IMAGE_SUFFIXES:
+                continue
             file_name = f"images/{img_path.name}"
             if file_name not in img_id_map:
                 continue
@@ -175,7 +178,7 @@ def run_inference(
                 h = y2 - y1
                 dets.append(
                     {
-                        "category_id": cls,
+                        "category_id": cls + 1,
                         "bbox": [round(float(x1), 2), round(float(y1), 2), round(float(w), 2), round(float(h), 2)],
                         "area": round(float(w * h), 2),
                         "score": conf,

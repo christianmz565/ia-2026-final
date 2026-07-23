@@ -81,18 +81,6 @@ ignore = ["E501"]
 quote-style = "double"
 indent-style = "space"
 
-[tool.mypy]
-python_version = "3.12"
-strict = true
-warn_return_any = true
-warn_unused_ignores = true
-disallow_untyped_defs = true
-disallow_incomplete_defs = true
-
-[[tool.mypy.overrides]]
-module = "tests.*"
-disallow_untyped_defs = false
-
 [dependency-groups]
 dev = [
     "pyright>=1.1.391",

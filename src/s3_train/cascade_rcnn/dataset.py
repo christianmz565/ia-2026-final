@@ -1,7 +1,7 @@
 """Dataset loading, automatic YOLO-to-COCO conversion, sanitization, and PyTorch Dataset module.
 
 Features:
-- Auto-detects and converts YOLO format txt annotations (in dataset/split/train, dataset/split/val) to COCO JSON format if JSON file is missing.
+- Auto-detects and converts YOLO format txt annotations to COCO JSON format if JSON file is missing.
 - Light sanitization / filtering phase:
   * Discards corrupt or unreadable image files.
   * Discards invalid bounding boxes (area <= 0, xmax <= xmin, ymax <= ymin, out of bounds).
@@ -22,18 +22,10 @@ import torch
 from PIL import Image
 from torch.utils.data import Dataset
 
-logger = structlog.get_logger(__name__)
+from src.constants import CLASS_NAMES
+from src.s1_prepare.convert_coco import convert_split
 
-DEFAULT_CLASSES = [
-    "Quartzity",
-    "Live_Knot",
-    "Marrow",
-    "resin",
-    "Dead_Knot",
-    "knot_with_crack",
-    "Knot_missing",
-    "Crack",
-]
+logger = structlog.get_logger(__name__)
 
 
 class DataSanitizer:
@@ -44,105 +36,7 @@ class DataSanitizer:
 
     def __init__(self, data_dir: Path, class_names: list[str] | None = None):
         self.data_dir = Path(data_dir)
-        self.class_names = class_names or DEFAULT_CLASSES
-
-    def convert_yolo_to_coco(self, split_name: str, output_json: Path) -> dict[str, Any]:
-        """Convert YOLO format dataset (split_name/images and split_name/labels) to COCO format dict."""
-        split_dir = self.data_dir / split_name
-        if not split_dir.exists():
-            split_dir = self.data_dir
-
-        images_dir = split_dir / "images"
-        labels_dir = split_dir / "labels"
-
-        if not images_dir.exists():
-            raise FileNotFoundError(f"Images directory not found: {images_dir}")
-
-        categories = [
-            {"id": i + 1, "name": name, "supercategory": "wood_defect"} for i, name in enumerate(self.class_names)
-        ]
-
-        images = []
-        annotations = []
-        ann_id = 1
-
-        img_files = sorted([f for f in images_dir.glob("*") if f.suffix.lower() in (".jpg", ".jpeg", ".png", ".bmp")])
-        logger.info(f"Converting YOLO dataset split '{split_name}': found {len(img_files)} images...")
-
-        for img_id, img_path in enumerate(img_files, start=1):
-            try:
-                with Image.open(img_path) as img:
-                    w, h = img.size
-            except Exception as e:
-                logger.warning(f"Failed to read image dimensions for {img_path}: {e}")
-                continue
-
-            rel_file_name = f"{split_name}/images/{img_path.name}"
-            images.append(
-                {
-                    "id": img_id,
-                    "file_name": rel_file_name,
-                    "width": w,
-                    "height": h,
-                    "resolved_path": str(img_path),
-                }
-            )
-
-            txt_path = labels_dir / f"{img_path.stem}.txt"
-            if not txt_path.exists():
-                continue
-
-            try:
-                content = txt_path.read_text().strip()
-            except Exception:
-                continue
-
-            if not content:
-                continue
-
-            for line in content.split("\n"):
-                parts = line.strip().split()
-                if len(parts) < 5:
-                    continue
-                try:
-                    cls_id = int(parts[0])
-                    cx, cy, nw, nh = map(float, parts[1:5])
-                except ValueError:
-                    continue
-
-                bw = nw * w
-                bh = nh * h
-                xmin = (cx - nw / 2.0) * w
-                ymin = (cy - nh / 2.0) * h
-
-                annotations.append(
-                    {
-                        "id": ann_id,
-                        "image_id": img_id,
-                        "category_id": cls_id + 1,
-                        "bbox": [xmin, ymin, bw, bh],
-                        "area": bw * bh,
-                        "iscrowd": 0,
-                    }
-                )
-                ann_id += 1
-
-        coco_dict = {
-            "info": {"description": "Converted from YOLO format dataset"},
-            "licenses": [],
-            "categories": categories,
-            "images": images,
-            "annotations": annotations,
-        }
-
-        output_json.parent.mkdir(parents=True, exist_ok=True)
-        with open(output_json, "w", encoding="utf-8") as f:
-            json.dump(coco_dict, f, indent=2)
-
-        logger.info(
-            f"Successfully saved converted COCO JSON to {output_json} ({len(images)} images, {len(annotations)} annotations)"
-        )
-        return coco_dict
+        self.class_names = class_names or CLASS_NAMES
 
     def sanitize_coco(self, json_path: Path) -> tuple[dict[str, Any], dict[str, Any]]:
         """Validate and filter COCO annotation dict or auto-convert YOLO if JSON missing.
@@ -164,10 +58,13 @@ class DataSanitizer:
                 split_name = "train"
 
             logger.info(f"JSON file {json_path} not found. Auto-converting YOLO txt dataset from '{split_name}'...")
-            raw_coco = self.convert_yolo_to_coco(split_name, json_path)
-        else:
-            with open(json_path, encoding="utf-8") as f:
-                raw_coco = json.load(f)
+            convert_split(self.data_dir, split_name, output_path=json_path)
+
+            if not json_path.exists():
+                raise FileNotFoundError(f"Failed to create COCO JSON at {json_path}")
+
+        with open(json_path, encoding="utf-8") as f:
+            raw_coco = json.load(f)
 
         stats = {
             "total_images_inspected": len(raw_coco.get("images", [])),
