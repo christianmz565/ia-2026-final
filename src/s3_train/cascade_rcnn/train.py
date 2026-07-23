@@ -18,7 +18,7 @@ from typing import TYPE_CHECKING, Any
 
 from mmengine.runner import Runner
 
-from src.constants import CLASS_NAMES
+from src.constants import CLASS_NAMES, TRAIN_SPLIT, VALID_SPLIT
 from src.s3_train.cascade_rcnn.config import parse_config
 from src.s3_train.cascade_rcnn.dataset import DataSanitizer
 from src.s3_train.cascade_rcnn.mmdet_config import build_mmdet_config
@@ -65,12 +65,15 @@ def run_pipeline(config: PipelineConfig | None = None) -> dict[str, Any]:
     config.save_json(out_dir / "pipeline_config.json")
 
     logger.info("--- PHASE 1: DATASET SANITIZATION & INSPECTION ---")
-    sanitizer = DataSanitizer(data_dir=config.dataset.data_dir)
+    train_data_dir = config.dataset.data_dir / TRAIN_SPLIT
+    val_data_dir = config.dataset.data_dir / VALID_SPLIT
+    train_sanitizer = DataSanitizer(data_dir=train_data_dir)
+    val_sanitizer = DataSanitizer(data_dir=val_data_dir)
 
-    train_coco, train_stats = sanitizer.sanitize_coco(config.dataset.train_json)
-    val_coco, val_stats = sanitizer.sanitize_coco(config.dataset.val_json)
+    train_coco, train_stats = train_sanitizer.sanitize_coco(config.dataset.train_json)
+    val_coco, val_stats = val_sanitizer.sanitize_coco(config.dataset.val_json)
 
-    sanitizer.save_report(
+    train_sanitizer.save_report(
         stats={
             "train_set": train_stats,
             "val_set": val_stats,

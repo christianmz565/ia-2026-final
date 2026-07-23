@@ -329,7 +329,7 @@ def build_mmdet_config(config: PipelineConfig) -> Config:
         "val_evaluator": val_evaluator,
         "train_cfg": {"type": "EpochBasedTrainLoop", "max_epochs": config.training.epochs, "val_interval": 1},
         "val_cfg": {"type": "ValLoop"},
-        "test_cfg": {"type": "TestLoop"},
+        "test_cfg": None,
         "optim_wrapper": optim_wrapper,
         "default_hooks": default_hooks,
         "work_dir": work_dir,
