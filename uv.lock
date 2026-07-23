@@ -815,7 +815,7 @@ requires-dist = [
     { name = "libcom", editable = "deps/libcom" },
     { name = "lpips", specifier = "==0.1.4" },
     { name = "matplotlib", specifier = ">=3.9.0" },
-    { name = "mmcv", specifier = ">=2.2.0" },
+    { name = "mmcv", specifier = ">=2.0.0rc4,<2.2.0" },
     { name = "mmdet", specifier = "==3.2.0" },
     { name = "mmengine", specifier = ">=0.10.7" },
     { name = "mmpose", specifier = "==1.2.0" },
@@ -1769,7 +1769,7 @@ wheels = [
 
 [[package]]
 name = "mmcv"
-version = "2.2.0"
+version = "2.1.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "addict" },
@@ -1784,7 +1784,7 @@ dependencies = [
     { name = "regex", marker = "sys_platform == 'win32'" },
     { name = "yapf" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/e9/a2/57a733e7e84985a8a0e3101dfb8170fc9db92435c16afad253069ae3f9df/mmcv-2.2.0.tar.gz", hash = "sha256:ac479247e808d8802f89eadf04d4118de86bdfe81361ec5aed0cc1bf731c67c9", size = 479121, upload-time = "2024-04-24T14:24:28.064Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/a7/19/f97f0fd4d432113a232e75f965335be6b7bb6557ae9faf8051e9a012cadd/mmcv-2.1.0.tar.gz", hash = "sha256:d387bcab66b467479b6660310e23746cfc79c6e57acf04094680adb499a5cd3f", size = 471435, upload-time = "2023-10-17T11:30:52.431Z" }
 
 [[package]]
 name = "mmdet"
