@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 
 from src.caching import run_cached_step
 from src.config import CascadeRCNNConfig
-from src.constants import S3_OUTPUT, SPLIT_DATASET
+from src.constants import S3_OUTPUT, SPLIT_DATASET, TRAIN_SPLIT, VALID_SPLIT
 from src.s3_train.base import Trainer, register_trainer
 
 logger = structlog.get_logger(__name__)
@@ -31,8 +31,8 @@ def _build_pipeline_config(cfg: CascadeRCNNConfig) -> PipelineConfig:
 
     dataset = DatasetConfig(
         data_dir=data_dir,
-        train_json=data_dir / "train" / "_annotations.coco.json",
-        val_json=data_dir / "val" / "_annotations.coco.json",
+        train_json=data_dir / TRAIN_SPLIT / "_annotations.coco.json",
+        val_json=data_dir / VALID_SPLIT / "_annotations.coco.json",
         output_dir=output_dir,
     )
     training = TrainingConfig(

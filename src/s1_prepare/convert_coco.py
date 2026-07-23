@@ -17,11 +17,9 @@ import structlog
 
 from src.caching import run_cached_step
 from src.coco_utils import SUPPORTED_IMAGE_SUFFIXES, build_categories, yolo_to_coco_bbox
-from src.constants import SPLIT_DATASET
+from src.constants import SPLIT_DATASET, SPLITS
 
 logger = structlog.get_logger(__name__)
-
-SPLITS = ["train", "val", "test"]
 
 
 def convert_split(

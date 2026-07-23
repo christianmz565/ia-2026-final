@@ -11,7 +11,7 @@ from pathlib import Path
 import structlog
 
 from src.config import S4Config
-from src.constants import AUGMENTED_DIR, S3_OUTPUT, S4_OUTPUT, SPLIT_DATASET
+from src.constants import AUGMENTED_DIR, S3_OUTPUT, S4_OUTPUT, SPLIT_DATASET, TEST_SPLIT
 from src.s4_evaluate.export import export_results
 from src.s4_evaluate.inference import run_inference
 from src.s4_evaluate.metrics import compute_metrics
@@ -35,14 +35,14 @@ def run_pipeline(config: S4Config | None = None) -> None:
         pred_path = out_dir / "predictions.json"
         predictions = run_inference(
             model_path=config.eval.model_path,
-            data_dir=config.eval.data_dir or (SPLIT_DATASET / "test"),
+            data_dir=config.eval.data_dir or (SPLIT_DATASET / TEST_SPLIT),
             output_path=pred_path,
             device=config.eval.device,
             conf_threshold=config.eval.conf_threshold,
         )
         metrics_path = out_dir / "metrics.json"
         gt_path = config.eval.ground_truth or (
-            (config.eval.data_dir or (SPLIT_DATASET / "test")) / "_annotations.coco.json"
+            (config.eval.data_dir or (SPLIT_DATASET / TEST_SPLIT)) / "_annotations.coco.json"
         )
         metrics = compute_metrics(
             predictions=config.eval.predictions or pred_path,
@@ -67,9 +67,9 @@ def run_pipeline(config: S4Config | None = None) -> None:
             if not model_weights.exists():
                 model_weights = S3_OUTPUT / model_name / aug_name
 
-            data_dir = (SPLIT_DATASET / "test") if aug_name == "baseline" else (AUGMENTED_DIR / aug_name / "test")
+            data_dir = (SPLIT_DATASET / TEST_SPLIT) if aug_name == "baseline" else (AUGMENTED_DIR / aug_name / TEST_SPLIT)
             if not Path(data_dir).exists():
-                data_dir = SPLIT_DATASET / "test"
+                data_dir = SPLIT_DATASET / TEST_SPLIT
 
             pred_path = eval_out_dir / "predictions.json"
             predictions = run_inference(
@@ -83,7 +83,7 @@ def run_pipeline(config: S4Config | None = None) -> None:
             metrics_path = eval_out_dir / "metrics.json"
             gt_path = config.eval.ground_truth or (data_dir / "_annotations.coco.json")
             if not Path(gt_path).exists():
-                gt_path = SPLIT_DATASET / "test" / "_annotations.coco.json"
+                gt_path = SPLIT_DATASET / TEST_SPLIT / "_annotations.coco.json"
 
             metrics = compute_metrics(
                 predictions=config.eval.predictions or pred_path,

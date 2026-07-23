@@ -12,7 +12,7 @@ from typing import Any
 
 import yaml
 
-from src.constants import CLASS_NAMES
+from src.constants import CLASS_NAMES, TRAIN_SPLIT, VALID_SPLIT
 
 
 @dataclass
@@ -20,8 +20,8 @@ class DatasetConfig:
     """Dataset and path configurations targeting dataset/split/."""
 
     data_dir: Path = Path("dataset/split")
-    train_json: Path = Path("dataset/split/train/_annotations.coco.json")
-    val_json: Path = Path("dataset/split/val/_annotations.coco.json")
+    train_json: Path = Path(f"dataset/split/{TRAIN_SPLIT}/_annotations.coco.json")
+    val_json: Path = Path(f"dataset/split/{VALID_SPLIT}/_annotations.coco.json")
     output_dir: Path = Path("outputs/casc_rcnn_baseline")
     num_classes: int = 8
     class_names: list[str] = field(default_factory=lambda: list(CLASS_NAMES))

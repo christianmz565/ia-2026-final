@@ -35,10 +35,16 @@ NUM_CLASSES = len(CLASS_NAMES)
 CLASS_TO_ID: dict[str, int] = {name: idx for idx, name in enumerate(CLASS_NAMES)}
 ID_TO_CLASS: dict[int, str] = {idx: name for name, idx in CLASS_TO_ID.items()}
 
+TRAIN_SPLIT = "train"
+VALID_SPLIT = "valid"
+TEST_SPLIT = "test"
+
+SPLITS: list[str] = [TRAIN_SPLIT, VALID_SPLIT, TEST_SPLIT]
+
 DEFAULT_SPLIT_RATIOS: dict[str, float] = {
-    "train": 0.80,
-    "test": 0.10,
-    "val": 0.10,
+    TRAIN_SPLIT: 0.80,
+    TEST_SPLIT: 0.10,
+    VALID_SPLIT: 0.10,
 }
 
 DEFAULT_SEED = 42

@@ -22,7 +22,7 @@ import torch
 from PIL import Image
 from torch.utils.data import Dataset
 
-from src.constants import CLASS_NAMES
+from src.constants import CLASS_NAMES, TEST_SPLIT, TRAIN_SPLIT, VALID_SPLIT
 from src.s1_prepare.convert_coco import convert_split
 
 logger = structlog.get_logger(__name__)
@@ -48,14 +48,14 @@ class DataSanitizer:
 
         if not json_path.exists():
             stem = json_path.stem.lower()
-            if "train" in stem:
-                split_name = "train"
-            elif "val" in stem:
-                split_name = "val"
-            elif "test" in stem:
-                split_name = "test"
+            if TRAIN_SPLIT in stem:
+                split_name = TRAIN_SPLIT
+            elif VALID_SPLIT in stem:
+                split_name = VALID_SPLIT
+            elif TEST_SPLIT in stem:
+                split_name = TEST_SPLIT
             else:
-                split_name = "train"
+                split_name = TRAIN_SPLIT
 
             logger.info(f"JSON file {json_path} not found. Auto-converting YOLO txt dataset from '{split_name}'...")
             convert_split(self.data_dir, split_name, output_path=json_path)

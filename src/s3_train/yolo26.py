@@ -19,7 +19,7 @@ import yaml
 
 from src.caching import run_cached_step
 from src.config import YOLO26Config
-from src.constants import CLASS_NAMES, S3_OUTPUT, SPLIT_DATASET
+from src.constants import CLASS_NAMES, S3_OUTPUT, SPLIT_DATASET, TEST_SPLIT, TRAIN_SPLIT, VALID_SPLIT
 from src.s3_train.base import register_trainer
 from src.s3_train.common import (
     create_epoch_pbar,
@@ -47,9 +47,9 @@ def _ensure_yolo_data_yaml(data_dir: Path) -> Path:
 
     data_config = {
         "path": str(data_dir.resolve()),
-        "train": "train/images",
-        "val": "val/images",
-        "test": "test/images",
+        "train": f"{TRAIN_SPLIT}/images",
+        "val": f"{VALID_SPLIT}/images",
+        "test": f"{TEST_SPLIT}/images",
         "names": dict(enumerate(CLASS_NAMES)),
     }
     yaml_path.parent.mkdir(parents=True, exist_ok=True)

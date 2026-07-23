@@ -33,7 +33,7 @@ def greedy_iterative_stratified_split(
 
     Args:
         pairs: List of (image_path, label_path) tuples.
-        ratios: Dict of split names to target proportions (e.g. {'train': 0.8, 'test': 0.1, 'val': 0.1}).
+        ratios: Dict of split names to target proportions (e.g. {'train': 0.8, 'test': 0.1, 'valid': 0.1}).
         seed: Random seed for deterministic tie-breaking.
 
     Returns:
