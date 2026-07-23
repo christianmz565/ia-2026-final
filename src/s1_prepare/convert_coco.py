@@ -94,7 +94,7 @@ def convert_split(
                     {
                         "id": ann_id,
                         "image_id": img_id,
-                        "category_id": class_id + 1,
+                        "category_id": class_id,
                         "bbox": bbox,
                         "area": round(area, 2),
                         "iscrowd": 0,

@@ -28,17 +28,17 @@ def yolo_to_coco_bbox(
 
 
 def build_categories(class_names: list[str] | None = None) -> list[dict[str, Any]]:
-    """Build a COCO-format categories list with 1-based IDs.
+    """Build a COCO-format categories list with 0-based IDs.
 
     Args:
         class_names: List of class names. Defaults to ``CLASS_NAMES``.
 
     Returns:
-        List of category dicts with ``id`` (1-based), ``name``, and ``supercategory``.
+        List of category dicts with ``id`` (0-based), ``name``, and ``supercategory``.
     """
     names = class_names or CLASS_NAMES
     return [
-        {"id": i + 1, "name": name, "supercategory": "object"}
+        {"id": i, "name": name, "supercategory": "object"}
         for i, name in enumerate(names)
     ]
 
@@ -113,7 +113,7 @@ def coco_results_from_detections(
         List of COCO result dicts with ``image_id``, ``category_id``, ``bbox``, ``score``.
     """
     categories = val_coco_dict.get("categories", [])
-    label_to_cat_id = {i + 1: cat["id"] for i, cat in enumerate(categories)}
+    label_to_cat_id = {i: cat["id"] for i, cat in enumerate(categories)}
 
     coco_results: list[dict[str, Any]] = []
     for det in detections:

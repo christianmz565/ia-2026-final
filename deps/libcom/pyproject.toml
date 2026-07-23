@@ -26,8 +26,8 @@ dependencies = [
     "segment-anything>=1.0",
     "sentencepiece>=0.2.2",
     "taming-transformers-rom1504>=0.0.6",
-    "torch==2.6.0",
-    "torchvision==0.21.0",
+    "torch==2.7.0",
+    "torchvision==0.22.0",
     "tqdm>=4.69.0",
     "transformers==4.44.2",
 ]
