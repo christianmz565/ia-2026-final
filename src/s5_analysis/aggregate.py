@@ -37,14 +37,19 @@ def aggregate_results(
     resolved_output = Path(output_path or S5_OUTPUT / "aggregated.json")
 
     def _aggregate() -> dict[str, Any]:
-        result_files = list(resolved_input.rglob("*.json"))
+        result_files = [f for f in resolved_input.rglob("*.json") if f.name != "aggregated.json"]
         logger.info("aggregating_results", count=len(result_files), directory=str(resolved_input))
 
         rows: list[dict[str, Any]] = []
         for rf in result_files:
             with open(rf) as f:
                 data = json.load(f)
-            data["_source_file"] = str(rf.name)
+            data["_source_file"] = str(rf.relative_to(resolved_input))
+            if rf.parent != resolved_input and rf.parent.parent != resolved_input:
+                if "model" not in data:
+                    data["model"] = rf.parent.parent.name
+                if "augmentation" not in data:
+                    data["augmentation"] = rf.parent.name
             rows.append(data)
 
         aggregated = {

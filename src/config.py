@@ -131,7 +131,6 @@ class CascadeRCNNConfig(BaseModel):
     device: str = Field(default="cuda:0")
 
 
-
 class RFDETRConfig(BaseModel):
     """RF-DETR training hyper-parameters."""
 
@@ -153,6 +152,10 @@ class S3Config(BaseModel):
     models: list[str] = Field(
         default_factory=lambda: ["rf_detr", "cascade_rcnn", "yolo26"],
         description="Model paradigms to train",
+    )
+    augments: list[str] = Field(
+        default_factory=lambda: ["baseline", "geometric", "photometric", "mosaic", "mixup"],
+        description="Augmentation dataset splits to train models on",
     )
     rf_detr: RFDETRConfig = Field(default_factory=RFDETRConfig)
     cascade_rcnn: CascadeRCNNConfig = Field(default_factory=CascadeRCNNConfig)
@@ -177,6 +180,14 @@ class EvalConfig(BaseModel):
 class S4Config(BaseModel):
     """Configuration for the s4_evaluate section."""
 
+    models: list[str] = Field(
+        default_factory=lambda: ["rf_detr", "cascade_rcnn", "yolo26"],
+        description="Model paradigms to evaluate",
+    )
+    augments: list[str] = Field(
+        default_factory=lambda: ["baseline", "geometric", "photometric", "mosaic", "mixup"],
+        description="Augmentation dataset splits to evaluate",
+    )
     eval: EvalConfig = Field(default_factory=EvalConfig)
 
 
