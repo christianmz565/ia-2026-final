@@ -18,28 +18,16 @@ from pathlib import Path
 from typing import Any
 
 import structlog
+from mmengine.config import Config
+from mmengine.hooks import Hook
+from mmengine.runner import Runner
 
-# Fix SSL certificate verification for downloading pretrained backbones (e.g. torchvision)
-ssl._create_default_https_context = ssl._create_unverified_context
-
-# Monkeypatch mmcv version check for mmdet compatibility with mmcv 2.2.0
-import mmcv  # noqa: E402
-
-if getattr(mmcv, "__version__", "") >= "2.2.0":
-    mmcv.__version__ = "2.1.0"
-
-import mmdet  # noqa: E402
-from mmdet.utils import register_all_modules  # noqa: E402
-from mmengine.config import Config  # noqa: E402
-from mmengine.hooks import Hook  # noqa: E402
-from mmengine.runner import Runner  # noqa: E402
-
-from src.caching import run_cached_step  # noqa: E402
-from src.config import CascadeRCNNConfig  # noqa: E402
-from src.constants import CLASS_NAMES, S3_OUTPUT, SPLIT_DATASET  # noqa: E402
-from src.s1_prepare.convert_coco import convert_split  # noqa: E402
-from src.s3_train.base import register_trainer  # noqa: E402
-from src.s3_train.common import (  # noqa: E402
+from src.caching import run_cached_step
+from src.config import CascadeRCNNConfig
+from src.constants import CLASS_NAMES, S3_OUTPUT, SPLIT_DATASET
+from src.s1_prepare.convert_coco import convert_split
+from src.s3_train.base import register_trainer
+from src.s3_train.common import (
     create_epoch_pbar,
     format_per_class_map,
     save_epoch_history,
@@ -49,7 +37,17 @@ from src.s3_train.common import (  # noqa: E402
 
 logger = structlog.get_logger(__name__)
 
-register_all_modules()
+
+def _ensure_mmdet_setup() -> None:
+    ssl._create_default_https_context = ssl._create_unverified_context
+    import mmcv
+
+    if getattr(mmcv, "__version__", "") >= "2.2.0":
+        mmcv.__version__ = "2.1.0"
+    from mmdet.utils import register_all_modules
+
+    register_all_modules()
+
 
 
 class EpochMetricsHook(Hook):
@@ -134,10 +132,12 @@ def _get_cascade_rcnn_default_config() -> Path:
     Returns:
         Path to default cascade-rcnn_r50_fpn_1x_coco.py config file.
     """
+    _ensure_mmdet_setup()
+    import mmdet
+
     pkg_path = pathlib.Path(mmdet.__file__).parent
     cfg_file = pkg_path / ".mim" / "configs" / "cascade_rcnn" / "cascade-rcnn_r50_fpn_1x_coco.py"
     if not cfg_file.exists():
-        # Fallback search for cascade-rcnn_r50_fpn_1x_coco.py
         matches = list(pkg_path.rglob("cascade-rcnn_r50_fpn_1x_coco.py"))
         if matches:
             return matches[0]
@@ -168,11 +168,11 @@ class CascadeRCNNTrainer:
         Returns:
             Path to best checkpoint (best.pt).
         """
+        _ensure_mmdet_setup()
         config = config or self.config
         data_dir = Path(config.data_dir) if config.data_dir else SPLIT_DATASET
         output_dir = Path(config.output_dir) if config.output_dir else S3_OUTPUT / "cascade_rcnn"
 
-        # Ensure COCO JSON annotations exist for train and valid splits
         convert_split(data_dir, "train")
         convert_split(data_dir, "valid")
 
@@ -196,7 +196,6 @@ class CascadeRCNNTrainer:
             pbar = create_epoch_pbar(config.epochs, "Cascade R-CNN")
             shared_state: dict[str, Any] = {"epoch_start_time": time.time()}
 
-            # Build MMDetection configuration
             if config.config_file and Path(config.config_file).exists():
                 cfg_path = Path(config.config_file)
             else:
@@ -204,7 +203,6 @@ class CascadeRCNNTrainer:
 
             cfg = Config.fromfile(str(cfg_path))
 
-            # Update number of classes for all Cascade R-CNN heads
             num_classes = len(CLASS_NAMES)
             if hasattr(cfg.model, "roi_head") and hasattr(cfg.model.roi_head, "bbox_head"):
                 bbox_heads = cfg.model.roi_head.bbox_head
@@ -214,7 +212,6 @@ class CascadeRCNNTrainer:
                 else:
                     bbox_heads.num_classes = num_classes
 
-            # Configure dataset pipelines & loaders
             cfg.train_dataloader.dataset.type = "CocoDataset"
             cfg.train_dataloader.dataset.metainfo = {"classes": tuple(CLASS_NAMES)}
             cfg.train_dataloader.dataset.data_root = str(data_dir / "train")
@@ -245,19 +242,16 @@ class CascadeRCNNTrainer:
 
             cfg.work_dir = str(out_dir)
 
-            # AMP FP16 optimization wrapper
             cfg.optim_wrapper = {
                 "type": "AmpOptimWrapper",
                 "optimizer": {"type": "AdamW", "lr": config.lr, "weight_decay": 0.0001},
                 "loss_scale": "dynamic",
             }
 
-            # Register custom hooks (EpochMetricsHook passed as instance to avoid config serialization)
             cfg.custom_hooks = [
                 {"type": "EarlyStoppingHook", "monitor": "coco/bbox_mAP", "patience": 10, "min_delta": 0.001},
             ]
 
-            # Checkpoint hook
             cfg.default_hooks.checkpoint = {
                 "type": "CheckpointHook",
                 "interval": 1,
@@ -285,7 +279,6 @@ class CascadeRCNNTrainer:
 
             total_time = time.time() - start_time
 
-            # Identify best checkpoint file
             checkpoints = list(out_dir.glob("best_*.pth")) + list(out_dir.glob("epoch_*.pth")) + list(out_dir.glob("*.pth"))
             if checkpoints:
                 best = max(checkpoints, key=lambda p: p.stat().st_mtime)

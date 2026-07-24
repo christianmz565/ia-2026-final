@@ -19,18 +19,9 @@ import cv2
 import structlog
 import torch
 
-# Fix SSL certificate verification if needed
-ssl._create_default_https_context = ssl._create_unverified_context
-
-# Monkeypatch mmcv version check for mmdet compatibility with mmcv 2.2.0
-import mmcv  # noqa: E402
-
-if getattr(mmcv, "__version__", "") >= "2.2.0":
-    mmcv.__version__ = "2.1.0"
-
-from src.caching import run_cached_step  # noqa: E402
-from src.coco_utils import SUPPORTED_IMAGE_SUFFIXES  # noqa: E402
-from src.constants import S4_OUTPUT  # noqa: E402
+from src.caching import run_cached_step
+from src.coco_utils import SUPPORTED_IMAGE_SUFFIXES
+from src.constants import S4_OUTPUT
 
 logger = structlog.get_logger(__name__)
 
@@ -203,6 +194,12 @@ def run_inference(
                 image_detections[img_id] = dets
 
         elif model_type == "cascade_rcnn":
+            ssl._create_default_https_context = ssl._create_unverified_context
+            import mmcv
+
+            if getattr(mmcv, "__version__", "") >= "2.2.0":
+                mmcv.__version__ = "2.1.0"
+
             from mmdet.apis import inference_detector, init_detector
 
             from src.s3_train.cascade_rcnn import _get_cascade_rcnn_default_config
@@ -247,7 +244,7 @@ def run_inference(
                         total_detections += 1
                 image_detections[img_id] = dets
 
-        else:  # rf_detr
+        else:
             from rfdetr.detr import RFDETRMedium
 
             rfdetr_model = RFDETRMedium(resolution=resolution)

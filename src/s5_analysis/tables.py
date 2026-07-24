@@ -86,7 +86,7 @@ def generate_tables(
             lines.extend(["\\hline", "\\end{tabular}", "\\end{table}"])
             content = "\n".join(lines) + "\n"
 
-        else:  # markdown
+        else:
             lines = [
                 "| " + " | ".join(headers) + " |",
                 "|" + "|".join(["---"] * len(headers)) + "|",
