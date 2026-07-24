@@ -1,6 +1,12 @@
 {
   "version": 1,
   "skills": {
+    "academic-paper": {
+      "source": "imbad0202/academic-research-skills",
+      "sourceType": "github",
+      "skillPath": "academic-paper/SKILL.md",
+      "computedHash": "d18c720240bce312525c0d86d7e4361c4eaebd256ada239337feaf2b9a3b0d56"
+    },
     "database-lookup": {
       "source": "K-Dense-AI/scientific-agent-skills",
       "sourceType": "github",
