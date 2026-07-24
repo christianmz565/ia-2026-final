@@ -113,10 +113,10 @@ class RFDETRConfig(BaseModel):
 
     data_dir: str = Field(default="", description="Path to training data directory")
     output_dir: str = Field(default="", description="Path to output directory")
-    model_size: str = Field(default="rfdetr-l.pt", description="RF-DETR variant")
-    epochs: int = Field(default=100)
-    imgsz: int = Field(default=640)
-    batch: int = Field(default=2)
+    model_size: str = Field(default="rfdetr-m.pt", description="RF-DETR variant")
+    epochs: int = Field(default=50)
+    imgsz: int = Field(default=512)
+    batch: int = Field(default=8)
     lr0: float = Field(default=0.001)
     device: str = Field(default_factory=_default_device)
 

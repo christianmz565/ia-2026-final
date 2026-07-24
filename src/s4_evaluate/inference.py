@@ -110,6 +110,7 @@ def run_inference(
     device: str | None = None,
     conf_threshold: float = 0.25,
     force: bool = False,
+    resolution: int = 512,
 ) -> dict[str, object]:
     """Run model inference and produce COCO-format predictions.
 
@@ -247,9 +248,9 @@ def run_inference(
                 image_detections[img_id] = dets
 
         else:  # rf_detr
-            from rfdetr.detr import RFDETRLarge
+            from rfdetr.detr import RFDETRMedium
 
-            rfdetr_model = RFDETRLarge()
+            rfdetr_model = RFDETRMedium(resolution=resolution)
             rfdetr_model.model = torch.load(str(checkpoint), map_location=resolved_device, weights_only=False)
             rfdetr_model.model.eval()
 

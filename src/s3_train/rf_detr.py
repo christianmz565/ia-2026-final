@@ -58,7 +58,7 @@ class RFDETRTrainer:
         output_dir = Path(config.output_dir) if config.output_dir else S3_OUTPUT / "rf_detr"
 
         def _do_train() -> Path:
-            from rfdetr.detr import RFDETRLarge
+            from rfdetr.detr import RFDETRMedium
 
             out_dir, checkpoints_dir = setup_training_output_dir(output_dir)
 
@@ -70,6 +70,7 @@ class RFDETRTrainer:
                 batch=config.batch,
                 lr=config.lr0,
                 amp=True,
+                resolution=config.imgsz,
             )
 
             start_time = time.time()
@@ -132,7 +133,10 @@ class RFDETRTrainer:
                 )
                 pbar.update(1)
 
-            model = RFDETRLarge()
+            model = RFDETRMedium(
+                resolution=config.imgsz,
+                gradient_checkpointing=True,
+            )
             if hasattr(model, "callbacks") and isinstance(model.callbacks, dict):
                 model.callbacks.setdefault("on_fit_epoch_end", []).append(on_fit_epoch_end)
 

@@ -52,6 +52,82 @@ logger = structlog.get_logger(__name__)
 register_all_modules()
 
 
+class EpochMetricsHook(Hook):
+    """Module-level MMEngine hook to record epoch-level metrics and save progress.
+
+    Initialized with shared mutable state so the training loop can read timing data.
+    """
+
+    def __init__(
+        self,
+        out_dir: Path,
+        checkpoints_dir: Path,
+        history: list[dict[str, Any]],
+        shared_state: dict[str, Any],
+        pbar: Any,
+    ) -> None:
+        self.out_dir = out_dir
+        self.checkpoints_dir = checkpoints_dir
+        self.history = history
+        self.shared_state = shared_state
+        self.pbar = pbar
+
+    def after_val_epoch(self, runner: Runner, metrics: dict[str, float] | None = None) -> None:
+        now = time.time()
+        epoch_duration = round(now - self.shared_state["epoch_start_time"], 2)
+        self.shared_state["epoch_start_time"] = now
+
+        epoch = len(self.history) + 1
+        metrics = metrics or {}
+
+        mAP_50 = float(metrics.get("coco/bbox_mAP_50", 0.0))
+        mAP_50_95 = float(metrics.get("coco/bbox_mAP", 0.0))
+
+        train_loss = 0.0
+        try:
+            if hasattr(runner, "message_hub"):
+                loss_val = runner.message_hub.get_scalar("train/loss").current()
+                train_loss = float(loss_val)
+        except Exception:
+            train_loss = 0.0
+
+        raw_per_class: dict[str, float] = {}
+        for name in CLASS_NAMES:
+            val = metrics.get(f"coco/{name}_precision", metrics.get(f"coco/bbox_mAP_{name}", 0.0))
+            if isinstance(val, (int, float)) and not math.isnan(val):
+                raw_per_class[name] = float(val)
+            else:
+                raw_per_class[name] = 0.0
+
+        val_per_class = format_per_class_map(raw_per_class)
+
+        epoch_data = {
+            "epoch": epoch,
+            "epoch_time_sec": epoch_duration,
+            "train_loss": round(train_loss, 4),
+            "val_loss": 0.0,
+            "val_mAP_50": round(mAP_50, 4),
+            "val_mAP_50_95": round(mAP_50_95, 4),
+            "val_per_class_mAP": val_per_class,
+        }
+        self.history.append(epoch_data)
+        save_epoch_history(self.out_dir, self.history)
+
+        ckpt_candidates = list(self.out_dir.glob("epoch_*.pth")) + list(self.out_dir.glob("epoch_*.pt"))
+        if ckpt_candidates:
+            latest_ckpt = max(ckpt_candidates, key=lambda p: p.stat().st_mtime)
+            shutil.copy2(latest_ckpt, self.checkpoints_dir / f"epoch_{epoch}.pth")
+
+        self.pbar.set_postfix(
+            {
+                "mAP50": f"{mAP_50:.3f}",
+                "mAP50-95": f"{mAP_50_95:.3f}",
+                "time_s": f"{epoch_duration:.1f}",
+            }
+        )
+        self.pbar.update(1)
+
+
 def _get_cascade_rcnn_default_config() -> Path:
     """Locate default Cascade R-CNN configuration file inside installed mmdet package.
 
@@ -118,67 +194,7 @@ class CascadeRCNNTrainer:
             start_time = time.time()
             history: list[dict[str, Any]] = []
             pbar = create_epoch_pbar(config.epochs, "Cascade R-CNN")
-            epoch_start_time = time.time()
-
-            class EpochMetricsHook(Hook):
-                """Custom MMEngine hook to record epoch-level metrics and save progress."""
-
-                def after_val_epoch(self, runner: Runner, metrics: dict[str, float] | None = None) -> None:
-                    nonlocal epoch_start_time
-                    now = time.time()
-                    epoch_duration = round(now - epoch_start_time, 2)
-                    epoch_start_time = now
-
-                    epoch = len(history) + 1
-                    metrics = metrics or {}
-
-                    mAP_50 = float(metrics.get("coco/bbox_mAP_50", 0.0))
-                    mAP_50_95 = float(metrics.get("coco/bbox_mAP", 0.0))
-
-                    train_loss = 0.0
-                    try:
-                        if hasattr(runner, "message_hub"):
-                            loss_val = runner.message_hub.get_scalar("train/loss").current()
-                            train_loss = float(loss_val)
-                    except Exception:
-                        train_loss = 0.0
-
-                    raw_per_class: dict[str, float] = {}
-                    for name in CLASS_NAMES:
-                        val = metrics.get(f"coco/{name}_precision", metrics.get(f"coco/bbox_mAP_{name}", 0.0))
-                        if isinstance(val, (int, float)) and not math.isnan(val):
-                            raw_per_class[name] = float(val)
-                        else:
-                            raw_per_class[name] = 0.0
-
-                    val_per_class = format_per_class_map(raw_per_class)
-
-                    epoch_data = {
-                        "epoch": epoch,
-                        "epoch_time_sec": epoch_duration,
-                        "train_loss": round(train_loss, 4),
-                        "val_loss": 0.0,
-                        "val_mAP_50": round(mAP_50, 4),
-                        "val_mAP_50_95": round(mAP_50_95, 4),
-                        "val_per_class_mAP": val_per_class,
-                    }
-                    history.append(epoch_data)
-                    save_epoch_history(out_dir, history)
-
-                    # Copy latest checkpoint candidate
-                    ckpt_candidates = list(out_dir.glob("epoch_*.pth")) + list(out_dir.glob("epoch_*.pt"))
-                    if ckpt_candidates:
-                        latest_ckpt = max(ckpt_candidates, key=lambda p: p.stat().st_mtime)
-                        shutil.copy2(latest_ckpt, checkpoints_dir / f"epoch_{epoch}.pth")
-
-                    pbar.set_postfix(
-                        {
-                            "mAP50": f"{mAP_50:.3f}",
-                            "mAP50-95": f"{mAP_50_95:.3f}",
-                            "time_s": f"{epoch_duration:.1f}",
-                        }
-                    )
-                    pbar.update(1)
+            shared_state: dict[str, Any] = {"epoch_start_time": time.time()}
 
             # Build MMDetection configuration
             if config.config_file and Path(config.config_file).exists():
@@ -236,9 +252,8 @@ class CascadeRCNNTrainer:
                 "loss_scale": "dynamic",
             }
 
-            # Register custom progress hook
+            # Register custom hooks (EpochMetricsHook passed as instance to avoid config serialization)
             cfg.custom_hooks = [
-                {"type": EpochMetricsHook},
                 {"type": "EarlyStoppingHook", "monitor": "coco/bbox_mAP", "patience": 10, "min_delta": 0.001},
             ]
 
@@ -254,8 +269,16 @@ class CascadeRCNNTrainer:
 
             runner = Runner.from_cfg(cfg)
 
+            metrics_hook = EpochMetricsHook(
+                out_dir=out_dir,
+                checkpoints_dir=checkpoints_dir,
+                history=history,
+                shared_state=shared_state,
+                pbar=pbar,
+            )
+
             try:
-                runner.train()
+                runner.train(hooks=[metrics_hook])
             finally:
                 pbar.close()
 
