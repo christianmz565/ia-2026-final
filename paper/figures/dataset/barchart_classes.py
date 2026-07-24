@@ -20,7 +20,7 @@ except Exception as e:
     print(f"Warning: Could not load XITS font. Using default. Error: {e}")
 
 if STATS_FILE.exists():
-    with open(STATS_FILE, "r", encoding="utf-8") as f:
+    with open(STATS_FILE, encoding="utf-8") as f:
         stats = json.load(f)
     class_counts = stats.get("class_counts", {})
     total = sum(class_counts.values())

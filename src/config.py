@@ -91,6 +91,10 @@ class YOLO26Config(BaseModel):
     batch: int = Field(default=16)
     lr0: float = Field(default=0.01)
     device: str = Field(default_factory=_default_device)
+    freeze_layer_count: int | None = Field(
+        default=None, description="Number of initial backbone layers to freeze during training"
+    )
+
 
 
 class CascadeRCNNConfig(BaseModel):

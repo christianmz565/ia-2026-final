@@ -26,8 +26,10 @@ from src.s3_train.common import (
     save_summary_reports,
     setup_training_output_dir,
 )
+from src.utils import configure_torch_backend
 
 logger = structlog.get_logger(__name__)
+
 
 
 class RFDETRTrainer:
@@ -54,7 +56,9 @@ class RFDETRTrainer:
             Path to best checkpoint (best.pt).
         """
         config = config or self.config
+        configure_torch_backend()
         data_dir = Path(config.data_dir) if config.data_dir else SPLIT_DATASET
+
         output_dir = Path(config.output_dir) if config.output_dir else S3_OUTPUT / "rf_detr"
 
         def _do_train() -> Path:

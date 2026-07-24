@@ -22,8 +22,10 @@ import torch
 from src.caching import run_cached_step
 from src.coco_utils import SUPPORTED_IMAGE_SUFFIXES
 from src.constants import S4_OUTPUT
+from src.utils import configure_torch_backend
 
 logger = structlog.get_logger(__name__)
+
 
 
 def _find_checkpoint(model_path: Path) -> Path:
@@ -123,7 +125,9 @@ def run_inference(
     data_dir = Path(data_dir)
     resolved_output = Path(output_path or S4_OUTPUT / "predictions.json")
 
+    configure_torch_backend()
     resolved_device = device or ("cuda:0" if torch.cuda.is_available() else "cpu")
+
 
     def _do_inference() -> dict[str, object]:
         checkpoint = _find_checkpoint(model_path)

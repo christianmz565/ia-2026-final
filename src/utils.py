@@ -163,3 +163,22 @@ def find_image_label_pairs(input_dir: Path) -> list[tuple[Path, Path]]:
         pairs.append((img_path, label_path))
 
     return pairs
+
+
+def configure_torch_backend() -> None:
+    """Configure PyTorch CUDA and CuDNN backends for optimal performance.
+
+    Enables cudnn.benchmark, disables cudnn.deterministic, and enables
+    TF32 for matmul and cudnn if available.
+    """
+    import torch
+
+    torch.backends.cudnn.benchmark = True
+    torch.backends.cudnn.deterministic = False
+
+    if hasattr(torch.backends, "cuda") and hasattr(torch.backends.cuda, "matmul"):
+        torch.backends.cuda.matmul.allow_tf32 = True
+
+    if hasattr(torch.backends, "cudnn") and hasattr(torch.backends.cudnn, "allow_tf32"):
+        torch.backends.cudnn.allow_tf32 = True
+

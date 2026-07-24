@@ -68,7 +68,7 @@ visdet = { workspace = true, editable = true }
 [tool.ruff]
 line-length = 120
 target-version = "py312"
-exclude = ["deps/libcom"]
+exclude = ["deps/libcom", ".agents"]
 
 [tool.ruff.lint]
 select = [
