@@ -52,3 +52,23 @@ BibTeX entries in [`references.bib`](references.bib) mapped to PDF files in this
 | `prunella2023deep` | `pdf/prunella2023-dl-industrial.pdf` | Deep Learning for Automatic Vision-Based Recognition of Industrial Surface Defects: A Survey |
 | `ma2024surface` | `pdf/ma2024-surface-defect-review.pdf` | Surface Defect Inspection of Industrial Products with Object Detection Deep Networks: A Systematic Review |
 | `hussain2023yolo` | `pdf/hussain2023-yolo-evolution.pdf` | YOLO-v1 to YOLO-v8, the Rise of YOLO and Its Complementary Nature toward Digital Manufacturing and Industrial Defect Detection |
+| `chadebec2025lbmlatentbridgematching` | `pdf/lbm.pdf` | LBM: Latent Bridge Matching for Fast Image-to-Image Translation |
+| `niu2021making` | `pdf/libcom.pdf` | Making images real again: A comprehensive survey on deep image composition |
+| `Guerreiro_2023_CVPR` | `pdf/pctnet.pdf` | PCT-Net: Full Resolution Image Harmonization Using Pixel-Wise Color Transformations |
+| `LEE2022104138` | `pdf/boxaug.pdf` | Bounding-box object augmentation with random transformations for automated defect detection in residential building façades |
+| `robinson2026rfdetrneuralarchitecturesearch` | `pdf/rfdetr.pdf` | RF-DETR: Neural Architecture Search for Real-Time Detection Transformers |
+| `jocher2026ultralyticsyolo26unifiedrealtime` | `pdf/yolo26.pdf` | Ultralytics YOLO26: Unified Real-Time End-to-End Vision Models |
+| `mmdetection` | `pdf/mmdet.pdf` | MMDetection: Open MMLab Detection Toolbox and Benchmark |
+| `capogrosso2024diffusion` | `pdf/capogrosso2024diffusion.pdf` | Diffusion-based Image Generation for In-distribution Data Augmentation in Surface  Defect Detection |
+| `chen2024lwdetr` | `pdf/chen2024lwdetr.pdf` | LW-DETR: A Transformer Replacement to YOLO for Real-Time Detection |
+| `cui2019classbalanced` | `pdf/cui2019classbalanced.pdf` | Class-Balanced Loss Based on Effective Number of Samples |
+| `zhang2021deep` | `pdf/deeplongtailed.pdf` | Deep Long-Tailed Learning: A Survey |
+| `deng2022improving` | `pdf/deng2022improving.pdf` | Improving Crowded Object Detection via Copy-Paste |
+| `ghiasi2021simple` | `pdf/ghiasi2021simple.pdf` | Simple Copy-Paste is a Strong Data Augmentation Method for Instance Segmentation |
+| `girella2024leveraging` | `pdf/girella2024leveraging.pdf` | Leveraging Latent Diffusion Models for Training-Free In-Distribution Data Augmentation  for Surface Defect Detection |
+| `li2021cutpaste` | `pdf/li2021cutpaste.pdf` | CutPaste: Self-Supervised Learning for Anomaly Detection and Localization |
+| `tan2020equalization` | `pdf/tan2020equalization.pdf` | Equalization Loss for Long-Tailed Object Recognition |
+| `wang2021seesaw` | `pdf/wang2021seesaw.pdf` | Seesaw Loss for Long-Tailed Instance Segmentation |
+| `zhao2023detrs` | `pdf/zhao2023detrs.pdf` | DETRs Beat YOLOs on Real-time Object Detection |
+| `cai2017cascadercnndelvinghigh` | `pdf/mmdet.pdf` | Cascade R-CNN: Delving into High Quality Object Detection |
+| `gupta2019lvis` | `pdf/deeplongtailed.pdf` | LVIS: A Dataset for Large Vocabulary Instance Segmentation |

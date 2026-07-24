@@ -30,7 +30,7 @@ class BoxAugLibcomConfig(BaseModel):
     target_ratio: float = Field(default=1 / 3, description="Target minority-to-majority ratio")
     max_location_attempts: int = Field(default=50, description="Max spatial placement retries to prevent overlaps")
     blending_mode: str = Field(
-        default="poisson",
+        default="image_harmonization",
         description="libcom blending method: 'poisson', 'gaussian', 'color_transfer', 'painterly', 'image_harmonization', 'none'",
     )
 
