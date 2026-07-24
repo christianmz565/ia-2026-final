@@ -30,16 +30,27 @@ logger = structlog.get_logger(__name__)
 
 def _find_checkpoint(model_path: Path) -> Path:
     """Resolve the best checkpoint from a directory or file path."""
-    if model_path.is_file():
+    if model_path.is_file() and model_path.stat().st_size > 0:
         return model_path
-    best = model_path / "best.pt"
-    if best.exists():
-        return best
-    best_pth = model_path / "best_model.pth"
-    if best_pth.exists():
-        return best_pth
-    checkpoints = list(model_path.glob("*.pt")) + list(model_path.glob("*.pth"))
+
+    # Try best.pt and best_model.pth if non-zero
+    for candidate_name in ["best.pt", "best_model.pth", "epoch_12.pth", "checkpoint.pth"]:
+        candidate = model_path / candidate_name
+        if candidate.exists() and candidate.stat().st_size > 0:
+            return candidate
+
+    # Search for all non-zero checkpoint files recursively
+    checkpoints = [
+        p for p in list(model_path.glob("*.pt")) + list(model_path.glob("*.pth")) + list(model_path.glob("**/*.pt")) + list(model_path.glob("**/*.pth"))
+        if p.is_file() and p.stat().st_size > 0
+    ]
     if not checkpoints:
+        # Try checking in results/ directory if model_path was in partials/s3_train
+        from src.constants import PROJECT_ROOT
+        if "partials" in str(model_path):
+            alt_path = PROJECT_ROOT / "results" / model_path.relative_to(PROJECT_ROOT / "partials/s3_train")
+            if alt_path.exists():
+                return _find_checkpoint(alt_path)
         raise FileNotFoundError(f"No checkpoint weights found in {model_path}")
     return max(checkpoints, key=lambda p: p.stat().st_mtime)
 
@@ -205,11 +216,29 @@ def run_inference(
                 mmcv.__version__ = "2.1.0"
 
             from mmdet.apis import inference_detector, init_detector
+            from mmengine.config import Config
 
+            from src.constants import CLASS_NAMES
             from src.s3_train.cascade_rcnn import _get_cascade_rcnn_default_config
 
+            _orig_load = torch.load
+            def _patched_load(*args, **kwargs):
+                kwargs.setdefault("weights_only", False)
+                return _orig_load(*args, **kwargs)
+            torch.load = _patched_load
+
             cfg_file = _get_cascade_rcnn_default_config()
-            mmdet_model = init_detector(str(cfg_file), str(checkpoint), device=resolved_device)
+            cfg = Config.fromfile(str(cfg_file))
+            num_classes = len(CLASS_NAMES)
+            if hasattr(cfg.model, "roi_head") and hasattr(cfg.model.roi_head, "bbox_head"):
+                bbox_heads = cfg.model.roi_head.bbox_head
+                if isinstance(bbox_heads, list):
+                    for head in bbox_heads:
+                        head.num_classes = num_classes
+                else:
+                    bbox_heads.num_classes = num_classes
+
+            mmdet_model = init_detector(cfg, str(checkpoint), device=resolved_device)
 
             for img_path in sorted(images_dir.iterdir()):
                 if img_path.suffix.lower() not in SUPPORTED_IMAGE_SUFFIXES:
@@ -251,9 +280,20 @@ def run_inference(
         else:
             from rfdetr.detr import RFDETRMedium
 
+            from src.constants import CLASS_NAMES
+
+            _orig_load = torch.load
+            def _patched_load(*args, **kwargs):
+                kwargs.setdefault("weights_only", False)
+                return _orig_load(*args, **kwargs)
+            torch.load = _patched_load
+
             rfdetr_model = RFDETRMedium(resolution=resolution)
-            rfdetr_model.model = torch.load(str(checkpoint), map_location=resolved_device, weights_only=False)
-            rfdetr_model.model.eval()
+            rfdetr_model.model.reinitialize_detection_head(num_classes=len(CLASS_NAMES))
+            ckpt = torch.load(str(checkpoint), map_location=resolved_device, weights_only=False)
+            state_dict = ckpt["model"] if isinstance(ckpt, dict) and "model" in ckpt else ckpt
+            rfdetr_model.model.model.load_state_dict(state_dict)
+            rfdetr_model.model.model.eval()
 
             for img_path in sorted(images_dir.iterdir()):
                 if img_path.suffix.lower() not in SUPPORTED_IMAGE_SUFFIXES:

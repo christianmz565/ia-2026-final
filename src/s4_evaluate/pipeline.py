@@ -63,9 +63,15 @@ def run_pipeline(config: S4Config | None = None) -> None:
             eval_out_dir = S4_OUTPUT / model_name / aug_name
             eval_out_dir.mkdir(parents=True, exist_ok=True)
 
+            from src.constants import PROJECT_ROOT
             model_weights = S3_OUTPUT / model_name / aug_name / "best.pt"
-            if not model_weights.exists():
+            if not model_weights.exists() or model_weights.stat().st_size == 0:
                 model_weights = S3_OUTPUT / model_name / aug_name
+                checkpoints = [p for p in list(model_weights.glob("*.pt")) + list(model_weights.glob("*.pth")) if p.is_file() and p.stat().st_size > 0] if model_weights.exists() else []
+                if not checkpoints:
+                    alt_dir = PROJECT_ROOT / "results" / model_name / aug_name
+                    if alt_dir.exists():
+                        model_weights = alt_dir
 
             data_dir = (SPLIT_DATASET / TEST_SPLIT) if aug_name == "baseline" else (AUGMENTED_DIR / aug_name / TEST_SPLIT)
             if not Path(data_dir).exists():
