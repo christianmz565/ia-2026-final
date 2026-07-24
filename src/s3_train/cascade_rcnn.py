@@ -276,9 +276,10 @@ class CascadeRCNNTrainer:
                 shared_state=shared_state,
                 pbar=pbar,
             )
+            runner.register_hook(metrics_hook, priority="LOW")
 
             try:
-                runner.train(hooks=[metrics_hook])
+                runner.train()
             finally:
                 pbar.close()
 
