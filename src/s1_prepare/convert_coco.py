@@ -1,7 +1,7 @@
-"""Convert YOLO-format labels to COCO JSON for RF-DETR.
+"""Convert YOLO-format labels to COCO JSON.
 
 Reads .txt label files (class x_center y_center width height, normalized)
-and generates _annotations.coco.json files in each split directory.
+and generates COCO JSON files in each split directory.
 
 Standalone usage:
     uv run python -m src.s1_prepare.convert_coco
@@ -16,28 +16,24 @@ import cv2
 import structlog
 
 from src.caching import run_cached_step
-from src.constants import CLASS_NAMES, SPLIT_DATASET
+from src.coco_utils import SUPPORTED_IMAGE_SUFFIXES, build_categories, yolo_to_coco_bbox
+from src.constants import SPLIT_DATASET, SPLITS
 
 logger = structlog.get_logger(__name__)
 
-SPLITS = ["train", "val", "test"]
 
-
-def yolo_to_coco_bbox(x_center: float, y_center: float, w: float, h: float, img_w: int, img_h: int) -> list[float]:
-    """Convert normalized YOLO bbox to COCO [x_top_left, y_top_left, width, height] in pixels."""
-    abs_w = w * img_w
-    abs_h = h * img_h
-    x_top_left = x_center * img_w - abs_w / 2
-    y_top_left = y_center * img_h - abs_h / 2
-    return [round(x_top_left, 2), round(y_top_left, 2), round(abs_w, 2), round(abs_h, 2)]
-
-
-def convert_split(data_dir: Path, split: str) -> Path | None:
+def convert_split(
+    data_dir: Path,
+    split: str,
+    output_path: Path | None = None,
+) -> Path | None:
     """Convert one split (train/val/test) from YOLO to COCO JSON.
 
     Args:
         data_dir: Root dataset directory containing split subdirectories.
         split: Name of the split (e.g. ``train``, ``val``, ``test``).
+        output_path: Where to write the COCO JSON. Defaults to
+            ``{data_dir}/{split}/_annotations.coco.json``.
 
     Returns:
         Path to the generated COCO JSON, or None if skipped.
@@ -49,17 +45,21 @@ def convert_split(data_dir: Path, split: str) -> Path | None:
         logger.warning("yolo_to_coco_skip", split=split, reason="missing images/ or labels/")
         return None
 
-    out_path = labels_dir.parent / "_annotations.coco.json"
+    out_path = output_path or (labels_dir.parent / "_annotations.coco.json")
 
     def _convert() -> Path:
         images: list[dict] = []
         annotations: list[dict] = []
-        categories: list[dict] = [{"id": i, "name": name} for i, name in enumerate(CLASS_NAMES)]
+        categories = build_categories()
 
-        ann_id = 0
+        ann_id = 1
         img_id = 0
 
-        for img_path in sorted(images_dir.glob("*.jpg")):
+        img_files = sorted(
+            p for p in images_dir.iterdir() if p.suffix.lower() in SUPPORTED_IMAGE_SUFFIXES
+        )
+
+        for img_path in img_files:
             img_id += 1
             img = cv2.imread(str(img_path))
             if img is None:
@@ -102,7 +102,14 @@ def convert_split(data_dir: Path, split: str) -> Path | None:
                 )
                 ann_id += 1
 
-        coco = {"images": images, "annotations": annotations, "categories": categories}
+        coco = {
+            "info": {"description": "Converted from YOLO format dataset"},
+            "licenses": [],
+            "categories": categories,
+            "images": images,
+            "annotations": annotations,
+        }
+        out_path.parent.mkdir(parents=True, exist_ok=True)
         out_path.write_text(json.dumps(coco, indent=2))
         logger.info(
             "yolo_to_coco_complete",

@@ -109,8 +109,15 @@ def gaussian_composite_image(bg_img, fg_img, fg_mask, bbox, kernel_size=15):
 def poisson_composite_image(bg_img, fg_img, fg_mask, bbox, clone_method=cv2.NORMAL_CLONE):
     fg_region, fg_mask = crop_and_resize_foreground(fg_img, fg_mask, bbox)
     x1, y1, x2, y2 = bbox
-    center    = (x1+x2)//2, (y1+y2)//2
-    comp_img  = cv2.seamlessClone(fg_region, bg_img, fg_mask[:,:,np.newaxis], center, clone_method)
-    comp_mask = np.zeros((bg_img.shape[0], bg_img.shape[1]), dtype=np.uint8) 
+    center = (x1 + x2) // 2, (y1 + y2) // 2
+    mask = fg_mask.squeeze()
+    if mask.ndim == 3:
+        mask = cv2.cvtColor(mask, cv2.COLOR_BGR2GRAY)
+    try:
+        comp_img = cv2.seamlessClone(fg_region, bg_img, mask, center, clone_method)
+    except Exception:
+        comp_img = bg_img.copy()
+        comp_img[y1:y2, x1:x2] = np.where(fg_mask[:, :, np.newaxis] > 127, fg_region, comp_img[y1:y2, x1:x2])
+    comp_mask = np.zeros((bg_img.shape[0], bg_img.shape[1]), dtype=np.uint8)
     comp_mask[y1:y2, x1:x2] = fg_mask
     return comp_img, comp_mask

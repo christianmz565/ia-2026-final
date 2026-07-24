@@ -7,6 +7,7 @@ all section configs so that the CLI can override any leaf value via flags like
 
 from __future__ import annotations
 
+import torch
 from pydantic import BaseModel, Field
 
 from src.constants import (
@@ -14,6 +15,16 @@ from src.constants import (
     DEFAULT_SPLIT_RATIOS,
     KAGGLE_DATASET,
 )
+from src.s2_augments.augmentations import (
+    AlbumentationsBalancedConfig,
+    BoxAugLibcomConfig,
+    BoxAugStandardConfig,
+)
+
+
+def _default_device() -> str:
+    """Return default device depending on CUDA availability."""
+    return "cuda:0" if torch.cuda.is_available() else "cpu"
 
 
 class DownloadConfig(BaseModel):
@@ -49,53 +60,16 @@ class S1Config(BaseModel):
     split: SplitConfig = Field(default_factory=SplitConfig)
 
 
-class GeometricConfig(BaseModel):
-    """Parameters for geometric augmentations."""
-
-    horizontal_flip_prob: float = Field(default=0.5, ge=0.0, le=1.0)
-    vertical_flip_prob: float = Field(default=0.0, ge=0.0, le=1.0)
-    rotation_limit: int = Field(default=15, description="Max rotation in degrees")
-    scale_limit: float = Field(default=0.2, description="Scale jitter range")
-    crop_prob: float = Field(default=0.0, ge=0.0, le=1.0)
-    crop_size: tuple[int, int] = Field(default=(640, 640))
-
-
-class PhotometricConfig(BaseModel):
-    """Parameters for photometric augmentations."""
-
-    brightness_limit: float = Field(default=0.2)
-    contrast_limit: float = Field(default=0.2)
-    saturation_limit: float = Field(default=0.2)
-    hue_shift_limit: int = Field(default=20)
-    motion_blur_prob: float = Field(default=0.0, ge=0.0, le=1.0)
-    gaussian_noise_prob: float = Field(default=0.0, ge=0.0, le=1.0)
-
-
-class MosaicConfig(BaseModel):
-    """Parameters for mosaic augmentation."""
-
-    target_size: tuple[int, int] = Field(default=(640, 640))
-    prob: float = Field(default=1.0, ge=0.0, le=1.0)
-
-
-class MixupConfig(BaseModel):
-    """Parameters for mixup augmentation."""
-
-    mixup_prob: float = Field(default=0.5, ge=0.0, le=1.0)
-    alpha: float = Field(default=1.5, description="Mixup alpha parameter")
-
-
 class AugmentConfig(BaseModel):
     """Top-level augmentation configuration."""
 
     methods: list[str] = Field(
-        default_factory=lambda: ["geometric", "photometric"],
+        default_factory=lambda: ["albumentations_balanced", "boxaug_standard", "boxaug_libcom"],
         description="List of augmentation method names to apply",
     )
-    geometric: GeometricConfig = Field(default_factory=GeometricConfig)
-    photometric: PhotometricConfig = Field(default_factory=PhotometricConfig)
-    mosaic: MosaicConfig = Field(default_factory=MosaicConfig)
-    mixup: MixupConfig = Field(default_factory=MixupConfig)
+    albumentations_balanced: AlbumentationsBalancedConfig = Field(default_factory=AlbumentationsBalancedConfig)
+    boxaug_standard: BoxAugStandardConfig = Field(default_factory=BoxAugStandardConfig)
+    boxaug_libcom: BoxAugLibcomConfig = Field(default_factory=BoxAugLibcomConfig)
 
 
 class S2Config(BaseModel):
@@ -116,7 +90,7 @@ class YOLO26Config(BaseModel):
     imgsz: int = Field(default=640)
     batch: int = Field(default=16)
     lr0: float = Field(default=0.01)
-    device: str = Field(default="cuda:0")
+    device: str = Field(default_factory=_default_device)
 
 
 class CascadeRCNNConfig(BaseModel):
@@ -126,9 +100,10 @@ class CascadeRCNNConfig(BaseModel):
     output_dir: str = Field(default="", description="Path to output directory")
     config_file: str = Field(default="cascade_rcnn_r50_fpn_1x_coco.py")
     epochs: int = Field(default=12)
-    batch_size: int = Field(default=8)
-    lr: float = Field(default=0.01)
-    device: str = Field(default="cuda:0")
+    imgsz: int = Field(default=640)
+    batch_size: int = Field(default=16)
+    lr: float = Field(default=0.0001)
+    device: str = Field(default_factory=_default_device)
 
 
 class RFDETRConfig(BaseModel):
@@ -138,12 +113,12 @@ class RFDETRConfig(BaseModel):
 
     data_dir: str = Field(default="", description="Path to training data directory")
     output_dir: str = Field(default="", description="Path to output directory")
-    model_size: str = Field(default="rfdetr-l.pt", description="RF-DETR variant")
-    epochs: int = Field(default=100)
-    imgsz: int = Field(default=640)
+    model_size: str = Field(default="rfdetr-m.pt", description="RF-DETR variant")
+    epochs: int = Field(default=50)
+    imgsz: int = Field(default=512)
     batch: int = Field(default=8)
     lr0: float = Field(default=0.001)
-    device: str = Field(default="cuda:0")
+    device: str = Field(default_factory=_default_device)
 
 
 class S3Config(BaseModel):
@@ -152,6 +127,10 @@ class S3Config(BaseModel):
     models: list[str] = Field(
         default_factory=lambda: ["rf_detr", "cascade_rcnn", "yolo26"],
         description="Model paradigms to train",
+    )
+    augments: list[str] = Field(
+        default_factory=lambda: ["baseline", "albumentations_balanced", "boxaug_standard", "boxaug_libcom"],
+        description="Augmentation dataset splits to train models on",
     )
     rf_detr: RFDETRConfig = Field(default_factory=RFDETRConfig)
     cascade_rcnn: CascadeRCNNConfig = Field(default_factory=CascadeRCNNConfig)
@@ -169,13 +148,21 @@ class EvalConfig(BaseModel):
     ground_truth: str = Field(default="", description="Path to ground truth annotations")
     output_path: str = Field(default="", description="Path to output results file")
     iou_threshold: float = Field(default=0.5, description="IoU threshold for mAP")
-    device: str = Field(default="cuda:0")
+    device: str = Field(default_factory=_default_device)
     conf_threshold: float = Field(default=0.25)
 
 
 class S4Config(BaseModel):
     """Configuration for the s4_evaluate section."""
 
+    models: list[str] = Field(
+        default_factory=lambda: ["rf_detr", "cascade_rcnn", "yolo26"],
+        description="Model paradigms to evaluate",
+    )
+    augments: list[str] = Field(
+        default_factory=lambda: ["baseline", "albumentations_balanced", "boxaug_standard", "boxaug_libcom"],
+        description="Augmentation dataset splits to evaluate",
+    )
     eval: EvalConfig = Field(default_factory=EvalConfig)
 
 

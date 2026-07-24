@@ -84,9 +84,9 @@ def _parse_section_flags(section: str, raw_flags: list[str] | None) -> dict[str,
         parts = key.split(".")
 
         coerced: Any = value
-        if value.lower() in ("true", "yes", "1"):
+        if value.lower() in ("true", "yes"):
             coerced = True
-        elif value.lower() in ("false", "no", "0"):
+        elif value.lower() in ("false", "no"):
             coerced = False
         else:
             try:
@@ -95,7 +95,7 @@ def _parse_section_flags(section: str, raw_flags: list[str] | None) -> dict[str,
                 try:
                     coerced = float(value)
                 except ValueError:
-                    coerced = value
+                    coerced = [v.strip() for v in value.split(",")] if "," in value else value
 
         d = overrides
         for part in parts[:-1]:
@@ -112,8 +112,14 @@ def _apply_overrides(config: PipelineConfig, section: str, overrides: dict[str, 
         if isinstance(value, dict) and hasattr(getattr(section_model, key), "model_dump"):
             nested = getattr(section_model, key)
             for k, v in value.items():
+                target_val = getattr(nested, k, None)
+                if isinstance(target_val, list) and isinstance(v, str):
+                    v = [item.strip() for item in v.split(",")]
                 setattr(nested, k, v)
         else:
+            target_val = getattr(section_model, key, None)
+            if isinstance(target_val, list) and isinstance(value, str):
+                value = [item.strip() for item in value.split(",")]
             setattr(section_model, key, value)
 
 

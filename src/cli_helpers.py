@@ -40,12 +40,15 @@ def _field_name_to_flag(field_name: str) -> str:
     return f"--{field_name.replace('_', '-')}"
 
 
-def _resolve_type(field_annotation: type) -> type | None:
+def _resolve_type(field_annotation: type | Any) -> type | None:
     """Resolve annotation to a simple type argparse understands.
 
     Handles ``Optional[X]``, ``X | None``, ``list[X]``, ``dict[...]``, etc.
     Returns ``None`` for complex types that need special handling.
     """
+    if field_annotation is None:
+        return None
+
     origin = getattr(field_annotation, "__origin__", None)
 
     if origin is list:
@@ -85,11 +88,11 @@ def add_model_args(
         skip_fields: Fields to skip entirely.
         prefix: Optional prefix for flag names (e.g. ``"download."``).
     """
-    required_fields = set(required_fields or [])
-    skip_fields = set(skip_fields or [])
+    req_set = set(required_fields or [])
+    skip_set = set(skip_fields or [])
 
     for field_name, field_info in model.model_fields.items():
-        if field_name in skip_fields:
+        if field_name in skip_set:
             continue
 
         flag = _field_name_to_flag(f"{prefix}{field_name}" if prefix else field_name)
@@ -113,7 +116,7 @@ def add_model_args(
         if resolved is not None:
             kwargs = dict(_ARGPARSE_TYPE_MAP.get(resolved, {"type": str}))
             kwargs["default"] = None
-            if field_name in required_fields:
+            if field_name in req_set:
                 kwargs["required"] = True
             parser.add_argument(flag, **kwargs)
             continue

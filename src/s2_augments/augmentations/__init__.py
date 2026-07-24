@@ -1,13 +1,23 @@
-"""s2_augments augmentation implementations for object detection."""
+"""s2_augments augmentation implementations for wood defect detection."""
 
-from src.s2_augments.augmentations.geometric import GeometricAugmentor
-from src.s2_augments.augmentations.mixup import MixupAugmentor
-from src.s2_augments.augmentations.mosaic import MosaicAugmentor
-from src.s2_augments.augmentations.photometric import PhotometricAugmentor
+from src.s2_augments.augmentations.albumentations_balanced import (
+    AlbumentationsBalancedAugmentor,
+    AlbumentationsBalancedConfig,
+)
+from src.s2_augments.augmentations.boxaug_libcom import (
+    BoxAugLibcomAugmentor,
+    BoxAugLibcomConfig,
+)
+from src.s2_augments.augmentations.boxaug_standard import (
+    BoxAugStandardAugmentor,
+    BoxAugStandardConfig,
+)
 
 __all__ = [
-    "GeometricAugmentor",
-    "MixupAugmentor",
-    "MosaicAugmentor",
-    "PhotometricAugmentor",
+    "AlbumentationsBalancedAugmentor",
+    "AlbumentationsBalancedConfig",
+    "BoxAugStandardAugmentor",
+    "BoxAugStandardConfig",
+    "BoxAugLibcomAugmentor",
+    "BoxAugLibcomConfig",
 ]
