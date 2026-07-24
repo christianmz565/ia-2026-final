@@ -5,7 +5,7 @@
 #show figure: set block(breakable: true)
 
 #show: elsearticle.with(
-  title: "Benchmark comparativo de algoritmos de detección de objetos para el reconocimiento de defectos superficiales en madera",
+  title: "Benchmark Comparativo de Algoritmos de Detección de Objetos para el Reconocimiento de Defectos Superficiales en Madera",
   authors: (
     (
       name: "Chambilla Perca Ricardo Mauricio",
