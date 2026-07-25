@@ -175,7 +175,7 @@ def save_summary_reports(
                 best_pt.unlink()
             rel_target = best_checkpoint.name if best_checkpoint.parent == output_dir else best_checkpoint.relative_to(output_dir)
             best_pt.symlink_to(rel_target)
-            logger.info("standardized_best_pt_symlinked", source=str(rel_target), target=str(best_pt))
+            logger.info("standardized_best_pt_created", source=str(rel_target), target=str(best_pt))
         except Exception as err:
             logger.warning("failed_to_symlink_best_pt", error=str(err))
 

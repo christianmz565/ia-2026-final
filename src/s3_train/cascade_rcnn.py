@@ -283,12 +283,19 @@ class CascadeRCNNTrainer:
 
             total_time = time.time() - start_time
 
-            checkpoints = list(out_dir.glob("best_*.pth")) + list(out_dir.glob("epoch_*.pth")) + list(out_dir.glob("*.pth"))
-            if checkpoints:
-                best = max(checkpoints, key=lambda p: p.stat().st_mtime)
-            else:
-                best = out_dir / "best_model.pth"
-                best.touch()
+            best_candidates = sorted(out_dir.glob("best_coco_bbox_mAP_*.pth"), key=lambda p: p.stat().st_mtime, reverse=True)
+            if not best_candidates:
+                best_candidates = sorted(out_dir.glob("best_*.pth"), key=lambda p: p.stat().st_mtime, reverse=True)
+
+            best: Path | None = best_candidates[0] if best_candidates else None
+            if best is None:
+                epoch_candidates = sorted(out_dir.glob("epoch_*.pth"), key=lambda p: p.stat().st_mtime, reverse=True)
+                if epoch_candidates:
+                    best = epoch_candidates[0]
+                else:
+                    raise FileNotFoundError(
+                        f"Cascade R-CNN training completed, but no expected checkpoint file (best_coco_bbox_mAP_*.pth) was found in {out_dir}"
+                    )
 
             save_summary_reports(
                 output_dir=out_dir,

@@ -247,15 +247,22 @@ class RFDETRTrainer:
 
             total_time = time.time() - start_time
 
-            best = out_dir / "best_model.pth"
-            if not best.exists():
-                logger.warning("rf_detr_train_no_checkpoint", path=str(best))
-                checkpoints = list(out_dir.glob("*.pth"))
-                if checkpoints:
-                    best = max(checkpoints, key=lambda p: p.stat().st_mtime)
-                    logger.info("rf_detr_train_fallback_checkpoint", path=str(best))
-                else:
-                    best.touch()
+            best_candidates = [
+                out_dir / "checkpoint_best_total.pth",
+                out_dir / "checkpoint_best_regular.pth",
+                out_dir / "checkpoint_best_ema.pth",
+                out_dir / "checkpoint.pth",
+            ]
+            best: Path | None = None
+            for cand in best_candidates:
+                if cand.exists() and cand.stat().st_size > 0:
+                    best = cand
+                    break
+
+            if best is None:
+                raise FileNotFoundError(
+                    f"RF-DETR training completed, but expected checkpoint (checkpoint_best_total.pth) was not found in {out_dir}"
+                )
 
             save_summary_reports(
                 output_dir=out_dir,

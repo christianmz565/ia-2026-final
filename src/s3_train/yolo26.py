@@ -194,11 +194,21 @@ class YOLO26Trainer:
                 pbar.close()
 
             total_time = time.time() - start_time
-            best_weights = out_dir / "weights" / "best.pt"
-            if not best_weights.exists():
-                best_weights = out_dir / "best.pt"
-                if not best_weights.exists():
-                    best_weights.touch()
+            best_candidates = [
+                out_dir / "weights" / "best.pt",
+                out_dir / "weights" / "last.pt",
+                out_dir / "best.pt",
+            ]
+            best_weights: Path | None = None
+            for cand in best_candidates:
+                if cand.exists() and cand.stat().st_size > 0:
+                    best_weights = cand
+                    break
+
+            if best_weights is None:
+                raise FileNotFoundError(
+                    f"YOLO26 training completed, but expected weights file (weights/best.pt) was not found in {out_dir}"
+                )
 
             save_summary_reports(
                 output_dir=out_dir,
