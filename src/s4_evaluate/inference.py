@@ -39,20 +39,15 @@ def _find_checkpoint(model_path: Path) -> Path:
         if candidate.exists() and candidate.stat().st_size > 0:
             return candidate
 
-    # Search for all non-zero checkpoint files recursively
+    # Search for all non-zero checkpoint files recursively within model_path
     checkpoints = [
         p for p in list(model_path.glob("*.pt")) + list(model_path.glob("*.pth")) + list(model_path.glob("**/*.pt")) + list(model_path.glob("**/*.pth"))
         if p.is_file() and p.stat().st_size > 0
     ]
     if not checkpoints:
-        # Try checking in results/ directory if model_path was in partials/s3_train
-        from src.constants import PROJECT_ROOT
-        if "partials" in str(model_path):
-            alt_path = PROJECT_ROOT / "results" / model_path.relative_to(PROJECT_ROOT / "partials/s3_train")
-            if alt_path.exists():
-                return _find_checkpoint(alt_path)
         raise FileNotFoundError(f"No checkpoint weights found in {model_path}")
     return max(checkpoints, key=lambda p: p.stat().st_mtime)
+
 
 
 def _build_coco_predictions(coco_gt: dict, image_detections: dict[int, list[dict]]) -> dict:
@@ -113,6 +108,7 @@ def run_inference(
     output_path: Path | str | None = None,
     device: str | None = None,
     conf_threshold: float = 0.25,
+    max_images: int | None = None,
     force: bool = False,
     resolution: int = 512,
 ) -> dict[str, object]:
@@ -126,6 +122,7 @@ def run_inference(
         output_path: Where to save prediction results JSON.
         device: Target device (e.g. 'cuda:0' or 'cpu').
         conf_threshold: Confidence threshold for detections.
+        max_images: Optional maximum number of images to evaluate (for sampling).
         force: If True, bypass cache and re-run inference.
 
     Returns:
@@ -158,6 +155,13 @@ def run_inference(
         img_id_map: dict[str, int] = {img["file_name"]: img["id"] for img in coco_gt["images"]}
         images_dir = data_dir / "images"
 
+        target_images = [
+            p for p in sorted(images_dir.iterdir())
+            if p.suffix.lower() in SUPPORTED_IMAGE_SUFFIXES and f"images/{p.name}" in img_id_map
+        ]
+        if max_images and max_images > 0:
+            target_images = target_images[:max_images]
+
         image_detections: dict[int, list[dict]] = {}
         num_images = 0
         total_detections = 0
@@ -168,12 +172,8 @@ def run_inference(
             from ultralytics import YOLO
 
             yolo_model = YOLO(str(checkpoint))
-            for img_path in sorted(images_dir.iterdir()):
-                if img_path.suffix.lower() not in SUPPORTED_IMAGE_SUFFIXES:
-                    continue
+            for img_path in target_images:
                 file_name = f"images/{img_path.name}"
-                if file_name not in img_id_map:
-                    continue
                 img_id = img_id_map[file_name]
                 num_images += 1
 
@@ -240,12 +240,8 @@ def run_inference(
 
             mmdet_model = init_detector(cfg, str(checkpoint), device=resolved_device)
 
-            for img_path in sorted(images_dir.iterdir()):
-                if img_path.suffix.lower() not in SUPPORTED_IMAGE_SUFFIXES:
-                    continue
+            for img_path in target_images:
                 file_name = f"images/{img_path.name}"
-                if file_name not in img_id_map:
-                    continue
                 img_id = img_id_map[file_name]
                 num_images += 1
 
@@ -295,12 +291,8 @@ def run_inference(
             rfdetr_model.model.model.load_state_dict(state_dict)
             rfdetr_model.model.model.eval()
 
-            for img_path in sorted(images_dir.iterdir()):
-                if img_path.suffix.lower() not in SUPPORTED_IMAGE_SUFFIXES:
-                    continue
+            for img_path in target_images:
                 file_name = f"images/{img_path.name}"
-                if file_name not in img_id_map:
-                    continue
                 img_id = img_id_map[file_name]
                 num_images += 1
 

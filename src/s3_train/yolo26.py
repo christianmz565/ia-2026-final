@@ -95,7 +95,7 @@ class YOLO26Trainer:
             out_dir, checkpoints_dir = setup_training_output_dir(output_dir)
             data_yaml = _ensure_yolo_data_yaml(data_dir)
 
-            model_variant = getattr(config, "model_size", "yolo26n.pt") or "yolo26n.pt"
+            model_variant = getattr(config, "model_size", "yolo26m.pt") or "yolo26m.pt"
 
             logger.info(
                 "yolo26_train_start",

@@ -10,7 +10,6 @@ Enforces unified standards across all detection models:
 from __future__ import annotations
 
 import json
-import shutil
 from pathlib import Path
 from typing import Any
 
@@ -172,9 +171,13 @@ def save_summary_reports(
     best_pt = output_dir / "best.pt"
     if best_checkpoint.exists() and best_checkpoint.resolve() != best_pt.resolve():
         try:
-            shutil.copy2(best_checkpoint, best_pt)
-            logger.info("standardized_best_pt_saved", source=str(best_checkpoint), target=str(best_pt))
+            if best_pt.exists() or best_pt.is_symlink():
+                best_pt.unlink()
+            rel_target = best_checkpoint.name if best_checkpoint.parent == output_dir else best_checkpoint.relative_to(output_dir)
+            best_pt.symlink_to(rel_target)
+            logger.info("standardized_best_pt_symlinked", source=str(rel_target), target=str(best_pt))
         except Exception as err:
-            logger.warning("failed_to_copy_best_pt", error=str(err))
+            logger.warning("failed_to_symlink_best_pt", error=str(err))
 
     return summary
+

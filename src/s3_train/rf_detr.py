@@ -88,29 +88,24 @@ class RFDETRTrainer:
                 epoch_duration = round(now - epoch_start_time, 2)
                 epoch_start_time = now
 
-                epoch = len(history) + 1
-                stats = stats or {}
-                mAP_50 = float(
-                    stats.get("map_50", stats.get("coco_eval_bbox", [0, 0])[1] if "coco_eval_bbox" in stats else 0.0)
-                )
-                mAP_50_95 = float(
-                    stats.get("map", stats.get("coco_eval_bbox", [0])[0] if "coco_eval_bbox" in stats else 0.0)
-                )
-                train_loss = float(stats.get("loss", 0.0))
+                payload = kwargs if kwargs else (stats or {})
+
+                epoch = int(payload.get("epoch", len(history))) + 1
+                train_loss = float(payload.get("train_loss", 0.0))
+                val_loss = float(payload.get("test_loss", payload.get("val_loss", 0.0)))
+
+                coco_bbox = payload.get("ema_test_coco_eval_bbox", payload.get("test_coco_eval_bbox", [0.0, 0.0]))
+                mAP_50_95 = float(coco_bbox[0]) if len(coco_bbox) > 0 else 0.0
+                mAP_50 = float(coco_bbox[1]) if len(coco_bbox) > 1 else 0.0
 
                 raw_per_class: dict[str, float] = {}
-                if "per_class_ap" in stats and isinstance(stats["per_class_ap"], dict):
-                    raw_per_class = stats["per_class_ap"]
-                elif "coco_eval" in stats:
-                    coco_eval = (
-                        stats["coco_eval"].get("bbox") if isinstance(stats["coco_eval"], dict) else stats["coco_eval"]
-                    )
-                    if hasattr(coco_eval, "eval") and "precision" in getattr(coco_eval, "eval", {}):
-                        prec = coco_eval.eval["precision"]
-                        vals = prec[:, :, :, 0, 0].mean(axis=(0, 1))
-                        for i, name in enumerate(CLASS_NAMES):
-                            if i < len(vals):
-                                raw_per_class[name] = float(vals[i])
+                results_json = payload.get("ema_test_results_json", payload.get("test_results_json", {}))
+                if isinstance(results_json, dict):
+                    for entry in results_json.get("class_map", []):
+                        if isinstance(entry, dict):
+                            name = entry.get("class", "")
+                            if name and name != "all":
+                                raw_per_class[name] = float(entry.get("map@50:95", 0.0))
 
                 val_per_class = format_per_class_map(raw_per_class)
 
@@ -118,7 +113,7 @@ class RFDETRTrainer:
                     "epoch": epoch,
                     "epoch_time_sec": epoch_duration,
                     "train_loss": round(train_loss, 4),
-                    "val_loss": round(float(stats.get("val_loss", 0.0)), 4),
+                    "val_loss": round(val_loss, 4),
                     "val_mAP_50": round(mAP_50, 4),
                     "val_mAP_50_95": round(mAP_50_95, 4),
                     "val_per_class_mAP": val_per_class,

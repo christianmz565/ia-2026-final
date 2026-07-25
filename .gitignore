@@ -183,4 +183,4 @@ partials/
 dataset/
 buffer/
 results/
-showcase/
+rf-detr-*.pth

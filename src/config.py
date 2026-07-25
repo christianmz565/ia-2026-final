@@ -85,7 +85,7 @@ class YOLO26Config(BaseModel):
 
     data_dir: str = Field(default="", description="Path to training data directory")
     output_dir: str = Field(default="", description="Path to output directory")
-    model_size: str = Field(default="yolo26n.pt", description="YOLO26 variant")
+    model_size: str = Field(default="yolo26m.pt", description="YOLO26 variant")
     epochs: int = Field(default=100)
     imgsz: int = Field(default=640)
     batch: int = Field(default=16)
@@ -154,6 +154,8 @@ class EvalConfig(BaseModel):
     iou_threshold: float = Field(default=0.5, description="IoU threshold for mAP")
     device: str = Field(default_factory=_default_device)
     conf_threshold: float = Field(default=0.25)
+    max_images: int | None = Field(default=None, description="Max test images for sampled inference")
+
 
 
 class S4Config(BaseModel):

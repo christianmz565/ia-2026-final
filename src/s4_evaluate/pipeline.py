@@ -39,6 +39,7 @@ def run_pipeline(config: S4Config | None = None) -> None:
             output_path=pred_path,
             device=config.eval.device,
             conf_threshold=config.eval.conf_threshold,
+            max_images=config.eval.max_images,
         )
         metrics_path = out_dir / "metrics.json"
         gt_path = config.eval.ground_truth or (
@@ -63,33 +64,32 @@ def run_pipeline(config: S4Config | None = None) -> None:
             eval_out_dir = S4_OUTPUT / model_name / aug_name
             eval_out_dir.mkdir(parents=True, exist_ok=True)
 
-            from src.constants import PROJECT_ROOT
-            model_weights = S3_OUTPUT / model_name / aug_name / "best.pt"
-            if not model_weights.exists() or model_weights.stat().st_size == 0:
-                model_weights = S3_OUTPUT / model_name / aug_name
-                checkpoints = [p for p in list(model_weights.glob("*.pt")) + list(model_weights.glob("*.pth")) if p.is_file() and p.stat().st_size > 0] if model_weights.exists() else []
-                if not checkpoints:
-                    alt_dir = PROJECT_ROOT / "results" / model_name / aug_name
-                    if alt_dir.exists():
-                        model_weights = alt_dir
+            model_dir = S3_OUTPUT / model_name / aug_name
+            if not model_dir.exists():
+                raise FileNotFoundError(
+                    f"Training outputs directory missing for model='{model_name}', augment='{aug_name}' at {model_dir}. Run s3_train first."
+                )
 
             data_dir = (SPLIT_DATASET / TEST_SPLIT) if aug_name == "baseline" else (AUGMENTED_DIR / aug_name / TEST_SPLIT)
-            if not Path(data_dir).exists():
-                data_dir = SPLIT_DATASET / TEST_SPLIT
+            if not data_dir.exists():
+                raise FileNotFoundError(
+                    f"Test dataset split missing for augment='{aug_name}' at {data_dir}. Run s1_prepare/s2_augments first."
+                )
 
             pred_path = eval_out_dir / "predictions.json"
             predictions = run_inference(
-                model_path=model_weights,
+                model_path=model_dir,
                 data_dir=data_dir,
                 output_path=pred_path,
                 device=config.eval.device,
                 conf_threshold=config.eval.conf_threshold,
+                max_images=config.eval.max_images,
             )
 
             metrics_path = eval_out_dir / "metrics.json"
             gt_path = config.eval.ground_truth or (data_dir / "_annotations.coco.json")
             if not Path(gt_path).exists():
-                gt_path = SPLIT_DATASET / TEST_SPLIT / "_annotations.coco.json"
+                raise FileNotFoundError(f"Ground truth COCO annotations file not found: {gt_path}")
 
             metrics = compute_metrics(
                 predictions=config.eval.predictions or pred_path,
@@ -98,10 +98,19 @@ def run_pipeline(config: S4Config | None = None) -> None:
                 output_path=metrics_path,
             )
 
+            if isinstance(metrics, dict):
+                metrics["model"] = model_name
+                metrics["augmentation"] = aug_name
+                if isinstance(predictions, dict):
+                    metrics["avg_inference_ms"] = predictions.get("avg_time_ms", 0.0)
+                    metrics["total_inference_ms"] = predictions.get("total_time_ms", 0.0)
+                    metrics["num_inferred_images"] = predictions.get("num_images", 0)
+
             results_path = eval_out_dir / "results.json"
             export_results(
                 results=metrics if isinstance(metrics, dict) else predictions,
                 output_path=results_path,
+                force=True,
             )
             logger.info("s4_combo_complete", model=model_name, augment=aug_name, out_dir=str(eval_out_dir))
 
@@ -117,3 +126,4 @@ if __name__ == "__main__":
         description="s4_evaluate pipeline",
         skip_fields=["eval"],
     )
+
