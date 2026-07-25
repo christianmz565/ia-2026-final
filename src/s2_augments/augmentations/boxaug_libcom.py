@@ -173,7 +173,7 @@ class BoxAugLibcomAugmentor(Augmentor):
                     comp_img, _ = libcom.get_composite_image(fg_resized, fg_mask, bg_img, bbox_list, option="none")
                     comp_mask = np.zeros(bg_img.shape[:2], dtype=np.uint8)
                     comp_mask[y1:y2, x1:x2] = 255
-                    harmonized = model.process(comp_img, comp_mask)
+                    harmonized = model(comp_img, comp_mask)
                     return harmonized
                 except Exception as err:
                     logger.warning("painterly_harmonization_failed_fallback", error=str(err))
@@ -188,7 +188,7 @@ class BoxAugLibcomAugmentor(Augmentor):
                     comp_img, _ = libcom.get_composite_image(fg_resized, fg_mask, bg_img, bbox_list, option="none")
                     comp_mask = np.zeros(bg_img.shape[:2], dtype=np.uint8)
                     comp_mask[y1:y2, x1:x2] = 255
-                    harmonized = model.process(comp_img, comp_mask)
+                    harmonized = model(comp_img, comp_mask)
                     return harmonized
                 except Exception as err:
                     logger.warning("image_harmonization_failed_fallback", error=str(err))
