@@ -19,7 +19,15 @@ from src.s2_augments.base import (
     register_augmentation,
     sample_spatial_location,
 )
-from src.utils import BBox, find_image_label_pairs, read_image, read_yolo_labels, write_image, write_yolo_labels
+from src.utils import (
+    BBox,
+    find_image_label_pairs,
+    get_default_device,
+    read_image,
+    read_yolo_labels,
+    write_image,
+    write_yolo_labels,
+)
 
 logger = structlog.get_logger(__name__)
 
@@ -32,6 +40,10 @@ class BoxAugLibcomConfig(BaseModel):
     blending_mode: str = Field(
         default="image_harmonization",
         description="libcom blending method: 'poisson', 'gaussian', 'color_transfer', 'painterly', 'image_harmonization', 'none'",
+    )
+    device: str = Field(
+        default_factory=get_default_device,
+        description="Target device for libcom models (e.g. 'cuda:0' or 'cpu')",
     )
 
 
@@ -58,33 +70,39 @@ class BoxAugLibcomAugmentor(Augmentor):
 
     name: str = "boxaug_libcom"
 
-    def __init__(self) -> None:
+    def __init__(self, device: str | None = None) -> None:
         self._painterly_model: Any = None
         self._harmonization_model: Any = None
+        self._painterly_device: str | None = None
+        self._harmonization_device: str | None = None
+        self.device = device
 
-    def _get_painterly_model(self) -> Any:
-        if self._painterly_model is None:
+    def _get_painterly_model(self, device: str = "cuda:0") -> Any:
+        if self._painterly_model is None or self._painterly_device != device:
             try:
                 from libcom import PainterlyHarmonizationModel
 
-                logger.info("loading_libcom_painterly_model")
-                self._painterly_model = PainterlyHarmonizationModel(device="cpu")
+                logger.info("loading_libcom_painterly_model", device=device)
+                self._painterly_model = PainterlyHarmonizationModel(device=device)
+                self._painterly_device = device
             except Exception as err:
                 logger.warning("painterly_model_load_failed", error=str(err))
                 self._painterly_model = False
         return self._painterly_model
 
-    def _get_harmonization_model(self) -> Any:
-        if self._harmonization_model is None:
+    def _get_harmonization_model(self, device: str = "cuda:0") -> Any:
+        if self._harmonization_model is None or self._harmonization_device != device:
             try:
                 from libcom import ImageHarmonizationModel
 
-                logger.info("loading_libcom_harmonization_model")
-                self._harmonization_model = ImageHarmonizationModel(device="cpu")
+                logger.info("loading_libcom_harmonization_model", device=device)
+                self._harmonization_model = ImageHarmonizationModel(device=device)
+                self._harmonization_device = device
             except Exception as err:
                 logger.warning("harmonization_model_load_failed", error=str(err))
                 self._harmonization_model = False
         return self._harmonization_model
+
 
     def apply(
         self,
@@ -101,6 +119,7 @@ class BoxAugLibcomAugmentor(Augmentor):
         fg_crop: np.ndarray,
         bbox_xyxy: tuple[int, int, int, int],
         blending_mode: str,
+        device: str = "cuda:0",
     ) -> np.ndarray:
         """Use libcom or seamless cloning to merge foreground crop into background image."""
         import libcom
@@ -148,7 +167,7 @@ class BoxAugLibcomAugmentor(Augmentor):
                 return comp_img
 
         elif blending_mode == "painterly":
-            model = self._get_painterly_model()
+            model = self._get_painterly_model(device=device)
             if model:
                 try:
                     comp_img, _ = libcom.get_composite_image(fg_resized, fg_mask, bg_img, bbox_list, option="none")
@@ -163,7 +182,7 @@ class BoxAugLibcomAugmentor(Augmentor):
             return comp_img
 
         elif blending_mode == "image_harmonization":
-            model = self._get_harmonization_model()
+            model = self._get_harmonization_model(device=device)
             if model:
                 try:
                     comp_img, _ = libcom.get_composite_image(fg_resized, fg_mask, bg_img, bbox_list, option="none")
@@ -189,6 +208,7 @@ class BoxAugLibcomAugmentor(Augmentor):
     ) -> Path:
         """Generate balanced dataset split via BoxAug with libcom border blending."""
         cfg = config if isinstance(config, BoxAugLibcomConfig) else BoxAugLibcomConfig()
+        device = getattr(cfg, "device", self.device) or get_default_device()
 
         src_dir = Path(input_dir or (SPLIT_DATASET / "train"))
         target_dir = Path(output_dir)
@@ -202,7 +222,12 @@ class BoxAugLibcomAugmentor(Augmentor):
         if not pairs:
             raise FileNotFoundError(f"No image/label pairs found in {src_dir}")
 
-        logger.info("building_boxaug_libcom_instance_bank", source=str(src_dir), mode=cfg.blending_mode)
+        logger.info(
+            "building_boxaug_libcom_instance_bank",
+            source=str(src_dir),
+            mode=cfg.blending_mode,
+            device=device,
+        )
         instance_bank: dict[int, list[tuple[np.ndarray, float, float]]] = defaultdict(list)
         class_counts: dict[int, int] = defaultdict(int)
 
@@ -229,6 +254,7 @@ class BoxAugLibcomAugmentor(Augmentor):
             majority_count=majority_count,
             target_per_minority=target_count,
             blending_mode=cfg.blending_mode,
+            device=device,
         )
 
         aug_counter = 0
@@ -277,6 +303,7 @@ class BoxAugLibcomAugmentor(Augmentor):
                                 transformed_crop,
                                 (x1, y1, x2, y2),
                                 blending_mode=cfg.blending_mode,
+                                device=device,
                             )
                             img = blended_img
                             curr_bboxes.append(candidate_box)

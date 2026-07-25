@@ -165,6 +165,13 @@ def find_image_label_pairs(input_dir: Path) -> list[tuple[Path, Path]]:
     return pairs
 
 
+def get_default_device() -> str:
+    """Return default device depending on CUDA availability."""
+    import torch
+
+    return "cuda:0" if torch.cuda.is_available() else "cpu"
+
+
 def configure_torch_backend() -> None:
     """Configure PyTorch CUDA and CuDNN backends for optimal performance.
 
@@ -181,4 +188,5 @@ def configure_torch_backend() -> None:
 
     if hasattr(torch.backends, "cudnn") and hasattr(torch.backends.cudnn, "allow_tf32"):
         torch.backends.cudnn.allow_tf32 = True
+
 

@@ -7,7 +7,6 @@ all section configs so that the CLI can override any leaf value via flags like
 
 from __future__ import annotations
 
-import torch
 from pydantic import BaseModel, Field
 
 from src.constants import (
@@ -20,11 +19,9 @@ from src.s2_augments.augmentations import (
     BoxAugLibcomConfig,
     BoxAugStandardConfig,
 )
+from src.utils import get_default_device
 
-
-def _default_device() -> str:
-    """Return default device depending on CUDA availability."""
-    return "cuda:0" if torch.cuda.is_available() else "cpu"
+_default_device = get_default_device
 
 
 class DownloadConfig(BaseModel):
@@ -67,9 +64,14 @@ class AugmentConfig(BaseModel):
         default_factory=lambda: ["albumentations_balanced", "boxaug_standard", "boxaug_libcom"],
         description="List of augmentation method names to apply",
     )
+    device: str = Field(
+        default_factory=get_default_device,
+        description="Target device for GPU-accelerated augmentations (e.g. 'cuda:0' or 'cpu')",
+    )
     albumentations_balanced: AlbumentationsBalancedConfig = Field(default_factory=AlbumentationsBalancedConfig)
     boxaug_standard: BoxAugStandardConfig = Field(default_factory=BoxAugStandardConfig)
     boxaug_libcom: BoxAugLibcomConfig = Field(default_factory=BoxAugLibcomConfig)
+
 
 
 class S2Config(BaseModel):
