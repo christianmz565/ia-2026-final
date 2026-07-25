@@ -31,6 +31,89 @@ from src.utils import configure_torch_backend
 logger = structlog.get_logger(__name__)
 
 
+def patch_rfdetr_coco_extended_metrics() -> None:
+    """Patch rfdetr.engine.coco_extended_metrics to prevent TypeError with 2D array scalar conversions."""
+    try:
+        import numpy as np
+        import rfdetr.engine as rf_engine
+
+        def safe_coco_extended_metrics(coco_eval: Any) -> dict[str, Any]:
+            iou_thrs, rec_thrs = coco_eval.params.iouThrs, coco_eval.params.recThrs
+            iou50_match = np.argwhere(np.isclose(iou_thrs, 0.50))
+            iou50_idx = int(iou50_match[0, 0]) if iou50_match.size > 0 else 0
+            area_idx, maxdet_idx = 0, 2
+
+            P = coco_eval.eval["precision"]
+            S = coco_eval.eval["scores"]
+
+            prec_raw = P[iou50_idx, :, :, area_idx, maxdet_idx]
+
+            prec = prec_raw.copy().astype(float)
+            prec[prec < 0] = np.nan
+
+            f1_cls = 2 * prec * rec_thrs[:, None] / (prec + rec_thrs[:, None])
+            f1_macro = np.nanmean(f1_cls, axis=1)
+
+            best_j = int(f1_macro.argmax())
+
+            macro_precision = float(np.nanmean(prec[best_j]))
+            macro_recall = float(rec_thrs[best_j])
+
+            score_vec = S[iou50_idx, best_j, :, area_idx, maxdet_idx].astype(float)
+            score_vec[prec_raw[best_j] < 0] = np.nan
+
+            map_50_95, map_50 = float(coco_eval.stats[0]), float(coco_eval.stats[1])
+
+            per_class = []
+            cat_ids = coco_eval.params.catIds
+            cat_id_to_name = {c["id"]: c["name"] for c in coco_eval.cocoGt.loadCats(cat_ids)}
+            for k, cid in enumerate(cat_ids):
+                p_slice = P[:, :, k, area_idx, maxdet_idx]
+                valid = p_slice > -1
+                ap_50_95 = float(p_slice[valid].mean()) if valid.any() else float("nan")
+                ap_50 = (
+                    float(p_slice[iou50_idx][p_slice[iou50_idx] > -1].mean())
+                    if (p_slice[iou50_idx] > -1).any()
+                    else float("nan")
+                )
+
+                pc = float(prec[best_j, k]) if prec_raw[best_j, k] > -1 else float("nan")
+                rc = macro_recall
+
+                if np.isnan(ap_50_95) or np.isnan(ap_50) or np.isnan(pc) or np.isnan(rc):
+                    continue
+
+                per_class.append(
+                    {
+                        "class": cat_id_to_name[int(cid)],
+                        "map@50:95": ap_50_95,
+                        "map@50": ap_50,
+                        "precision": pc,
+                        "recall": rc,
+                    }
+                )
+
+            per_class.append(
+                {
+                    "class": "all",
+                    "map@50:95": map_50_95,
+                    "map@50": map_50,
+                    "precision": macro_precision,
+                    "recall": macro_recall,
+                }
+            )
+
+            return {
+                "class_map": per_class,
+                "map": map_50,
+                "precision": macro_precision,
+                "recall": macro_recall,
+            }
+
+        rf_engine.coco_extended_metrics = safe_coco_extended_metrics
+    except Exception as err:
+        logger.warning("rfdetr_patch_failed", error=str(err))
+
 
 class RFDETRTrainer:
     """Train RF-DETR model with AMP and tqdm progress logging."""
@@ -44,6 +127,7 @@ class RFDETRTrainer:
             config: Optional RF-DETR training hyper-parameters.
         """
         self.config = config or RFDETRConfig()
+        patch_rfdetr_coco_extended_metrics()
 
     def train(self, config: RFDETRConfig | None = None, force: bool = False) -> Path:
         """Train RF-DETR model with mixed precision and save standardized outputs.
@@ -57,11 +141,13 @@ class RFDETRTrainer:
         """
         config = config or self.config
         configure_torch_backend()
+        patch_rfdetr_coco_extended_metrics()
         data_dir = Path(config.data_dir) if config.data_dir else SPLIT_DATASET
 
         output_dir = Path(config.output_dir) if config.output_dir else S3_OUTPUT / "rf_detr"
 
         def _do_train() -> Path:
+            patch_rfdetr_coco_extended_metrics()
             from rfdetr.detr import RFDETRMedium
 
             out_dir, checkpoints_dir = setup_training_output_dir(output_dir)
