@@ -7,7 +7,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[3]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.constants import CLASS_NAMES, PROCESSED_DATASET
+from src.constants import CLASS_NAMES, PROCESSED_DATASET  # noqa: E402
 
 IMAGES_DIR = PROCESSED_DATASET / "images"
 LABELS_DIR = PROCESSED_DATASET / "labels"

@@ -444,7 +444,8 @@ class ShadowGenerationModel:
     """
     def __init__(self, device=0):
         self.args = parse_args()
-        self.device = torch.device(f"cuda:{device}" if torch.cuda.is_available() else "cpu")
+        from libcom.utils.environment import check_gpu_device
+        self.device = check_gpu_device(device)
         self.weight_dtype = torch.float32 
         
 

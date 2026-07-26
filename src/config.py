@@ -107,7 +107,7 @@ class CascadeRCNNConfig(BaseModel):
     config_file: str = Field(default="cascade_rcnn_r50_fpn_1x_coco.py")
     epochs: int = Field(default=12)
     imgsz: int = Field(default=640)
-    batch_size: int = Field(default=16)
+    batch_size: int = Field(default=8)
     lr: float = Field(default=0.0001)
     device: str = Field(default_factory=_default_device)
 

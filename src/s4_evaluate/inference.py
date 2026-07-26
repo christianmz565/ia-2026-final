@@ -194,7 +194,7 @@ def run_inference(
                         w, h = x2 - x1, y2 - y1
                         dets.append(
                             {
-                                "category_id": int(cls) + 1,
+                                "category_id": int(cls),
                                 "bbox": [
                                     round(float(x1), 2),
                                     round(float(y1), 2),
@@ -259,7 +259,7 @@ def run_inference(
                         w, h = x2 - x1, y2 - y1
                         dets.append(
                             {
-                                "category_id": int(label) + 1,
+                                "category_id": int(label),
                                 "bbox": [
                                     round(float(x1), 2),
                                     round(float(y1), 2),
@@ -313,7 +313,7 @@ def run_inference(
                     h = y2 - y1
                     dets.append(
                         {
-                            "category_id": cls + 1,
+                            "category_id": cls,
                             "bbox": [
                                 round(float(x1), 2),
                                 round(float(y1), 2),

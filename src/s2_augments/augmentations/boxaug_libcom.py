@@ -77,13 +77,20 @@ class BoxAugLibcomAugmentor(Augmentor):
         self._harmonization_device: str | None = None
         self.device = device
 
+    @staticmethod
+    def _parse_libcom_device(device: Any) -> Any:
+        if isinstance(device, str) and ":" in device and device.split(":")[-1].isdigit():
+            return int(device.split(":")[-1])
+        return device
+
     def _get_painterly_model(self, device: str = "cuda:0") -> Any:
         if self._painterly_model is None or self._painterly_device != device:
             try:
                 from libcom import PainterlyHarmonizationModel
 
                 logger.info("loading_libcom_painterly_model", device=device)
-                self._painterly_model = PainterlyHarmonizationModel(device=device)
+                dev_arg = self._parse_libcom_device(device)
+                self._painterly_model = PainterlyHarmonizationModel(device=dev_arg)
                 self._painterly_device = device
             except Exception as err:
                 logger.warning("painterly_model_load_failed", error=str(err))
@@ -96,7 +103,8 @@ class BoxAugLibcomAugmentor(Augmentor):
                 from libcom import ImageHarmonizationModel
 
                 logger.info("loading_libcom_harmonization_model", device=device)
-                self._harmonization_model = ImageHarmonizationModel(device=device)
+                dev_arg = self._parse_libcom_device(device)
+                self._harmonization_model = ImageHarmonizationModel(device=dev_arg)
                 self._harmonization_device = device
             except Exception as err:
                 logger.warning("harmonization_model_load_failed", error=str(err))
