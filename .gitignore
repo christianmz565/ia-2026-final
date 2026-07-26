@@ -183,3 +183,7 @@ partials/
 dataset/
 buffer/
 results/
+
+# Model weights
+*.pt
+*.pth
