@@ -246,11 +246,20 @@ class CascadeRCNNTrainer:
 
             cfg.work_dir = str(out_dir)
 
-            cfg.optim_wrapper = {
-                "type": "AmpOptimWrapper",
-                "optimizer": {"type": "AdamW", "lr": config.lr, "weight_decay": 0.0001},
-                "loss_scale": "dynamic",
-            }
+            import torch
+
+            use_amp = config.device != "cpu" and torch.cuda.is_available()
+            if use_amp:
+                cfg.optim_wrapper = {
+                    "type": "AmpOptimWrapper",
+                    "optimizer": {"type": "AdamW", "lr": config.lr, "weight_decay": 0.0001},
+                    "loss_scale": "dynamic",
+                }
+            else:
+                cfg.optim_wrapper = {
+                    "type": "OptimWrapper",
+                    "optimizer": {"type": "AdamW", "lr": config.lr, "weight_decay": 0.0001},
+                }
 
             cfg.custom_hooks = [
                 {"type": "EarlyStoppingHook", "monitor": "coco/bbox_mAP", "patience": 10, "min_delta": 0.001},

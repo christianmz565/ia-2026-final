@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any
 
 import structlog
+import torch
 
 from src.caching import run_cached_step
 from src.config import RFDETRConfig
@@ -232,7 +233,7 @@ class RFDETRTrainer:
                     epochs=config.epochs,
                     batch_size=config.batch,
                     lr=config.lr0,
-                    amp=True,
+                    amp=config.device != "cpu" and torch.cuda.is_available(),
                     weight_decay=1e-4,
                     warmup_epochs=5,
                     early_stopping=True,

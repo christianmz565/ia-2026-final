@@ -184,3 +184,4 @@ dataset/
 buffer/
 results/
 rf-detr-*.pth
+yolo26*.pt

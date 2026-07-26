@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any
 
 import structlog
+import torch
 import yaml
 
 from src.caching import run_cached_step
@@ -179,7 +180,7 @@ class YOLO26Trainer:
                     "project": str(out_dir.parent),
                     "name": out_dir.name,
                     "exist_ok": True,
-                    "amp": True,
+                    "amp": config.device != "cpu" and torch.cuda.is_available(),
                     "patience": 10,
                     "workers": 2,
                     "save": True,
