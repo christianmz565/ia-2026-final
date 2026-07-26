@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any
 
 import structlog
+import torch
 
 from src.caching import run_cached_step
 from src.config import RFDETRConfig
@@ -26,8 +27,93 @@ from src.s3_train.common import (
     save_summary_reports,
     setup_training_output_dir,
 )
+from src.utils import configure_torch_backend
 
 logger = structlog.get_logger(__name__)
+
+
+def patch_rfdetr_coco_extended_metrics() -> None:
+    """Patch rfdetr.engine.coco_extended_metrics to prevent TypeError with 2D array scalar conversions."""
+    try:
+        import numpy as np
+        import rfdetr.engine as rf_engine
+
+        def safe_coco_extended_metrics(coco_eval: Any) -> dict[str, Any]:
+            iou_thrs, rec_thrs = coco_eval.params.iouThrs, coco_eval.params.recThrs
+            iou50_match = np.argwhere(np.isclose(iou_thrs, 0.50))
+            iou50_idx = int(iou50_match[0, 0]) if iou50_match.size > 0 else 0
+            area_idx, maxdet_idx = 0, 2
+
+            P = coco_eval.eval["precision"]
+            S = coco_eval.eval["scores"]
+
+            prec_raw = P[iou50_idx, :, :, area_idx, maxdet_idx]
+
+            prec = prec_raw.copy().astype(float)
+            prec[prec < 0] = np.nan
+
+            f1_cls = 2 * prec * rec_thrs[:, None] / (prec + rec_thrs[:, None])
+            f1_macro = np.nanmean(f1_cls, axis=1)
+
+            best_j = int(f1_macro.argmax())
+
+            macro_precision = float(np.nanmean(prec[best_j]))
+            macro_recall = float(rec_thrs[best_j])
+
+            score_vec = S[iou50_idx, best_j, :, area_idx, maxdet_idx].astype(float)
+            score_vec[prec_raw[best_j] < 0] = np.nan
+
+            map_50_95, map_50 = float(coco_eval.stats[0]), float(coco_eval.stats[1])
+
+            per_class = []
+            cat_ids = coco_eval.params.catIds
+            cat_id_to_name = {c["id"]: c["name"] for c in coco_eval.cocoGt.loadCats(cat_ids)}
+            for k, cid in enumerate(cat_ids):
+                p_slice = P[:, :, k, area_idx, maxdet_idx]
+                valid = p_slice > -1
+                ap_50_95 = float(p_slice[valid].mean()) if valid.any() else float("nan")
+                ap_50 = (
+                    float(p_slice[iou50_idx][p_slice[iou50_idx] > -1].mean())
+                    if (p_slice[iou50_idx] > -1).any()
+                    else float("nan")
+                )
+
+                pc = float(prec[best_j, k]) if prec_raw[best_j, k] > -1 else float("nan")
+                rc = macro_recall
+
+                if np.isnan(ap_50_95) or np.isnan(ap_50) or np.isnan(pc) or np.isnan(rc):
+                    continue
+
+                per_class.append(
+                    {
+                        "class": cat_id_to_name[int(cid)],
+                        "map@50:95": ap_50_95,
+                        "map@50": ap_50,
+                        "precision": pc,
+                        "recall": rc,
+                    }
+                )
+
+            per_class.append(
+                {
+                    "class": "all",
+                    "map@50:95": map_50_95,
+                    "map@50": map_50,
+                    "precision": macro_precision,
+                    "recall": macro_recall,
+                }
+            )
+
+            return {
+                "class_map": per_class,
+                "map": map_50,
+                "precision": macro_precision,
+                "recall": macro_recall,
+            }
+
+        rf_engine.coco_extended_metrics = safe_coco_extended_metrics
+    except Exception as err:
+        logger.warning("rfdetr_patch_failed", error=str(err))
 
 
 class RFDETRTrainer:
@@ -42,6 +128,7 @@ class RFDETRTrainer:
             config: Optional RF-DETR training hyper-parameters.
         """
         self.config = config or RFDETRConfig()
+        patch_rfdetr_coco_extended_metrics()
 
     def train(self, config: RFDETRConfig | None = None, force: bool = False) -> Path:
         """Train RF-DETR model with mixed precision and save standardized outputs.
@@ -54,10 +141,14 @@ class RFDETRTrainer:
             Path to best checkpoint (best.pt).
         """
         config = config or self.config
+        configure_torch_backend()
+        patch_rfdetr_coco_extended_metrics()
         data_dir = Path(config.data_dir) if config.data_dir else SPLIT_DATASET
+
         output_dir = Path(config.output_dir) if config.output_dir else S3_OUTPUT / "rf_detr"
 
         def _do_train() -> Path:
+            patch_rfdetr_coco_extended_metrics()
             from rfdetr.detr import RFDETRMedium
 
             out_dir, checkpoints_dir = setup_training_output_dir(output_dir)
@@ -84,29 +175,24 @@ class RFDETRTrainer:
                 epoch_duration = round(now - epoch_start_time, 2)
                 epoch_start_time = now
 
-                epoch = len(history) + 1
-                stats = stats or {}
-                mAP_50 = float(
-                    stats.get("map_50", stats.get("coco_eval_bbox", [0, 0])[1] if "coco_eval_bbox" in stats else 0.0)
-                )
-                mAP_50_95 = float(
-                    stats.get("map", stats.get("coco_eval_bbox", [0])[0] if "coco_eval_bbox" in stats else 0.0)
-                )
-                train_loss = float(stats.get("loss", 0.0))
+                payload = kwargs if kwargs else (stats or {})
+
+                epoch = int(payload.get("epoch", len(history))) + 1
+                train_loss = float(payload.get("train_loss", 0.0))
+                val_loss = float(payload.get("test_loss", payload.get("val_loss", 0.0)))
+
+                coco_bbox = payload.get("ema_test_coco_eval_bbox", payload.get("test_coco_eval_bbox", [0.0, 0.0]))
+                mAP_50_95 = float(coco_bbox[0]) if len(coco_bbox) > 0 else 0.0
+                mAP_50 = float(coco_bbox[1]) if len(coco_bbox) > 1 else 0.0
 
                 raw_per_class: dict[str, float] = {}
-                if "per_class_ap" in stats and isinstance(stats["per_class_ap"], dict):
-                    raw_per_class = stats["per_class_ap"]
-                elif "coco_eval" in stats:
-                    coco_eval = (
-                        stats["coco_eval"].get("bbox") if isinstance(stats["coco_eval"], dict) else stats["coco_eval"]
-                    )
-                    if hasattr(coco_eval, "eval") and "precision" in getattr(coco_eval, "eval", {}):
-                        prec = coco_eval.eval["precision"]
-                        vals = prec[:, :, :, 0, 0].mean(axis=(0, 1))
-                        for i, name in enumerate(CLASS_NAMES):
-                            if i < len(vals):
-                                raw_per_class[name] = float(vals[i])
+                results_json = payload.get("ema_test_results_json", payload.get("test_results_json", {}))
+                if isinstance(results_json, dict):
+                    for entry in results_json.get("class_map", []):
+                        if isinstance(entry, dict):
+                            name = entry.get("class", "")
+                            if name and name != "all":
+                                raw_per_class[name] = float(entry.get("map@50:95", 0.0))
 
                 val_per_class = format_per_class_map(raw_per_class)
 
@@ -114,7 +200,7 @@ class RFDETRTrainer:
                     "epoch": epoch,
                     "epoch_time_sec": epoch_duration,
                     "train_loss": round(train_loss, 4),
-                    "val_loss": round(float(stats.get("val_loss", 0.0)), 4),
+                    "val_loss": round(val_loss, 4),
                     "val_mAP_50": round(mAP_50, 4),
                     "val_mAP_50_95": round(mAP_50_95, 4),
                     "val_per_class_mAP": val_per_class,
@@ -147,7 +233,7 @@ class RFDETRTrainer:
                     epochs=config.epochs,
                     batch_size=config.batch,
                     lr=config.lr0,
-                    amp=True,
+                    amp=config.device != "cpu" and torch.cuda.is_available(),
                     weight_decay=1e-4,
                     warmup_epochs=5,
                     early_stopping=True,
@@ -162,15 +248,22 @@ class RFDETRTrainer:
 
             total_time = time.time() - start_time
 
-            best = out_dir / "best_model.pth"
-            if not best.exists():
-                logger.warning("rf_detr_train_no_checkpoint", path=str(best))
-                checkpoints = list(out_dir.glob("*.pth"))
-                if checkpoints:
-                    best = max(checkpoints, key=lambda p: p.stat().st_mtime)
-                    logger.info("rf_detr_train_fallback_checkpoint", path=str(best))
-                else:
-                    best.touch()
+            best_candidates = [
+                out_dir / "checkpoint_best_total.pth",
+                out_dir / "checkpoint_best_regular.pth",
+                out_dir / "checkpoint_best_ema.pth",
+                out_dir / "checkpoint.pth",
+            ]
+            best: Path | None = None
+            for cand in best_candidates:
+                if cand.exists() and cand.stat().st_size > 0:
+                    best = cand
+                    break
+
+            if best is None:
+                raise FileNotFoundError(
+                    f"RF-DETR training completed, but expected checkpoint (checkpoint_best_total.pth) was not found in {out_dir}"
+                )
 
             save_summary_reports(
                 output_dir=out_dir,

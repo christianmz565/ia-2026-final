@@ -1,6 +1,24 @@
 {
   "version": 1,
   "skills": {
+    "academic-paper": {
+      "source": "imbad0202/academic-research-skills",
+      "sourceType": "github",
+      "skillPath": "academic-paper/SKILL.md",
+      "computedHash": "d18c720240bce312525c0d86d7e4361c4eaebd256ada239337feaf2b9a3b0d56"
+    },
+    "database-lookup": {
+      "source": "K-Dense-AI/scientific-agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/database-lookup/SKILL.md",
+      "computedHash": "dda96c42e8658d94cbbf52be461e2ac016ccd42df608d3a65c68f28cdbfa40d6"
+    },
+    "paper-lookup": {
+      "source": "K-Dense-AI/scientific-agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/paper-lookup/SKILL.md",
+      "computedHash": "414b93f6bd61c81dfbf26ff698fe44910bf6180747056859c8c6901d2994db8f"
+    },
     "python-code-style": {
       "source": "wshobson/agents",
       "sourceType": "github",
@@ -30,6 +48,12 @@
       "sourceType": "github",
       "skillPath": "plugins/python-development/skills/python-project-structure/SKILL.md",
       "computedHash": "2f4f560964af8ecad4d54666c044baa54671d0abd1136c848b539befe24db170"
+    },
+    "scientific-writing": {
+      "source": "K-Dense-AI/scientific-agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/scientific-writing/SKILL.md",
+      "computedHash": "6720a10eb8d9e032d912466b2b654c79dfd846d6915cd17545b8625829770288"
     },
     "uv-package-manager": {
       "source": "wshobson/agents",

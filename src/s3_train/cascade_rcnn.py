@@ -34,8 +34,10 @@ from src.s3_train.common import (
     save_summary_reports,
     setup_training_output_dir,
 )
+from src.utils import configure_torch_backend
 
 logger = structlog.get_logger(__name__)
+
 
 
 def _ensure_mmdet_setup() -> None:
@@ -169,7 +171,9 @@ class CascadeRCNNTrainer:
             Path to best checkpoint (best.pt).
         """
         _ensure_mmdet_setup()
+        configure_torch_backend()
         config = config or self.config
+
         data_dir = Path(config.data_dir) if config.data_dir else SPLIT_DATASET
         output_dir = Path(config.output_dir) if config.output_dir else S3_OUTPUT / "cascade_rcnn"
 
@@ -242,11 +246,20 @@ class CascadeRCNNTrainer:
 
             cfg.work_dir = str(out_dir)
 
-            cfg.optim_wrapper = {
-                "type": "AmpOptimWrapper",
-                "optimizer": {"type": "AdamW", "lr": config.lr, "weight_decay": 0.0001},
-                "loss_scale": "dynamic",
-            }
+            import torch
+
+            use_amp = config.device != "cpu" and torch.cuda.is_available()
+            if use_amp:
+                cfg.optim_wrapper = {
+                    "type": "AmpOptimWrapper",
+                    "optimizer": {"type": "AdamW", "lr": config.lr, "weight_decay": 0.0001},
+                    "loss_scale": "dynamic",
+                }
+            else:
+                cfg.optim_wrapper = {
+                    "type": "OptimWrapper",
+                    "optimizer": {"type": "AdamW", "lr": config.lr, "weight_decay": 0.0001},
+                }
 
             cfg.custom_hooks = [
                 {"type": "EarlyStoppingHook", "monitor": "coco/bbox_mAP", "patience": 10, "min_delta": 0.001},
@@ -279,12 +292,19 @@ class CascadeRCNNTrainer:
 
             total_time = time.time() - start_time
 
-            checkpoints = list(out_dir.glob("best_*.pth")) + list(out_dir.glob("epoch_*.pth")) + list(out_dir.glob("*.pth"))
-            if checkpoints:
-                best = max(checkpoints, key=lambda p: p.stat().st_mtime)
-            else:
-                best = out_dir / "best_model.pth"
-                best.touch()
+            best_candidates = sorted(out_dir.glob("best_coco_bbox_mAP_*.pth"), key=lambda p: p.stat().st_mtime, reverse=True)
+            if not best_candidates:
+                best_candidates = sorted(out_dir.glob("best_*.pth"), key=lambda p: p.stat().st_mtime, reverse=True)
+
+            best: Path | None = best_candidates[0] if best_candidates else None
+            if best is None:
+                epoch_candidates = sorted(out_dir.glob("epoch_*.pth"), key=lambda p: p.stat().st_mtime, reverse=True)
+                if epoch_candidates:
+                    best = epoch_candidates[0]
+                else:
+                    raise FileNotFoundError(
+                        f"Cascade R-CNN training completed, but no expected checkpoint file (best_coco_bbox_mAP_*.pth) was found in {out_dir}"
+                    )
 
             save_summary_reports(
                 output_dir=out_dir,

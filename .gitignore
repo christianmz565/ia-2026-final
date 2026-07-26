@@ -183,7 +183,5 @@ partials/
 dataset/
 buffer/
 results/
-
-# Model weights
-*.pt
-*.pth
+rf-detr-*.pth
+yolo26*.pt

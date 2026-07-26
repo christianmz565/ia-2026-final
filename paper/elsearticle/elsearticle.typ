@@ -103,7 +103,6 @@
 
   // Figures, subfigures, tables
   show figure.where(kind: table): set figure.caption(position: top)
-  set ref(supplement: none)
   show ref: set text(fill: rgb(0, 0, 255))
 
   // Page

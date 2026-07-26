@@ -68,7 +68,8 @@ class KontextBlendingHarmonizationModel:
         else:
             raise ValueError(f"Unsupported model type: {model_type}")
         
-        self.device = f"cuda:{device}"
+        from libcom.utils.environment import check_gpu_device
+        self.device = check_gpu_device(device)
         self.build_pretrained_model(weight_path, lora_path)
 
     def build_pretrained_model(self, weight_path, lora_path):

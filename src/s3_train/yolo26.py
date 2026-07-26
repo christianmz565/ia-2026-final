@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any
 
 import structlog
+import torch
 import yaml
 
 from src.caching import run_cached_step
@@ -28,8 +29,10 @@ from src.s3_train.common import (
     save_summary_reports,
     setup_training_output_dir,
 )
+from src.utils import configure_torch_backend
 
 logger = structlog.get_logger(__name__)
+
 
 
 def _ensure_yolo_data_yaml(data_dir: Path) -> Path:
@@ -83,6 +86,7 @@ class YOLO26Trainer:
             Path to best model weights (best.pt).
         """
         config = config or self.config
+        configure_torch_backend()
         data_dir = Path(config.data_dir) if config.data_dir else SPLIT_DATASET
         output_dir = Path(config.output_dir) if config.output_dir else S3_OUTPUT / "yolo26"
 
@@ -92,7 +96,7 @@ class YOLO26Trainer:
             out_dir, checkpoints_dir = setup_training_output_dir(output_dir)
             data_yaml = _ensure_yolo_data_yaml(data_dir)
 
-            model_variant = getattr(config, "model_size", "yolo26n.pt") or "yolo26n.pt"
+            model_variant = getattr(config, "model_size", "yolo26m.pt") or "yolo26m.pt"
 
             logger.info(
                 "yolo26_train_start",
@@ -104,6 +108,7 @@ class YOLO26Trainer:
                 batch=config.batch,
                 lr0=config.lr0,
                 device=config.device,
+                freeze_layer_count=config.freeze_layer_count,
                 amp=True,
             )
 
@@ -165,32 +170,46 @@ class YOLO26Trainer:
             model.add_callback("on_fit_epoch_end", on_fit_epoch_end)
 
             try:
-                model.train(
-                    data=str(data_yaml),
-                    epochs=config.epochs,
-                    imgsz=config.imgsz,
-                    batch=config.batch,
-                    lr0=config.lr0,
-                    device=config.device,
-                    project=str(out_dir.parent),
-                    name=out_dir.name,
-                    exist_ok=True,
-                    amp=True,
-                    patience=10,
-                    workers=2,
-                    save=True,
-                    save_period=5,
-                    verbose=False,
-                )
+                train_kwargs: dict[str, Any] = {
+                    "data": str(data_yaml),
+                    "epochs": config.epochs,
+                    "imgsz": config.imgsz,
+                    "batch": config.batch,
+                    "lr0": config.lr0,
+                    "device": config.device,
+                    "project": str(out_dir.parent),
+                    "name": out_dir.name,
+                    "exist_ok": True,
+                    "amp": config.device != "cpu" and torch.cuda.is_available(),
+                    "patience": 10,
+                    "workers": 2,
+                    "save": True,
+                    "save_period": 5,
+                    "verbose": False,
+                }
+                if config.freeze_layer_count is not None:
+                    train_kwargs["freeze"] = config.freeze_layer_count
+                model.train(**train_kwargs)
+
             finally:
                 pbar.close()
 
             total_time = time.time() - start_time
-            best_weights = out_dir / "weights" / "best.pt"
-            if not best_weights.exists():
-                best_weights = out_dir / "best.pt"
-                if not best_weights.exists():
-                    best_weights.touch()
+            best_candidates = [
+                out_dir / "weights" / "best.pt",
+                out_dir / "weights" / "last.pt",
+                out_dir / "best.pt",
+            ]
+            best_weights: Path | None = None
+            for cand in best_candidates:
+                if cand.exists() and cand.stat().st_size > 0:
+                    best_weights = cand
+                    break
+
+            if best_weights is None:
+                raise FileNotFoundError(
+                    f"YOLO26 training completed, but expected weights file (weights/best.pt) was not found in {out_dir}"
+                )
 
             save_summary_reports(
                 output_dir=out_dir,

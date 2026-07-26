@@ -1,30 +1,20 @@
+import sys
 from pathlib import Path
 
 import cv2
 
-PROJECT_ROOT = Path(__file__).parents[3]
-IMAGES_DIR = PROJECT_ROOT / "partial" / "s1_integration" / "s1_download" / "wood_defects" / "Images - 1" / "Images - 1"
-LABELS_DIR = (
-    PROJECT_ROOT
-    / "partial"
-    / "s1_integration"
-    / "s1_download"
-    / "wood_defects"
-    / "Bounding Boxes - YOLO Format - 1"
-    / "Bounding Boxes - YOLO Format - 1"
-)
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+from src.constants import CLASS_NAMES, PROCESSED_DATASET  # noqa: E402
+
+IMAGES_DIR = PROCESSED_DATASET / "images"
+LABELS_DIR = PROCESSED_DATASET / "labels"
 OUTPUT_DIR = PROJECT_ROOT / "paper" / "figures" / "dataset"
 
-WOOD_DEFECT_CLASSES = [
-    "Quartzity",
-    "Live_Knot",
-    "Marrow",
-    "resin",
-    "Dead_Knot",
-    "knot_with_crack",
-    "Knot_missing",
-    "Crack",
-]
+WOOD_DEFECT_CLASSES = CLASS_NAMES
+
 
 BBOX_COLOR = (0, 0, 255)
 BBOX_THICKNESS = 6

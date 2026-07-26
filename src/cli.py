@@ -60,7 +60,7 @@ def _build_parser() -> argparse.ArgumentParser:
     for section in ALL_SECTIONS:
         parser.add_argument(
             f"--{section}",
-            nargs=argparse.REMAINDER,
+            nargs="*",
             help=f"Flags for the {section} section (key=value pairs).",
         )
 

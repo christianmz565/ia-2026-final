@@ -22,24 +22,32 @@ import torch
 from src.caching import run_cached_step
 from src.coco_utils import SUPPORTED_IMAGE_SUFFIXES
 from src.constants import S4_OUTPUT
+from src.utils import configure_torch_backend
 
 logger = structlog.get_logger(__name__)
 
 
+
 def _find_checkpoint(model_path: Path) -> Path:
     """Resolve the best checkpoint from a directory or file path."""
-    if model_path.is_file():
+    if model_path.is_file() and model_path.stat().st_size > 0:
         return model_path
-    best = model_path / "best.pt"
-    if best.exists():
-        return best
-    best_pth = model_path / "best_model.pth"
-    if best_pth.exists():
-        return best_pth
-    checkpoints = list(model_path.glob("*.pt")) + list(model_path.glob("*.pth"))
+
+    # Try best.pt and best_model.pth if non-zero
+    for candidate_name in ["best.pt", "best_model.pth", "epoch_12.pth", "checkpoint.pth"]:
+        candidate = model_path / candidate_name
+        if candidate.exists() and candidate.stat().st_size > 0:
+            return candidate
+
+    # Search for all non-zero checkpoint files recursively within model_path
+    checkpoints = [
+        p for p in list(model_path.glob("*.pt")) + list(model_path.glob("*.pth")) + list(model_path.glob("**/*.pt")) + list(model_path.glob("**/*.pth"))
+        if p.is_file() and p.stat().st_size > 0
+    ]
     if not checkpoints:
         raise FileNotFoundError(f"No checkpoint weights found in {model_path}")
     return max(checkpoints, key=lambda p: p.stat().st_mtime)
+
 
 
 def _build_coco_predictions(coco_gt: dict, image_detections: dict[int, list[dict]]) -> dict:
@@ -100,6 +108,7 @@ def run_inference(
     output_path: Path | str | None = None,
     device: str | None = None,
     conf_threshold: float = 0.25,
+    max_images: int | None = None,
     force: bool = False,
     resolution: int = 512,
 ) -> dict[str, object]:
@@ -113,6 +122,7 @@ def run_inference(
         output_path: Where to save prediction results JSON.
         device: Target device (e.g. 'cuda:0' or 'cpu').
         conf_threshold: Confidence threshold for detections.
+        max_images: Optional maximum number of images to evaluate (for sampling).
         force: If True, bypass cache and re-run inference.
 
     Returns:
@@ -123,7 +133,9 @@ def run_inference(
     data_dir = Path(data_dir)
     resolved_output = Path(output_path or S4_OUTPUT / "predictions.json")
 
+    configure_torch_backend()
     resolved_device = device or ("cuda:0" if torch.cuda.is_available() else "cpu")
+
 
     def _do_inference() -> dict[str, object]:
         checkpoint = _find_checkpoint(model_path)
@@ -143,6 +155,13 @@ def run_inference(
         img_id_map: dict[str, int] = {img["file_name"]: img["id"] for img in coco_gt["images"]}
         images_dir = data_dir / "images"
 
+        target_images = [
+            p for p in sorted(images_dir.iterdir())
+            if p.suffix.lower() in SUPPORTED_IMAGE_SUFFIXES and f"images/{p.name}" in img_id_map
+        ]
+        if max_images and max_images > 0:
+            target_images = target_images[:max_images]
+
         image_detections: dict[int, list[dict]] = {}
         num_images = 0
         total_detections = 0
@@ -153,12 +172,8 @@ def run_inference(
             from ultralytics import YOLO
 
             yolo_model = YOLO(str(checkpoint))
-            for img_path in sorted(images_dir.iterdir()):
-                if img_path.suffix.lower() not in SUPPORTED_IMAGE_SUFFIXES:
-                    continue
+            for img_path in target_images:
                 file_name = f"images/{img_path.name}"
-                if file_name not in img_id_map:
-                    continue
                 img_id = img_id_map[file_name]
                 num_images += 1
 
@@ -179,7 +194,7 @@ def run_inference(
                         w, h = x2 - x1, y2 - y1
                         dets.append(
                             {
-                                "category_id": int(cls) + 1,
+                                "category_id": int(cls),
                                 "bbox": [
                                     round(float(x1), 2),
                                     round(float(y1), 2),
@@ -201,18 +216,32 @@ def run_inference(
                 mmcv.__version__ = "2.1.0"
 
             from mmdet.apis import inference_detector, init_detector
+            from mmengine.config import Config
 
+            from src.constants import CLASS_NAMES
             from src.s3_train.cascade_rcnn import _get_cascade_rcnn_default_config
 
-            cfg_file = _get_cascade_rcnn_default_config()
-            mmdet_model = init_detector(str(cfg_file), str(checkpoint), device=resolved_device)
+            _orig_load = torch.load
+            def _patched_load(*args, **kwargs):
+                kwargs.setdefault("weights_only", False)
+                return _orig_load(*args, **kwargs)
+            torch.load = _patched_load
 
-            for img_path in sorted(images_dir.iterdir()):
-                if img_path.suffix.lower() not in SUPPORTED_IMAGE_SUFFIXES:
-                    continue
+            cfg_file = _get_cascade_rcnn_default_config()
+            cfg = Config.fromfile(str(cfg_file))
+            num_classes = len(CLASS_NAMES)
+            if hasattr(cfg.model, "roi_head") and hasattr(cfg.model.roi_head, "bbox_head"):
+                bbox_heads = cfg.model.roi_head.bbox_head
+                if isinstance(bbox_heads, list):
+                    for head in bbox_heads:
+                        head.num_classes = num_classes
+                else:
+                    bbox_heads.num_classes = num_classes
+
+            mmdet_model = init_detector(cfg, str(checkpoint), device=resolved_device)
+
+            for img_path in target_images:
                 file_name = f"images/{img_path.name}"
-                if file_name not in img_id_map:
-                    continue
                 img_id = img_id_map[file_name]
                 num_images += 1
 
@@ -230,7 +259,7 @@ def run_inference(
                         w, h = x2 - x1, y2 - y1
                         dets.append(
                             {
-                                "category_id": int(label) + 1,
+                                "category_id": int(label),
                                 "bbox": [
                                     round(float(x1), 2),
                                     round(float(y1), 2),
@@ -247,16 +276,23 @@ def run_inference(
         else:
             from rfdetr.detr import RFDETRMedium
 
-            rfdetr_model = RFDETRMedium(resolution=resolution)
-            rfdetr_model.model = torch.load(str(checkpoint), map_location=resolved_device, weights_only=False)
-            rfdetr_model.model.eval()
+            from src.constants import CLASS_NAMES
 
-            for img_path in sorted(images_dir.iterdir()):
-                if img_path.suffix.lower() not in SUPPORTED_IMAGE_SUFFIXES:
-                    continue
+            _orig_load = torch.load
+            def _patched_load(*args, **kwargs):
+                kwargs.setdefault("weights_only", False)
+                return _orig_load(*args, **kwargs)
+            torch.load = _patched_load
+
+            rfdetr_model = RFDETRMedium(resolution=resolution)
+            rfdetr_model.model.reinitialize_detection_head(num_classes=len(CLASS_NAMES))
+            ckpt = torch.load(str(checkpoint), map_location=resolved_device, weights_only=False)
+            state_dict = ckpt["model"] if isinstance(ckpt, dict) and "model" in ckpt else ckpt
+            rfdetr_model.model.model.load_state_dict(state_dict)
+            rfdetr_model.model.model.eval()
+
+            for img_path in target_images:
                 file_name = f"images/{img_path.name}"
-                if file_name not in img_id_map:
-                    continue
                 img_id = img_id_map[file_name]
                 num_images += 1
 
@@ -277,7 +313,7 @@ def run_inference(
                     h = y2 - y1
                     dets.append(
                         {
-                            "category_id": cls + 1,
+                            "category_id": cls,
                             "bbox": [
                                 round(float(x1), 2),
                                 round(float(y1), 2),

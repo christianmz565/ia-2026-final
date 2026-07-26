@@ -7,7 +7,6 @@ all section configs so that the CLI can override any leaf value via flags like
 
 from __future__ import annotations
 
-import torch
 from pydantic import BaseModel, Field
 
 from src.constants import (
@@ -20,11 +19,9 @@ from src.s2_augments.augmentations import (
     BoxAugLibcomConfig,
     BoxAugStandardConfig,
 )
+from src.utils import get_default_device
 
-
-def _default_device() -> str:
-    """Return default device depending on CUDA availability."""
-    return "cuda:0" if torch.cuda.is_available() else "cpu"
+_default_device = get_default_device
 
 
 class DownloadConfig(BaseModel):
@@ -67,9 +64,14 @@ class AugmentConfig(BaseModel):
         default_factory=lambda: ["albumentations_balanced", "boxaug_standard", "boxaug_libcom"],
         description="List of augmentation method names to apply",
     )
+    device: str = Field(
+        default_factory=get_default_device,
+        description="Target device for GPU-accelerated augmentations (e.g. 'cuda:0' or 'cpu')",
+    )
     albumentations_balanced: AlbumentationsBalancedConfig = Field(default_factory=AlbumentationsBalancedConfig)
     boxaug_standard: BoxAugStandardConfig = Field(default_factory=BoxAugStandardConfig)
     boxaug_libcom: BoxAugLibcomConfig = Field(default_factory=BoxAugLibcomConfig)
+
 
 
 class S2Config(BaseModel):
@@ -85,12 +87,16 @@ class YOLO26Config(BaseModel):
 
     data_dir: str = Field(default="", description="Path to training data directory")
     output_dir: str = Field(default="", description="Path to output directory")
-    model_size: str = Field(default="yolo26n.pt", description="YOLO26 variant")
+    model_size: str = Field(default="yolo26m.pt", description="YOLO26 variant")
     epochs: int = Field(default=100)
     imgsz: int = Field(default=640)
     batch: int = Field(default=16)
     lr0: float = Field(default=0.01)
     device: str = Field(default_factory=_default_device)
+    freeze_layer_count: int | None = Field(
+        default=None, description="Number of initial backbone layers to freeze during training"
+    )
+
 
 
 class CascadeRCNNConfig(BaseModel):
@@ -101,7 +107,7 @@ class CascadeRCNNConfig(BaseModel):
     config_file: str = Field(default="cascade_rcnn_r50_fpn_1x_coco.py")
     epochs: int = Field(default=12)
     imgsz: int = Field(default=640)
-    batch_size: int = Field(default=16)
+    batch_size: int = Field(default=8)
     lr: float = Field(default=0.0001)
     device: str = Field(default_factory=_default_device)
 
@@ -150,6 +156,8 @@ class EvalConfig(BaseModel):
     iou_threshold: float = Field(default=0.5, description="IoU threshold for mAP")
     device: str = Field(default_factory=_default_device)
     conf_threshold: float = Field(default=0.25)
+    max_images: int | None = Field(default=None, description="Max test images for sampled inference")
+
 
 
 class S4Config(BaseModel):

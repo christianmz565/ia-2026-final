@@ -125,6 +125,7 @@ class AlbumentationsAugmentor:
             self._pipeline = self._build_pipeline(config)
 
         yolo_boxes = []
+        class_labels = []
         for b in bboxes:
             cx = max(0.0001, min(0.9999, b.cx))
             cy = max(0.0001, min(0.9999, b.cy))
@@ -143,8 +144,7 @@ class AlbumentationsAugmentor:
 
             if clean_w > 0 and clean_h > 0:
                 yolo_boxes.append([clean_cx, clean_cy, clean_w, clean_h])
-
-        class_labels = [b.class_id for b in bboxes[: len(yolo_boxes)]]
+                class_labels.append(b.class_id)
 
         if not yolo_boxes:
             return image, bboxes
