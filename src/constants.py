@@ -10,6 +10,7 @@ S2_OUTPUT = PARTIALS_DIR / "s2_augments"
 S3_OUTPUT = PARTIALS_DIR / "s3_train"
 S4_OUTPUT = PARTIALS_DIR / "s4_evaluate"
 S5_OUTPUT = PARTIALS_DIR / "s5_analysis"
+S6_OUTPUT = PARTIALS_DIR / "s6_predict"
 
 RAW_DATASET = S1_OUTPUT / "raw"
 PROCESSED_DATASET = S1_OUTPUT / "processed"
