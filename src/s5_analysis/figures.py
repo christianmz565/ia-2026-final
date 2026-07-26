@@ -195,12 +195,13 @@ def _fig_aug_delta_vs_baseline(rows: list[dict[str, Any]], output_dir: Path, dpi
             })
 
     df = pd.DataFrame(data)
-    fig, ax = plt.subplots(figsize=(8, 4.5))
+    fig, ax = plt.subplots(figsize=(10, 4.5))
     if not df.empty:
         sns.barplot(data=df, x="Delta_mAP_50", y="Augmentation", hue="Model", palette="coolwarm", ax=ax)
         ax.axvline(0, color="black", linestyle="--", linewidth=0.8)
         for container in ax.containers:
             ax.bar_label(container, fmt="%+.3f", padding=3, fontsize=9)
+        ax.legend(title="Model", loc="upper left", bbox_to_anchor=(1.02, 1), framealpha=0.9)
     else:
         ax.text(0.5, 0.5, "No multi-augmentation data available vs baseline", ha="center", va="center")
 
@@ -209,6 +210,7 @@ def _fig_aug_delta_vs_baseline(rows: list[dict[str, Any]], output_dir: Path, dpi
     ax.set_title("Augmentation Impact Relative to Baseline (Δ mAP@50)", fontsize=12)
     sns.despine(left=True, bottom=True)
     plt.tight_layout()
+    fig.subplots_adjust(right=0.85)
     return _save_fig(fig, output_dir, "aug_delta_vs_baseline", dpi)
 
 
@@ -226,12 +228,14 @@ def _fig_per_class_ap_heatmap(rows: list[dict[str, Any]], output_dir: Path, dpi:
             class_map[label] = {cls: float(val) for cls, val in per_class.items()}
 
     df = pd.DataFrame(class_map).T
-    fig, ax = plt.subplots(figsize=(9, 4.5))
+    fig, ax = plt.subplots(figsize=(10, 5.5))
     if not df.empty:
-        sns.heatmap(df, annot=True, fmt=".3f", cmap="YlGnBu", cbar=True, ax=ax, linewidths=0.5)
+        sns.heatmap(df, annot=True, fmt=".3f", cmap="YlGnBu", cbar=True, ax=ax, linewidths=0.5,
+                    annot_kws={"size": 8})
         ax.set_ylabel("Model / Augmentation", fontsize=10)
         ax.set_xlabel("Defect Class", fontsize=10)
-        plt.xticks(rotation=35, ha="right")
+        plt.xticks(rotation=35, ha="right", fontsize=9)
+        plt.yticks(fontsize=9)
     else:
         ax.text(0.5, 0.5, "No per-class AP data available", ha="center", va="center")
 
@@ -251,12 +255,13 @@ def _fig_per_class_ap_bars(rows: list[dict[str, Any]], output_dir: Path, dpi: in
             data.append({"Model": label, "Class": cls, "AP": float(val)})
 
     df = pd.DataFrame(data)
-    fig, ax = plt.subplots(figsize=(9, 6))
+    fig, ax = plt.subplots(figsize=(10, 7))
     if not df.empty:
         sns.barplot(data=df, x="AP", y="Class", hue="Model", palette="tab10", ax=ax)
         for container in ax.containers:
-            ax.bar_label(container, fmt="%.2f", padding=3, fontsize=8)
+            ax.bar_label(container, fmt="%.2f", padding=3, fontsize=7)
         ax.set_xlim(0, 1.0)
+        ax.legend(title="Model", fontsize=7, title_fontsize=8, loc="lower right", framealpha=0.9, ncol=2)
     else:
         ax.text(0.5, 0.5, "No per-class AP data available", ha="center", va="center")
 
@@ -286,10 +291,11 @@ def _fig_training_curves_map(history: dict[str, list[dict[str, Any]]], output_di
             })
 
     df = pd.DataFrame(data)
-    fig, ax = plt.subplots(figsize=(8, 4.5))
+    fig, ax = plt.subplots(figsize=(10, 5))
     if not df.empty:
         sns.lineplot(data=df, x="Epoch", y="val_mAP_50", hue="Run", style="Run", markers=True, dashes=False, ax=ax)
         ax.set_ylim(0, 1.0)
+        ax.legend(title="Run", fontsize=8, title_fontsize=9, loc="lower right", framealpha=0.9, ncol=2)
     else:
         ax.text(0.5, 0.5, "No epoch history available", ha="center", va="center")
 
@@ -317,9 +323,10 @@ def _fig_training_curves_loss(history: dict[str, list[dict[str, Any]]], output_d
             })
 
     df = pd.DataFrame(data)
-    fig, ax = plt.subplots(figsize=(8, 4.5))
+    fig, ax = plt.subplots(figsize=(10, 5))
     if not df.empty:
         sns.lineplot(data=df, x="Epoch", y="train_loss", hue="Run", style="Run", markers=True, dashes=False, ax=ax)
+        ax.legend(title="Run", fontsize=8, title_fontsize=9, loc="upper right", framealpha=0.9, ncol=2)
     else:
         ax.text(0.5, 0.5, "No epoch loss history available", ha="center", va="center")
 
@@ -387,9 +394,12 @@ def _fig_inference_time_comparison(rows: list[dict[str, Any]], output_dir: Path,
 
 def _fig_speed_accuracy_tradeoff(rows: list[dict[str, Any]], output_dir: Path, dpi: int) -> list[Path]:
     """Figure 13: Scatter plot of mAP@50 vs inference latency."""
-    fig, ax = plt.subplots(figsize=(7, 4.5))
+    from adjustText import adjust_text
+
+    fig, ax = plt.subplots(figsize=(9, 5))
     has_data = False
-    for r in rows:
+    model_groups: dict[str, list[tuple[float, float, str]]] = {}
+    for i, r in enumerate(rows):
         m_lbl = MODEL_LABELS.get(r.get("model", ""), r.get("model", "N/A"))
         a_lbl = AUG_LABELS.get(r.get("augmentation", ""), r.get("augmentation", ""))
         label = f"{m_lbl} ({a_lbl})" if a_lbl else m_lbl
@@ -397,16 +407,32 @@ def _fig_speed_accuracy_tradeoff(rows: list[dict[str, Any]], output_dir: Path, d
         y = float(r.get("mAP_50", 0.0))
         if x > 0 or y > 0:
             has_data = True
-            ax.scatter(x, y, s=100, label=label)
-            ax.annotate(label, (x, y), xytext=(5, 5), textcoords="offset points", fontsize=9)
+            model_key = m_lbl
+            if model_key not in model_groups:
+                model_groups[model_key] = []
+            model_groups[model_key].append((x, y, label))
 
     if not has_data:
         ax.text(0.5, 0.5, "No timing/accuracy trade-off data available", ha="center", va="center")
+        y_min, y_max, y_pad = 0.0, 1.0, 0.05
+    else:
+        all_y = [y for pts in model_groups.values() for _, y, _ in pts]
+        y_min, y_max = min(all_y), max(all_y)
+        y_pad = max((y_max - y_min) * 0.15, 0.02)
+        colors = sns.color_palette("muted", n_colors=len(model_groups))
+        texts = []
+        for idx, (model_key, points) in enumerate(model_groups.items()):
+            xs, ys, _ = zip(*points)
+            ax.scatter(xs, ys, s=120, label=model_key, color=colors[idx], zorder=5)
+            for x, y, lbl in points:
+                texts.append(ax.text(x, y, lbl, fontsize=8))
+        adjust_text(texts, ax=ax, arrowprops=dict(arrowstyle="-", color="gray", lw=0.5))
 
     ax.set_xlabel("Avg Inference Time per Image (ms)", fontsize=10)
     ax.set_ylabel("mAP@50 Score", fontsize=10)
     ax.set_title("Speed vs. Accuracy Trade-off", fontsize=12)
-    ax.set_ylim(0, 1.0)
+    ax.set_ylim(y_min - y_pad, y_max + y_pad)
+    ax.legend(title="Model", fontsize=9, title_fontsize=10, loc="lower right")
     sns.despine()
     plt.tight_layout()
     return _save_fig(fig, output_dir, "speed_accuracy_tradeoff", dpi)
