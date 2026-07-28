@@ -1,3 +1,7 @@
+# Data source
+
+The data source used for this study is available at [https://www.kaggle.com/datasets/nomihsa965/large-scale-image-dataset-of-wood-surface-defects](https://www.kaggle.com/datasets/nomihsa965/large-scale-image-dataset-of-wood-surface-defects). It contains a large-scale image dataset of wood surface defects, which is used for training and evaluating the defect detection models in this benchmark pipeline. The data source is pre-processed in memory and stored in disk for compatibility with the training and evaluation modules.
+
 # CLI Usage Guide
 
 Command-line interface (CLI) reference and execution guide for the Wood Surface Defect Detection benchmark pipeline.
