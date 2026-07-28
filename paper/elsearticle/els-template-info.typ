@@ -53,7 +53,7 @@
   return names.join(" ")
 }
 
-#let make-corresponding-author(authors, els-columns) = {
+#let make-corresponding-author(authors, els-columns, lang: "es") = {
   let corr-authors = authors.filter(a => a.at("corresponding", default: false) == true)
   if corr-authors.len() == 0 { return }
 
@@ -67,13 +67,18 @@
       v(-0.75em)
       set text(size: 10pt)
       set par(leading: 0.5em)
-      let label = if corr-authors.len() == 1 [Autor correspondiente.] else [Autores correspondientes.]
+      let label = if lang == "en" {
+        if corr-authors.len() == 1 [Corresponding author.] else [Corresponding authors.]
+      } else {
+        if corr-authors.len() == 1 [Autor correspondiente.] else [Autores correspondientes.]
+      }
       [#h(1em);#super[#sym.ast]#h(0.1em);#label]
       for author in corr-authors {
         let email = if author.at("email", default: none) != none {author.email} else {"No email provided"}
         linebreak()
         h(1.4em)
-        [Correo electrónico: #email]
+        let email-label = if lang == "en" { "Email: " } else { "Correo electrónico: " }
+        [#email-label #email]
       }
     }
   )
@@ -104,11 +109,13 @@
 })
 
 // Format the abstract
-#let make-abstract(abstract, keywords, els-format) = if abstract != none {
+#let make-abstract(abstract, keywords, els-format, lang: "es") = if abstract != none {
+    let abstract-label = if lang == "en" { "Abstract" } else { "Resumen" }
+    let keywords-label = if lang == "en" { "Keywords: " } else { "Palabras clave: " }
     set par(justify: true)
     line(length: 100%, stroke: 0.5pt)
     v(-0.25em)
-    text(weight: "bold")[Resumen]
+    text(weight: "bold")[#abstract-label]
     if els-format.type.contains("review") {v(0.5em)} else {v(-0.2em)}
     abstract
     if els-format.type.contains("review") {linebreak()} else {v(0em)}
@@ -123,7 +130,7 @@
       } else {
         kw.first()
       }
-      text((emph("Palabras clave: "), kw-string).join())
+      text((emph(keywords-label), kw-string).join())
     }
     v(-0.2em)
     line(length: 100%, stroke: 0.5pt)

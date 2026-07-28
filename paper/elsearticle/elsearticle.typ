@@ -45,6 +45,9 @@
   // Line numbering
   line-numbering: false,
 
+  // Language: "es" or "en"
+  lang: "es",
+
   // The document's content.
   body,
 ) = context {
@@ -111,7 +114,8 @@
     if i == 1 {
       set text(size: font-size.small)
       if journal != none {
-        emph(("Preprint enviado a ", journal).join())
+        let preprint-label = if lang == "en" { "Preprint submitted to " } else { "Preprint enviado a " }
+        emph((preprint-label, journal).join())
       }
       h(1fr)
       emph(els-date.display("[month repr:long] [day], [year]"))
@@ -159,11 +163,11 @@
 
     v(els-title-above)
     make-title(title: title, authors: authors, affiliations: affiliations)
-    make-abstract(abstract, keywords, els-format)
+    make-abstract(abstract, keywords, els-format, lang: lang)
     v(els-title-below)
   }
 
-  make-corresponding-author(authors, els-columns)
+  make-corresponding-author(authors, els-columns, lang: lang)
   front-matter
 
   // Paragraph
@@ -204,7 +208,8 @@
   }
 
   // bibliography
-  set bibliography(title: "Referencias", style: "elsevier-with-titles")
+  let bib-title = if lang == "en" { "References" } else { "Referencias" }
+  set bibliography(title: bib-title, style: "elsevier-with-titles")
   show bibliography: set heading(numbering: none)
   show bibliography: set text(size: font-size.normal)
 

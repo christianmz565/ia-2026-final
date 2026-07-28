@@ -11,6 +11,7 @@ cd "$ROOT"
   paper/elsearticle \
   paper/references.bib \
   paper/paper.typ \
+  paper/paper-es.typ \
   paper/figures/**/*.{png,jpg,svg}
 
 cd "$ROOT"

@@ -1,8 +1,9 @@
 #import "els-globals.typ": *
 
 // Appendix
-#let appendix(body) = {
-  set heading(numbering: "A.1.", supplement: [Appendix])
+#let appendix(body, lang: "es") = {
+  let appendix-supplement = if lang == "en" { [Appendix] } else { [Apéndice] }
+  set heading(numbering: "A.1.", supplement: appendix-supplement)
   // Reset heading counter
   counter(heading).update(0)
 
