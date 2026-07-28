@@ -22,5 +22,6 @@ cd "$ROOT"
   README.md \
   flake.nix \
   flake.lock \
+  $(git ls-files --cached --others --exclude-standard deps/) \
 
 echo "Done → $OUT"
