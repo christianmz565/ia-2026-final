@@ -30,7 +30,6 @@ def run_pipeline(config: S5Config | None = None) -> None:
     aggregated = aggregate_results(
         results_dir=config.results_dir or S4_OUTPUT,
         output_path=aggregated_path,
-        force=True,
     )
 
     figures_dir = S5_OUTPUT / "figures"
@@ -38,7 +37,6 @@ def run_pipeline(config: S5Config | None = None) -> None:
         aggregated=aggregated if isinstance(aggregated, dict) else {},
         output_dir=figures_dir,
         config=config.analysis,
-        force=True,
     )
 
     logger.info("s5_pipeline_complete")

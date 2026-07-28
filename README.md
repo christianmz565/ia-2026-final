@@ -1,3 +1,7 @@
+# Data source
+
+The data source used for this study is available at [https://www.kaggle.com/datasets/nomihsa965/large-scale-image-dataset-of-wood-surface-defects](https://www.kaggle.com/datasets/nomihsa965/large-scale-image-dataset-of-wood-surface-defects). It contains a large-scale image dataset of wood surface defects, which is used for training and evaluating the defect detection models in this benchmark pipeline. The data source is pre-processed in memory and stored in disk for compatibility with the training and evaluation modules.
+
 # CLI Usage Guide
 
 Command-line interface (CLI) reference and execution guide for the Wood Surface Defect Detection benchmark pipeline.
@@ -18,6 +22,7 @@ Command-line interface (CLI) reference and execution guide for the Wood Surface 
   - [Section 3: Model Training (`src.s3_train`)](#section-3-model-training-srcs3_train)
   - [Section 4: Evaluation & Inference (`src.s4_evaluate`)](#section-4-evaluation--inference-srcs4_evaluate)
   - [Section 5: Analysis & Visualization (`src.s5_analysis`)](#section-5-analysis--visualization-srcs5_analysis)
+  - [Section 6: Single-Image Prediction (`src.s6_predict`)](#section-6-single-image-prediction-srcs6_predict)
 - [Logging Configuration](#logging-configuration)
 - [Common Execution Examples](#common-execution-examples)
 
@@ -80,7 +85,7 @@ uv run python -m src \
 
 | Parameter | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| `download.kaggle_dataset` | string | `"comp/wood-surface-defects"` | Kaggle dataset identifier slug. |
+| `download.kaggle_dataset` | string | `"nomihsa965/large-scale-image-dataset-of-wood-surface-defects"` | Kaggle dataset identifier slug. |
 | `download.force_redownload` | boolean | `false` | Force re-download dataset even if local copy exists. |
 | `preprocess.scale_factor` | float | `0.5` | Rescaling factor applied to input images. |
 | `preprocess.min_label_size_px` | float | `4.0` | Minimum bounding box side length (px) post-scaling. |
@@ -100,16 +105,17 @@ uv run python -m src \
 | :--- | :--- | :--- | :--- |
 | `models` | list | `rf_detr,cascade_rcnn,yolo26` | Architectures to train. |
 | `augments` | list | `baseline,albumentations_balanced,boxaug_standard,boxaug_libcom` | Dataset splits to train models on. |
-| `yolo26.model_size` | string | `"yolo26n.pt"` | Pretrained YOLO26 checkpoint/variant. |
+| `yolo26.model_size` | string | `"yolo26m.pt"` | Pretrained YOLO26 checkpoint/variant. |
 | `yolo26.epochs` | integer | `100` | Number of training epochs for YOLO26. |
 | `yolo26.imgsz` | integer | `640` | Input image size for YOLO26. |
 | `yolo26.batch` | integer | `16` | Batch size for YOLO26 training. |
 | `yolo26.lr0` | float | `0.01` | Initial learning rate for YOLO26. |
 | `yolo26.device` | string | `cuda:0` / `cpu` | Target compute device for YOLO26. |
+| `yolo26.freeze_layer_count` | integer | `None` | Number of initial backbone layers to freeze during training. |
 | `cascade_rcnn.config_file` | string | `"cascade_rcnn_r50_fpn_1x_coco.py"` | MMDetection config filename. |
 | `cascade_rcnn.epochs` | integer | `12` | Training epochs for Cascade R-CNN. |
 | `cascade_rcnn.imgsz` | integer | `640` | Image scale for Cascade R-CNN. |
-| `cascade_rcnn.batch_size` | integer | `16` | Batch size for Cascade R-CNN. |
+| `cascade_rcnn.batch_size` | integer | `8` | Batch size for Cascade R-CNN. |
 | `cascade_rcnn.lr` | float | `0.0001` | Learning rate for Cascade R-CNN. |
 | `cascade_rcnn.device` | string | `cuda:0` / `cpu` | Target compute device for Cascade R-CNN. |
 | `rf_detr.model_size` | string | `"rfdetr-m.pt"` | Pretrained RF-DETR variant. |
@@ -149,7 +155,7 @@ uv run python -m src \
 
 ## Standalone Module Execution
 
-Individual stage modules can be executed directly as Python modules. Standalone CLI flags automatically map from Pydantic config schemas using kebab-case (`--flag-name`).
+Individual stage modules can be executed directly as Python modules. Standalone CLI flags automatically map from Pydantic config schemas using kebab-case (`--flag-name`). All standalone modules accept `--log_level` for verbosity control.
 
 ### Command Pattern
 
@@ -173,12 +179,12 @@ uv run python -m src.s1_prepare.preprocess [--scale-factor FLOAT] [--min-label-s
 
 #### 3. Split Dataset
 ```bash
-uv run python -m src.s1_prepare.split [--seed INT]
+uv run python -m src.s1_prepare.split [--ratios RATIOS] [--seed INT]
 ```
 
 #### 4. Explore Dataset
 ```bash
-uv run python -m src.s1_prepare.explore
+uv run python -m src.s1_prepare.explore [--input-dir PATH]
 ```
 
 #### 5. Convert to COCO Format
@@ -188,7 +194,7 @@ uv run python -m src.s1_prepare.convert_coco
 
 #### 6. Complete S1 Pipeline
 ```bash
-uv run python -m src.s1_prepare.pipeline
+uv run python -m src.s1_prepare.pipeline [--download DOWNLOAD] [--preprocess PREPROCESS] [--split SPLIT]
 ```
 
 ---
@@ -214,7 +220,8 @@ uv run python -m src.s3_train.yolo26 \
   [--imgsz INT] \
   [--batch INT] \
   [--lr0 FLOAT] \
-  [--device DEV]
+  [--device DEV] \
+  [--freeze-layer-count INT]
 ```
 
 #### 2. Train Cascade R-CNN Model
@@ -255,19 +262,26 @@ uv run python -m src.s3_train.pipeline [--models MODEL1,MODEL2] [--augments AUG1
 #### 1. Compute Metrics
 ```bash
 uv run python -m src.s4_evaluate.metrics \
+  --predictions PATH \
+  --ground-truth PATH \
   [--model-path PATH] \
   [--data-dir PATH] \
-  [--predictions PATH] \
-  [--ground-truth PATH] \
   [--output-path PATH] \
   [--iou-threshold FLOAT] \
   [--conf-threshold FLOAT] \
-  [--device DEV]
+  [--device DEV] \
+  [--max-images INT]
 ```
 
 #### 2. Run Inference
 ```bash
-uv run python -m src.s4_evaluate.inference
+uv run python -m src.s4_evaluate.inference \
+  --model-path PATH \
+  --data-dir PATH \
+  [--output-path PATH] \
+  [--conf-threshold FLOAT] \
+  [--device DEV] \
+  [--max-images INT]
 ```
 
 #### 3. Export Evaluation Results
@@ -286,22 +300,34 @@ uv run python -m src.s4_evaluate.pipeline [--models MODEL1,MODEL2] [--augments A
 
 #### 1. Aggregate Results
 ```bash
-uv run python -m src.s5_analysis.aggregate [--input PATH] [--output-dir PATH] [--output-format FORMAT]
+uv run python -m src.s5_analysis.aggregate [--results-dir PATH]
 ```
 
 #### 2. Generate Figures
 ```bash
-uv run python -m src.s5_analysis.figures [--input PATH] [--output-dir PATH] [--figure-dpi INT] [--figure-backend STR]
+uv run python -m src.s5_analysis.figures \
+  --input PATH \
+  [--output-dir PATH] \
+  [--output-format FORMAT] \
+  [--figure-dpi INT] \
+  [--figure-backend STR]
 ```
 
-#### 3. Generate LaTeX / Markdown / CSV Tables
-```bash
-uv run python -m src.s5_analysis.tables [--input PATH] [--output-dir PATH] [--output-format FORMAT]
-```
-
-#### 4. Complete S5 Pipeline
+#### 3. Complete S5 Pipeline
 ```bash
 uv run python -m src.s5_analysis.pipeline
+```
+
+---
+
+### Section 6: Single-Image Prediction (`src.s6_predict`)
+
+#### Run Inference Grid on a Single Image
+```bash
+uv run python -m src.s6_predict.pipeline \
+  --image-path PATH \
+  [--output-dir PATH] \
+  [--conf-threshold FLOAT]
 ```
 
 ---
@@ -351,4 +377,9 @@ uv run python -m src \
 uv run python -m src \
   --only s5_analysis \
   --s5_analysis analysis.output_format=markdown
+```
+
+### 6. Single-Image Prediction with All Trained Models
+```bash
+uv run python -m src.s6_predict.pipeline --image-path photo.jpg --conf-threshold 0.3
 ```

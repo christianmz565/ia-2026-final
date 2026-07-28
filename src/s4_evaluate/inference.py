@@ -137,6 +137,8 @@ def run_inference(
     resolved_device = device or ("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
+    meta_output = resolved_output.parent / "inference_meta.json"
+
     def _do_inference() -> dict[str, object]:
         checkpoint = _find_checkpoint(model_path)
         model_type = _detect_model_type(model_path)
@@ -340,15 +342,33 @@ def run_inference(
             "num_images": num_images,
             "num_detections": total_detections,
         }
+        meta_output.write_text(json.dumps(result, indent=2))
         logger.info("inference_complete", **result)
         return result
+
+    def _load_cached() -> dict[str, object]:
+        base = json.loads(resolved_output.read_text())
+        if meta_output.exists():
+            meta = json.loads(meta_output.read_text())
+            base.update(meta)
+        elif resolved_output.parent.exists():
+            results_path = resolved_output.parent / "results.json"
+            if results_path.exists():
+                try:
+                    prev = json.loads(results_path.read_text())
+                    base["avg_time_ms"] = prev.get("avg_inference_ms", 0.0)
+                    base["total_time_ms"] = prev.get("total_inference_ms", 0.0)
+                    base["num_images"] = prev.get("num_inferred_images", 0)
+                except Exception:
+                    pass
+        return base
 
     return run_cached_step(
         step_name="inference",
         target_path=resolved_output,
         fn=_do_inference,
         force=force,
-        loader=lambda p: json.loads(p.read_text()),
+        loader=lambda p: _load_cached(),
     )
 
 
