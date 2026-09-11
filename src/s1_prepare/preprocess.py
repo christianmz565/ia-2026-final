@@ -123,7 +123,17 @@ def process_image_and_labels(
         box_w_px = box_w_crop * config.scale_factor
         box_h_px = box_h_crop * config.scale_factor
 
-        if box_w_px < config.min_label_size_px or box_h_px < config.min_label_size_px:
+        if box_w_px <= 0.0 or box_h_px <= 0.0:
+            continue
+
+        is_sub_minimum = (
+            box_w_px < config.min_absolute_dim_px or box_h_px < config.min_absolute_dim_px
+        )
+        is_preserved = (
+            (box_w_px * box_h_px >= config.min_label_area_px)
+            or (max(box_w_px, box_h_px) >= config.min_elongated_dim_px)
+        )
+        if is_sub_minimum and not is_preserved:
             continue
 
         cx_norm = ((x1_crop + x2_crop) / 2.0) / w_crop
@@ -204,7 +214,9 @@ def preprocess_dataset(
             "preprocessing_dataset_parallel",
             total_images=len(pairs),
             scale_factor=config.scale_factor,
-            min_label_size_px=config.min_label_size_px,
+            min_absolute_dim_px=config.min_absolute_dim_px,
+            min_label_area_px=config.min_label_area_px,
+            min_elongated_dim_px=config.min_elongated_dim_px,
             workers=workers,
         )
 

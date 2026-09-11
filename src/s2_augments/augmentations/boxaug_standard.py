@@ -260,7 +260,8 @@ class BoxAugStandardAugmentor(Augmentor):
                         if pw > 0 and ph > 0:
                             resized_crop = cv2.resize(transformed_crop, (pw, ph))
                             img[y1:y2, x1:x2] = resized_crop
-                            curr_bboxes.append(candidate_box)
+                            actual_box = BBox.from_xyxy(x1, y1, x2, y2, img_w, img_h, class_id=class_id)
+                            curr_bboxes.append(actual_box)
                             placed = True
                             break
 

@@ -10,6 +10,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 import structlog
 from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
@@ -59,26 +60,42 @@ def compute_metrics(
         coco_eval.accumulate()
         coco_eval.summarize()
 
-        metrics: dict[str, Any] = {
-            "mAP_50": float(coco_eval.stats[1]),
-            "mAP_50_95": float(coco_eval.stats[0]),
-            "precision": float(coco_eval.stats[5]),
-            "recall": float(coco_eval.stats[6]),
-        }
+        stats = coco_eval.stats
+        mAP_50 = float(stats[1])
+        mAP_50_95 = float(stats[0])
 
-        p, r = metrics["precision"], metrics["recall"]
-        metrics["f1"] = round(2 * p * r / (p + r + 1e-8), 4)
+        P = coco_eval.eval["precision"]
+        R = coco_eval.eval["recall"]
+
+        # IoU=0.50 (index 0), all areas (index 0), maxDets=100 (index 2)
+        prec_50_all = P[0, :, :, 0, 2]
+        valid_prec = prec_50_all[prec_50_all > -1]
+        precision = float(np.mean(valid_prec)) if len(valid_prec) > 0 else 0.0
+
+        rec_50_all = R[0, :, 0, 2]
+        valid_rec = rec_50_all[rec_50_all > -1]
+        recall = float(np.mean(valid_rec)) if len(valid_rec) > 0 else 0.0
+
+        f1 = round(2 * precision * recall / (precision + recall + 1e-8), 4)
 
         per_class_ap: dict[str, float] = {}
-        precision_per_class = coco_eval.eval["precision"]
-        per_class_values = precision_per_class[:, :, :, 0, 0].mean(axis=(0, 1))
-        for i, cat in enumerate(coco_gt.loadCats(coco_gt.getCatIds())):
+        cat_ids = coco_gt.getCatIds()
+        for i, cat in enumerate(coco_gt.loadCats(cat_ids)):
             cat_name = cat.get("name", CLASS_NAMES[i] if i < len(CLASS_NAMES) else str(cat["id"]))
-            per_class_ap[cat_name] = round(float(per_class_values[i]), 4)
+            p_class = P[0, :, i, 0, 2]
+            valid_p_class = p_class[p_class > -1]
+            per_class_ap[cat_name] = round(float(np.mean(valid_p_class)), 4) if len(valid_p_class) > 0 else 0.0
 
-        metrics["per_class_ap"] = per_class_ap
-        metrics["num_images"] = len(coco_gt.getImgIds())
-        metrics["num_predictions"] = len(coco_dt.getAnnIds())
+        metrics: dict[str, Any] = {
+            "mAP_50": mAP_50,
+            "mAP_50_95": mAP_50_95,
+            "precision": round(precision, 4),
+            "recall": round(recall, 4),
+            "f1": f1,
+            "per_class_ap": per_class_ap,
+            "num_images": len(coco_gt.getImgIds()),
+            "num_predictions": len(coco_dt.getAnnIds()),
+        }
 
         resolved_output.parent.mkdir(parents=True, exist_ok=True)
         resolved_output.write_text(json.dumps(metrics, indent=2))

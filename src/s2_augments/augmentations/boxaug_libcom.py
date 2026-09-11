@@ -38,7 +38,7 @@ class BoxAugLibcomConfig(BaseModel):
     target_ratio: float = Field(default=1 / 3, description="Target minority-to-majority ratio")
     max_location_attempts: int = Field(default=50, description="Max spatial placement retries to prevent overlaps")
     blending_mode: str = Field(
-        default="image_harmonization",
+        default="poisson",
         description="libcom blending method: 'poisson', 'gaussian', 'color_transfer', 'painterly', 'image_harmonization', 'none'",
     )
     device: str = Field(
@@ -314,7 +314,8 @@ class BoxAugLibcomAugmentor(Augmentor):
                                 device=device,
                             )
                             img = blended_img
-                            curr_bboxes.append(candidate_box)
+                            actual_box = BBox.from_xyxy(x1, y1, x2, y2, img_w, img_h, class_id=class_id)
+                            curr_bboxes.append(actual_box)
                             placed = True
                             break
 

@@ -16,7 +16,14 @@ from tqdm import tqdm
 
 from src.caching import run_cached_step
 from src.config import SplitConfig
-from src.constants import CLASS_NAMES, PROCESSED_DATASET, RAW_DATASET, SPLIT_DATASET
+from src.constants import (
+    CLASS_NAMES,
+    MAJORITY_CLASS_IDS,
+    PROCESSED_DATASET,
+    RAW_DATASET,
+    SPLIT_DATASET,
+    TRAIN_SPLIT,
+)
 from src.utils import find_image_label_pairs, read_yolo_labels
 
 logger = structlog.get_logger(__name__)
@@ -182,6 +189,35 @@ def split_dataset(
             ratios=config.ratios,
             seed=config.seed,
         )
+
+        # Downsample pure-majority planks on the training split only to alleviate class imbalance
+        if TRAIN_SPLIT in split_pairs and config.majority_downsample_ratio > 0.0:
+            train_pairs = split_pairs[TRAIN_SPLIT]
+            pure_majority_train: list[tuple[Path, Path]] = []
+            retained_train: list[tuple[Path, Path]] = []
+
+            for img_p, lbl_p in train_pairs:
+                boxes = read_yolo_labels(lbl_p)
+                if boxes and all(b.class_id in MAJORITY_CLASS_IDS for b in boxes):
+                    pure_majority_train.append((img_p, lbl_p))
+                else:
+                    retained_train.append((img_p, lbl_p))
+
+            rng = random.Random(config.seed)
+            rng.shuffle(pure_majority_train)
+            num_to_drop = int(round(len(pure_majority_train) * config.majority_downsample_ratio))
+            kept_majority = pure_majority_train[num_to_drop:]
+
+            split_pairs[TRAIN_SPLIT] = retained_train + kept_majority
+            logger.info(
+                "majority_downsample_complete",
+                split=TRAIN_SPLIT,
+                initial_pure_majority=len(pure_majority_train),
+                dropped=num_to_drop,
+                retained_majority=len(kept_majority),
+                retained_other=len(retained_train),
+                final_train_count=len(split_pairs[TRAIN_SPLIT]),
+            )
 
         for split_name, s_pairs in split_pairs.items():
             split_images = resolved_output / split_name / "images"

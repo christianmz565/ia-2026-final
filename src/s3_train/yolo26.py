@@ -20,7 +20,15 @@ import yaml
 
 from src.caching import run_cached_step
 from src.config import YOLO26Config
-from src.constants import CLASS_NAMES, S3_OUTPUT, SPLIT_DATASET, TEST_SPLIT, TRAIN_SPLIT, VALID_SPLIT
+from src.constants import (
+    CLASS_NAMES,
+    CLASS_WEIGHTS_LIST,
+    S3_OUTPUT,
+    SPLIT_DATASET,
+    TEST_SPLIT,
+    TRAIN_SPLIT,
+    VALID_SPLIT,
+)
 from src.s3_train.base import register_trainer
 from src.s3_train.common import (
     create_epoch_pbar,
@@ -169,11 +177,20 @@ class YOLO26Trainer:
 
             model.add_callback("on_fit_epoch_end", on_fit_epoch_end)
 
+            def on_pretrain_routine_end(trainer: Any) -> None:
+                weights_tensor = torch.tensor(CLASS_WEIGHTS_LIST, dtype=torch.float32)
+                trainer.model.class_weights = weights_tensor
+                if hasattr(trainer, "criterion") and hasattr(trainer.criterion, "class_weights"):
+                    trainer.criterion.class_weights = weights_tensor.to(trainer.device).view(1, 1, -1)
+
+            model.add_callback("on_pretrain_routine_end", on_pretrain_routine_end)
+
             try:
                 train_kwargs: dict[str, Any] = {
                     "data": str(data_yaml),
                     "epochs": config.epochs,
-                    "imgsz": config.imgsz,
+                    "imgsz": [config.target_height, config.target_width],
+                    "rect": config.rect,
                     "batch": config.batch,
                     "lr0": config.lr0,
                     "device": config.device,
@@ -181,7 +198,7 @@ class YOLO26Trainer:
                     "name": out_dir.name,
                     "exist_ok": True,
                     "amp": config.device != "cpu" and torch.cuda.is_available(),
-                    "patience": 10,
+                    "patience": config.patience,
                     "workers": 2,
                     "save": True,
                     "save_period": 5,

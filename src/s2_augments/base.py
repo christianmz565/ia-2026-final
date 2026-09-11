@@ -69,14 +69,26 @@ def sample_spatial_location(class_name: str, bbox_w: float, bbox_h: float) -> tu
     margin_h = half_h + 0.005
 
     cx_low = max(margin_w, cx_min)
-
     cx_high = min(1.0 - margin_w, cx_max)
-    cx = (cx_min + cx_max) / 2.0 if cx_low >= cx_high else float(np.random.uniform(cx_low, cx_high))
+    if cx_low >= cx_high:
+        valid_min = min(margin_w, 1.0 - margin_w)
+        valid_max = max(margin_w, 1.0 - margin_w)
+        cx = 0.5 if valid_min >= valid_max else float(np.random.uniform(valid_min, valid_max))
+    else:
+        cx = float(np.random.uniform(cx_low, cx_high))
 
     cy_min, cy_max = prior["cy_range"]
     cy_low = max(margin_h, cy_min)
     cy_high = min(1.0 - margin_h, cy_max)
-    cy = (cy_min + cy_max) / 2.0 if cy_low >= cy_high else float(np.random.uniform(cy_low, cy_high))
+    if cy_low >= cy_high:
+        valid_min = min(margin_h, 1.0 - margin_h)
+        valid_max = max(margin_h, 1.0 - margin_h)
+        cy = 0.5 if valid_min >= valid_max else float(np.random.uniform(valid_min, valid_max))
+    else:
+        cy = float(np.random.uniform(cy_low, cy_high))
+
+    cx = float(np.clip(cx, half_w, max(half_w, 1.0 - half_w)))
+    cy = float(np.clip(cy, half_h, max(half_h, 1.0 - half_h)))
 
     return cx, cy
 

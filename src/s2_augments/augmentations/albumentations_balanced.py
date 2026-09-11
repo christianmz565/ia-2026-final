@@ -25,14 +25,14 @@ class AlbumentationsBalancedConfig(BaseModel):
 
     horizontal_flip_prob: float = Field(default=0.5, ge=0.0, le=1.0)
     vertical_flip_prob: float = Field(default=0.5, ge=0.0, le=1.0)
-    rotate_90_prob: float = Field(default=0.5, ge=0.0, le=1.0)
+    rotate_90_prob: float = Field(default=0.0, ge=0.0, le=1.0, description="Rotate 90 prob (disabled for fixed plank aspect)")
     shift_scale_rotate_prob: float = Field(default=0.5, ge=0.0, le=1.0)
     brightness_contrast_prob: float = Field(default=0.4, ge=0.0, le=1.0)
     color_jitter_prob: float = Field(default=0.3, ge=0.0, le=1.0)
     blur_prob: float = Field(default=0.2, ge=0.0, le=1.0)
     target_ratio: float = Field(default=1 / 3, description="Target ratio relative to majority class")
     keep_train_size: bool = Field(
-        default=True, description="Keep total training dataset size approximately equal to input size"
+        default=False, description="Keep total training dataset size approximately equal to input size"
     )
     max_decrement_ratio: float = Field(
         default=1.0, ge=0.0, le=1.0, description="Max fraction of pure majority images to decrement"
@@ -49,7 +49,10 @@ class AlbumentationsBalancedAugmentor(AlbumentationsAugmentor):
         transforms = [
             A.HorizontalFlip(p=cfg.horizontal_flip_prob),
             A.VerticalFlip(p=cfg.vertical_flip_prob),
-            A.RandomRotate90(p=cfg.rotate_90_prob),
+        ]
+        if cfg.rotate_90_prob > 0.0:
+            transforms.append(A.RandomRotate90(p=cfg.rotate_90_prob))
+        transforms.extend([
             A.ShiftScaleRotate(
                 shift_limit=0.05,
                 scale_limit=0.10,
@@ -71,7 +74,7 @@ class AlbumentationsBalancedAugmentor(AlbumentationsAugmentor):
                 p=cfg.color_jitter_prob,
             ),
             A.GaussianBlur(blur_limit=(3, 5), p=cfg.blur_prob),
-        ]
+        ])
         bbox_params = A.BboxParams(
             format="yolo",
             label_fields=["class_labels"],

@@ -22,44 +22,49 @@ logger = structlog.get_logger(__name__)
 STEPS = ["download", "preprocess", "explore", "split", "convert_coco"]
 
 
-def run_pipeline(config: S1Config | None = None) -> None:
+def run_pipeline(config: S1Config | None = None, force: bool = False) -> None:
     """Execute the full s1_prepare pipeline.
 
     Args:
         config: Section configuration. Uses defaults when ``None``.
+        force: If True, bypass cache and re-run all steps.
     """
     config = config or S1Config()
-    logger.info("s1_pipeline_start")
+    logger.info("s1_pipeline_start", force=force)
 
     run_cached_step(
         step_name="s1_download",
         target_path=RAW_DATASET,
         fn=lambda: download_dataset(config.download),
-        force=config.download.force_redownload,
+        force=config.download.force_redownload or force,
     )
 
     run_cached_step(
         step_name="s1_preprocess",
         target_path=PROCESSED_DATASET,
-        fn=lambda: preprocess_dataset(config.preprocess),
+        fn=lambda: preprocess_dataset(config.preprocess, force=force),
+        force=force,
     )
 
     run_cached_step(
         step_name="s1_explore",
         target_path=S1_OUTPUT / "explore_stats.json",
         fn=lambda: explore_dataset(),
+        force=force,
     )
 
     run_cached_step(
         step_name="s1_split",
         target_path=SPLIT_DATASET,
-        fn=lambda: split_dataset(config.split),
+        fn=lambda: split_dataset(config.split, force=force),
+        force=force,
     )
 
     run_cached_step(
         step_name="s1_convert_coco",
         target_path=SPLIT_DATASET / "train" / "_annotations.coco.json",
         fn=lambda: convert_coco_dataset(),
+        force=force,
     )
 
     logger.info("s1_pipeline_complete")

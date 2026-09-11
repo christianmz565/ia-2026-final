@@ -23,17 +23,18 @@ logger = structlog.get_logger(__name__)
 STEPS = ["albumentations_balanced", "boxaug_standard", "boxaug_libcom"]
 
 
-def run_pipeline(config: S2Config | None = None) -> None:
+def run_pipeline(config: S2Config | None = None, force: bool = False) -> None:
     """Execute augmentation pipeline for all configured methods.
 
     Args:
         config: Section configuration. Uses defaults when ``None``.
+        force: If True, bypass cache and regenerate all augmentations.
     """
     config = config or S2Config()
     methods = config.augment.methods
     train_split_dir = SPLIT_DATASET / "train"
 
-    logger.info("s2_pipeline_start", methods=methods, available=list_augmentations())
+    logger.info("s2_pipeline_start", methods=methods, available=list_augmentations(), force=force)
 
     for method_name in methods:
         target_dir = AUGMENTED_DIR / method_name
@@ -61,6 +62,7 @@ def run_pipeline(config: S2Config | None = None) -> None:
             step_name=f"augment_{method_name}",
             target_path=target_dir,
             fn=_run_method,
+            force=force,
         )
 
     logger.info("s2_pipeline_complete")

@@ -21,7 +21,7 @@ import torch
 
 from src.caching import run_cached_step
 from src.coco_utils import SUPPORTED_IMAGE_SUFFIXES
-from src.constants import S4_OUTPUT
+from src.constants import DEFAULT_CONF_THRESHOLD, S4_OUTPUT
 from src.utils import configure_torch_backend
 
 logger = structlog.get_logger(__name__)
@@ -107,7 +107,7 @@ def run_inference(
     data_dir: Path | str,
     output_path: Path | str | None = None,
     device: str | None = None,
-    conf_threshold: float = 0.25,
+    conf_threshold: float = DEFAULT_CONF_THRESHOLD,
     max_images: int | None = None,
     force: bool = False,
     resolution: int = 512,
@@ -301,7 +301,8 @@ def run_inference(
                 img = cv2.imread(str(img_path))
                 if img is None:
                     continue
-                detections = rfdetr_model.predict(img, threshold=conf_threshold)
+                img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+                detections = rfdetr_model.predict(img_rgb, threshold=conf_threshold)
                 if isinstance(detections, list):
                     detections = detections[0]
                 if detections.confidence is None or detections.class_id is None:
