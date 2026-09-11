@@ -56,20 +56,21 @@ def create_epoch_pbar(epochs: int, model_name: str) -> tqdm:
 
 
 def format_per_class_map(raw_per_class: dict[str, float] | None = None) -> dict[str, float]:
-    """Format and fill missing per-class mAP entries for all standard dataset classes.
+    """Format per-class mAP entries for all standard dataset classes.
 
     Args:
-        raw_per_class: Dictionary of class name to mAP score.
+        raw_per_class: Dictionary of class name to mAP score. Every
+            ``CLASS_NAMES`` entry must be present.
 
     Returns:
         Clean dict containing entries for all CLASS_NAMES rounded to 4 decimals.
     """
-    raw = raw_per_class or {}
-    formatted: dict[str, float] = {}
-    for name in CLASS_NAMES:
-        val = raw.get(name, 0.0)
-        formatted[name] = round(float(val), 4)
-    return formatted
+    if raw_per_class is None:
+        raise ValueError("Per-class mAP map is missing; refusing to fabricate zero scores")
+    missing = [name for name in CLASS_NAMES if name not in raw_per_class]
+    if missing:
+        raise ValueError(f"Per-class mAP is missing classes (refusing zero-fill): {missing}")
+    return {name: round(float(raw_per_class[name]), 4) for name in CLASS_NAMES}
 
 
 def save_epoch_history(output_dir: Path, history: list[dict[str, Any]]) -> Path:
@@ -109,16 +110,15 @@ def save_summary_reports(
     Returns:
         Summary report dictionary.
     """
-    best_mAP_50_95 = max((h.get("val_mAP_50_95", 0.0) for h in history), default=0.0)
-    best_epoch_record = next(
-        (h for h in history if h.get("val_mAP_50_95", 0.0) == best_mAP_50_95),
-        history[-1] if history else {},
-    )
+    if not history:
+        raise ValueError("Cannot write a training summary with an empty epoch history")
+    best_mAP_50_95 = max(h["val_mAP_50_95"] for h in history)
+    best_epoch_record = next(h for h in history if h["val_mAP_50_95"] == best_mAP_50_95)
     best_epoch = best_epoch_record.get("epoch", len(history))
 
-    final_mAP_50 = history[-1].get("val_mAP_50", 0.0) if history else 0.0
-    final_mAP_50_95 = history[-1].get("val_mAP_50_95", 0.0) if history else 0.0
-    best_per_class_mAP = best_epoch_record.get("val_per_class_mAP", format_per_class_map())
+    final_mAP_50 = history[-1]["val_mAP_50"]
+    final_mAP_50_95 = history[-1]["val_mAP_50_95"]
+    best_per_class_mAP = best_epoch_record["val_per_class_mAP"]
 
     summary = {
         "pipeline_name": pipeline_name,
@@ -170,14 +170,14 @@ def save_summary_reports(
 
     best_pt = output_dir / "best.pt"
     if best_checkpoint.exists() and best_checkpoint.resolve() != best_pt.resolve():
+        if best_pt.exists() or best_pt.is_symlink():
+            best_pt.unlink()
         try:
-            if best_pt.exists() or best_pt.is_symlink():
-                best_pt.unlink()
-            rel_target = best_checkpoint.name if best_checkpoint.parent == output_dir else best_checkpoint.relative_to(output_dir)
-            best_pt.symlink_to(rel_target)
-            logger.info("standardized_best_pt_created", source=str(rel_target), target=str(best_pt))
-        except Exception as err:
-            logger.warning("failed_to_symlink_best_pt", error=str(err))
+            rel_target = best_checkpoint.relative_to(output_dir)
+        except ValueError:
+            raise ValueError(f"Best checkpoint is outside the output dir: {best_checkpoint}") from None
+        best_pt.symlink_to(best_checkpoint.name if best_checkpoint.parent == output_dir else rel_target)
+        logger.info("standardized_best_pt_created", source=str(rel_target), target=str(best_pt))
 
     return summary
 

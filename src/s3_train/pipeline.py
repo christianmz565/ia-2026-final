@@ -11,7 +11,7 @@ from typing import Any
 
 import structlog
 
-from src.caching import run_cached_step
+from src.caching import config_fingerprint, run_cached_step
 from src.config import S3Config
 from src.constants import AUGMENTED_DIR, S3_OUTPUT, SPLIT_DATASET
 from src.s3_train.base import get_trainer, list_trainers
@@ -57,6 +57,9 @@ def run_pipeline(config: S3Config | None = None) -> None:
                 step_name=f"train_{model_name}_{aug_name}",
                 target_path=target_dir,
                 fn=_run_train,
+                fingerprint=config_fingerprint(
+                    {"model": model_name, "augment": aug_name, "config": model_config, "data_dir": str(data_dir)}
+                ),
             )
 
     logger.info("s3_pipeline_complete")

@@ -12,7 +12,7 @@ from pathlib import Path
 import kagglehub
 import structlog
 
-from src.caching import run_cached_step
+from src.caching import config_fingerprint, run_cached_step
 from src.config import DownloadConfig
 from src.constants import RAW_DATASET
 
@@ -49,6 +49,7 @@ def download_dataset(config: DownloadConfig | None = None) -> Path:
         target_path=target,
         fn=_download,
         force=config.force_redownload,
+        fingerprint=config_fingerprint(config),
     )
 
 

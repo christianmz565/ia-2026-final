@@ -49,14 +49,14 @@ def run_pipeline(config: S1Config | None = None, force: bool = False) -> None:
     run_cached_step(
         step_name="s1_explore",
         target_path=S1_OUTPUT / "explore_stats.json",
-        fn=lambda: explore_dataset(),
+        fn=lambda: explore_dataset(PROCESSED_DATASET),
         force=force,
     )
 
     run_cached_step(
         step_name="s1_split",
         target_path=SPLIT_DATASET,
-        fn=lambda: split_dataset(config.split, force=force),
+        fn=lambda: split_dataset(config.split, input_dir=PROCESSED_DATASET, force=force),
         force=force,
     )
 

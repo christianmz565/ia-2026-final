@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import shutil
 from collections import defaultdict
 from pathlib import Path
@@ -128,15 +129,19 @@ class BoxAugLibcomAugmentor(Augmentor):
         bbox_xyxy: tuple[int, int, int, int],
         blending_mode: str,
         device: str = "cuda:0",
-    ) -> np.ndarray:
-        """Use libcom or seamless cloning to merge foreground crop into background image."""
+    ) -> tuple[np.ndarray, str]:
+        """Use libcom or seamless cloning to merge foreground crop into background image.
+
+        Returns the blended image and the effective blending mode (which differs
+        from ``blending_mode`` whenever a fallback path runs).
+        """
         import libcom
 
         x1, y1, x2, y2 = bbox_xyxy
         bw, bh = x2 - x1, y2 - y1
 
         if bw <= 0 or bh <= 0:
-            return bg_img
+            raise ValueError(f"Cannot blend a degenerate crop of size {(bw, bh)}")
 
         fg_resized = cv2.resize(fg_crop, (bw, bh))
         fg_mask = np.full((bh, bw), 255, dtype=np.uint8)
@@ -150,7 +155,7 @@ class BoxAugLibcomAugmentor(Augmentor):
                 bbox_list,
                 option=blending_mode,
             )
-            return comp_img
+            return comp_img, blending_mode
 
         elif blending_mode == "color_transfer":
             try:
@@ -162,7 +167,7 @@ class BoxAugLibcomAugmentor(Augmentor):
                     bbox_list,
                     option="poisson",
                 )
-                return comp_img
+                return comp_img, "color_transfer"
             except Exception as err:
                 logger.warning("color_transfer_failed_fallback_poisson", error=str(err))
                 comp_img, _ = libcom.get_composite_image(
@@ -172,7 +177,7 @@ class BoxAugLibcomAugmentor(Augmentor):
                     bbox_list,
                     option="poisson",
                 )
-                return comp_img
+                return comp_img, "poisson"
 
         elif blending_mode == "painterly":
             model = self._get_painterly_model(device=device)
@@ -182,12 +187,12 @@ class BoxAugLibcomAugmentor(Augmentor):
                     comp_mask = np.zeros(bg_img.shape[:2], dtype=np.uint8)
                     comp_mask[y1:y2, x1:x2] = 255
                     harmonized = model(comp_img, comp_mask)
-                    return harmonized
+                    return harmonized, "painterly"
                 except Exception as err:
                     logger.warning("painterly_harmonization_failed_fallback", error=str(err))
 
             comp_img, _ = libcom.get_composite_image(fg_resized, fg_mask, bg_img, bbox_list, option="poisson")
-            return comp_img
+            return comp_img, "poisson"
 
         elif blending_mode == "image_harmonization":
             model = self._get_harmonization_model(device=device)
@@ -197,16 +202,18 @@ class BoxAugLibcomAugmentor(Augmentor):
                     comp_mask = np.zeros(bg_img.shape[:2], dtype=np.uint8)
                     comp_mask[y1:y2, x1:x2] = 255
                     harmonized = model(comp_img, comp_mask)
-                    return harmonized
+                    return harmonized, "image_harmonization"
                 except Exception as err:
                     logger.warning("image_harmonization_failed_fallback", error=str(err))
 
             comp_img, _ = libcom.get_composite_image(fg_resized, fg_mask, bg_img, bbox_list, option="poisson")
-            return comp_img
+            return comp_img, "poisson"
 
         else:
-            comp_img, _ = libcom.get_composite_image(fg_resized, fg_mask, bg_img, bbox_list, option="poisson")
-            return comp_img
+            raise ValueError(
+                f"Unknown blending_mode {blending_mode!r}; expected one of "
+                "poisson, gaussian, none, color_transfer, painterly, image_harmonization"
+            )
 
     def generate_dataset(
         self,
@@ -215,6 +222,8 @@ class BoxAugLibcomAugmentor(Augmentor):
         config: Any = None,
     ) -> Path:
         """Generate balanced dataset split via BoxAug with libcom border blending."""
+        if config is not None and not isinstance(config, BoxAugLibcomConfig):
+            raise TypeError(f"BoxAugLibcomConfig expected, got {type(config).__name__}")
         cfg = config if isinstance(config, BoxAugLibcomConfig) else BoxAugLibcomConfig()
         device = getattr(cfg, "device", self.device) or get_default_device()
 
@@ -223,8 +232,10 @@ class BoxAugLibcomAugmentor(Augmentor):
 
         out_img_dir = target_dir / "train" / "images"
         out_lbl_dir = target_dir / "train" / "labels"
-        out_img_dir.mkdir(parents=True, exist_ok=True)
-        out_lbl_dir.mkdir(parents=True, exist_ok=True)
+        for stale_dir in (out_img_dir, out_lbl_dir):
+            if stale_dir.exists():
+                shutil.rmtree(stale_dir)
+            stale_dir.mkdir(parents=True, exist_ok=True)
 
         pairs = find_image_label_pairs(src_dir)
         if not pairs:
@@ -266,9 +277,12 @@ class BoxAugLibcomAugmentor(Augmentor):
         )
 
         aug_counter = 0
+        blending_manifest: dict[str, dict[str, object]] = {}
 
         for class_id in sorted(class_counts.keys()):
-            cls_name = ID_TO_CLASS.get(class_id, str(class_id))
+            if class_id not in ID_TO_CLASS:
+                raise ValueError(f"Unknown class_id {class_id} in BoxAug instance bank")
+            cls_name = ID_TO_CLASS[class_id]
             current = class_counts[class_id]
 
             if current >= target_count or not instance_bank[class_id]:
@@ -277,15 +291,26 @@ class BoxAugLibcomAugmentor(Augmentor):
             needed = target_count - current
             logger.info("boxaug_libcom_augmenting_class", class_name=cls_name, current=current, needed=needed)
 
+            working: dict[str, tuple[np.ndarray, list[BBox]]] = {}
+
             produced = 0
             pair_idx = 0
+            pair_tries = 0
+            max_pair_tries = max(needed * cfg.max_location_attempts, 1)
             while produced < needed:
+                if pair_tries >= max_pair_tries:
+                    raise RuntimeError(
+                        f"BoxAug failed to place {needed - produced} remaining instances "
+                        f"for class {cls_name} after {pair_tries} pair tries"
+                    )
                 img_p, lbl_p = pairs[pair_idx % len(pairs)]
                 pair_idx += 1
+                pair_tries += 1
 
-                img = read_image(out_img_dir / img_p.name)
+                if img_p.name not in working:
+                    working[img_p.name] = (read_image(img_p), read_yolo_labels(lbl_p))
+                img, curr_bboxes = working[img_p.name]
                 img_h, img_w = img.shape[:2]
-                curr_bboxes = read_yolo_labels(out_lbl_dir / img_p.with_suffix(".txt").name)
 
                 crops_list = instance_bank[class_id]
                 crop_raw, orig_w_norm, orig_h_norm = crops_list[np.random.randint(0, len(crops_list))]
@@ -306,7 +331,7 @@ class BoxAugLibcomAugmentor(Augmentor):
                         x1, y1, x2, y2 = candidate_box.to_xyxy(img_w, img_h)
                         pw, ph = x2 - x1, y2 - y1
                         if pw > 0 and ph > 0:
-                            blended_img = self._blend_crop_into_background(
+                            blended_img, effective_mode = self._blend_crop_into_background(
                                 img,
                                 transformed_crop,
                                 (x1, y1, x2, y2),
@@ -314,21 +339,36 @@ class BoxAugLibcomAugmentor(Augmentor):
                                 device=device,
                             )
                             img = blended_img
+                            entry = blending_manifest.setdefault(
+                                img_p.name, {"requested": cfg.blending_mode, "effective": []}
+                            )
+                            effective = entry["effective"]
+                            assert isinstance(effective, list)
+                            if effective_mode not in effective:
+                                effective.append(effective_mode)
                             actual_box = BBox.from_xyxy(x1, y1, x2, y2, img_w, img_h, class_id=class_id)
                             curr_bboxes.append(actual_box)
                             placed = True
                             break
 
                 if placed:
-                    write_image(out_img_dir / img_p.name, img)
-                    write_yolo_labels(out_lbl_dir / img_p.with_suffix(".txt").name, curr_bboxes)
+                    working[img_p.name] = (img, curr_bboxes)
                     class_counts[class_id] += 1
                     produced += 1
                     aug_counter += 1
 
+            for key, (final_img, final_boxes) in working.items():
+                write_image(out_img_dir / key, final_img)
+                write_yolo_labels(out_lbl_dir / (Path(key).stem + ".txt"), final_boxes)
+
+        manifest_path = target_dir / "blending_manifest.json"
+        manifest_path.write_text(json.dumps(blending_manifest, indent=2))
+        degraded = sum(1 for e in blending_manifest.values() if cfg.blending_mode not in e["effective"])
         logger.info(
             "boxaug_libcom_complete",
             total_paste_operations=aug_counter,
+            degraded_images=degraded,
+            manifest=str(manifest_path),
             final_counts={ID_TO_CLASS[cid]: cnt for cid, cnt in class_counts.items()},
         )
         return target_dir

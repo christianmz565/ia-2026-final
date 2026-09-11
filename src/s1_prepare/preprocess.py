@@ -15,7 +15,7 @@ import numpy as np
 import structlog
 from tqdm import tqdm
 
-from src.caching import run_cached_step
+from src.caching import config_fingerprint, run_cached_step
 from src.config import PreprocessConfig
 from src.constants import PROCESSED_DATASET, RAW_DATASET
 from src.utils import BBox, find_image_label_pairs, read_yolo_labels, write_yolo_labels
@@ -23,14 +23,13 @@ from src.utils import BBox, find_image_label_pairs, read_yolo_labels, write_yolo
 logger = structlog.get_logger(__name__)
 
 
-def crop_black_borders(img: np.ndarray, threshold: int = 10) -> tuple[np.ndarray, tuple[int, int, int, int]]:
+def crop_black_borders(img: np.ndarray) -> tuple[np.ndarray, tuple[int, int, int, int]]:
     """Remove rightmost/leftmost/topmost/bottommost black borders around wood planks.
 
     Uses Otsu thresholding and morphological cleanup to isolate the valid wood plank region.
 
     Args:
         img: Input image array (H, W, 3) or (H, W).
-        threshold: Fallback threshold parameter (retained for config compatibility).
 
     Returns:
         Tuple of (cropped_image, crop_box), where crop_box is (xmin, ymin, xmax, ymax)
@@ -66,7 +65,7 @@ def crop_black_borders(img: np.ndarray, threshold: int = 10) -> tuple[np.ndarray
     xmax, ymax = min(w_orig, xmax), min(h_orig, ymax)
 
     if xmax <= xmin or ymax <= ymin:
-        return img, (0, 0, w_orig, h_orig)
+        raise ValueError(f"Border crop degenerated to an empty region for image of size {(w_orig, h_orig)}")
 
     cropped_img = img[ymin:ymax, xmin:xmax]
     return cropped_img, (xmin, ymin, xmax, ymax)
@@ -82,7 +81,7 @@ def process_image_and_labels(
     Args:
         img_path: Path to raw image file.
         label_path: Path to raw YOLO label file.
-        config: Preprocessing parameters (scale_factor, min_label_size_px, black_threshold).
+        config: Preprocessing parameters (scale_factor, min_absolute_dim_px, min_label_area_px, min_elongated_dim_px).
 
     Returns:
         Tuple of (processed_image, filtered_bboxes).
@@ -93,7 +92,7 @@ def process_image_and_labels(
         return None, []
 
     h_orig, w_orig = img.shape[:2]
-    cropped_img, (xmin, ymin, xmax, ymax) = crop_black_borders(img, threshold=config.black_threshold)
+    cropped_img, (xmin, ymin, xmax, ymax) = crop_black_borders(img)
 
     w_crop = xmax - xmin
     h_crop = ymax - ymin
@@ -157,22 +156,23 @@ def process_image_and_labels(
 
 def _process_single_pair(
     task: tuple[Path, Path, PreprocessConfig, Path, Path],
-) -> tuple[int, int]:
+) -> tuple[int, int, int]:
     """Worker function for parallel preprocessing of a single image-label pair."""
     img_path, label_path, config, out_images_dir, out_labels_dir = task
     processed_img, bboxes = process_image_and_labels(img_path, label_path, config)
     if processed_img is None:
-        return 0, 0
+        return 0, 0, 1
 
     orig_boxes_count = len(read_yolo_labels(label_path)) if label_path.exists() else 0
 
     out_img_path = out_images_dir / img_path.name
-    cv2.imwrite(str(out_img_path), processed_img)
+    if not cv2.imwrite(str(out_img_path), processed_img):
+        raise OSError(f"Failed to write preprocessed image: {out_img_path}")
 
     out_label_path = out_labels_dir / img_path.with_suffix(".txt").name
     write_yolo_labels(out_label_path, bboxes)
 
-    return orig_boxes_count, len(bboxes)
+    return orig_boxes_count, len(bboxes), 0
 
 
 def preprocess_dataset(
@@ -224,6 +224,7 @@ def preprocess_dataset(
 
         total_orig_boxes = 0
         total_kept_boxes = 0
+        unreadable = 0
 
         with ProcessPoolExecutor(max_workers=workers) as executor:
             futures = [executor.submit(_process_single_pair, task) for task in tasks]
@@ -233,13 +234,15 @@ def preprocess_dataset(
                 desc="Preprocessing dataset (parallel)",
                 unit="img",
             ):
-                orig_c, kept_c = future.result()
+                orig_c, kept_c, bad_c = future.result()
                 total_orig_boxes += orig_c
                 total_kept_boxes += kept_c
+                unreadable += bad_c
 
         logger.info(
             "preprocessing_complete",
             total_images=len(pairs),
+            unreadable_images=unreadable,
             orig_boxes=total_orig_boxes,
             kept_boxes=total_kept_boxes,
             removed_boxes=total_orig_boxes - total_kept_boxes,
@@ -253,6 +256,7 @@ def preprocess_dataset(
         target_path=resolved_output,
         fn=_preprocess,
         force=force,
+        fingerprint=config_fingerprint(config),
     )
 
 

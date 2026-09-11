@@ -10,7 +10,7 @@ from pathlib import Path
 
 import structlog
 
-from src.config import S4Config
+from src.config import RFDETRConfig, S4Config
 from src.constants import AUGMENTED_DIR, S3_OUTPUT, S4_OUTPUT, SPLIT_DATASET, TEST_SPLIT
 from src.s4_evaluate.export import export_results
 from src.s4_evaluate.inference import run_inference
@@ -40,6 +40,9 @@ def run_pipeline(config: S4Config | None = None) -> None:
             device=config.eval.device,
             conf_threshold=config.eval.conf_threshold,
             max_images=config.eval.max_images,
+            checkpoint=config.eval.checkpoint or None,
+            sample_seed=config.eval.sample_seed,
+            resolution=config.eval.resolution or RFDETRConfig().imgsz,
         )
         metrics_path = out_dir / "metrics.json"
         gt_path = config.eval.ground_truth or (
@@ -48,7 +51,7 @@ def run_pipeline(config: S4Config | None = None) -> None:
         metrics = compute_metrics(
             predictions=config.eval.predictions or pred_path,
             ground_truth=gt_path,
-            iou_threshold=config.eval.iou_threshold,
+            conf_threshold=config.eval.conf_threshold,
             output_path=metrics_path,
         )
         results_path = out_dir / "results.json"
@@ -84,6 +87,9 @@ def run_pipeline(config: S4Config | None = None) -> None:
                 device=config.eval.device,
                 conf_threshold=config.eval.conf_threshold,
                 max_images=config.eval.max_images,
+                checkpoint=config.eval.checkpoint or None,
+                sample_seed=config.eval.sample_seed,
+                resolution=config.eval.resolution or RFDETRConfig().imgsz,
             )
 
             metrics_path = eval_out_dir / "metrics.json"
@@ -94,7 +100,7 @@ def run_pipeline(config: S4Config | None = None) -> None:
             metrics = compute_metrics(
                 predictions=config.eval.predictions or pred_path,
                 ground_truth=gt_path,
-                iou_threshold=config.eval.iou_threshold,
+                conf_threshold=config.eval.conf_threshold,
                 output_path=metrics_path,
             )
 
@@ -102,9 +108,9 @@ def run_pipeline(config: S4Config | None = None) -> None:
                 metrics["model"] = model_name
                 metrics["augmentation"] = aug_name
                 if isinstance(predictions, dict):
-                    metrics["avg_inference_ms"] = predictions.get("avg_time_ms", 0.0)
-                    metrics["total_inference_ms"] = predictions.get("total_time_ms", 0.0)
-                    metrics["num_inferred_images"] = predictions.get("num_images", 0)
+                    metrics["avg_inference_ms"] = predictions["avg_inference_ms"]
+                    metrics["total_inference_ms"] = predictions["total_inference_ms"]
+                    metrics["num_inferred_images"] = predictions["num_inferred_images"]
 
             results_path = eval_out_dir / "results.json"
             export_results(

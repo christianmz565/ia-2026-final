@@ -15,9 +15,9 @@ from pathlib import Path
 import cv2
 import structlog
 
-from src.caching import run_cached_step
+from src.caching import config_fingerprint, run_cached_step
 from src.coco_utils import SUPPORTED_IMAGE_SUFFIXES, build_categories, yolo_to_coco_bbox
-from src.constants import SPLIT_DATASET, SPLITS
+from src.constants import NUM_CLASSES, SPLIT_DATASET, SPLITS
 
 logger = structlog.get_logger(__name__)
 
@@ -26,7 +26,7 @@ def convert_split(
     data_dir: Path,
     split: str,
     output_path: Path | None = None,
-) -> Path | None:
+) -> Path:
     """Convert one split (train/val/test) from YOLO to COCO JSON.
 
     Args:
@@ -36,14 +36,13 @@ def convert_split(
             ``{data_dir}/{split}/_annotations.coco.json``.
 
     Returns:
-        Path to the generated COCO JSON, or None if skipped.
+        Path to the generated COCO JSON.
     """
     images_dir = data_dir / split / "images"
     labels_dir = data_dir / split / "labels"
 
     if not images_dir.exists() or not labels_dir.exists():
-        logger.warning("yolo_to_coco_skip", split=split, reason="missing images/ or labels/")
-        return None
+        raise FileNotFoundError(f"Missing images/ or labels/ for split {split!r} in {data_dir}")
 
     out_path = output_path or (labels_dir.parent / "_annotations.coco.json")
 
@@ -59,11 +58,14 @@ def convert_split(
             p for p in images_dir.iterdir() if p.suffix.lower() in SUPPORTED_IMAGE_SUFFIXES
         )
 
+        unreadable_images = 0
+        background_images = 0
+        short_lines = 0
         for img_path in img_files:
             img_id += 1
             img = cv2.imread(str(img_path))
             if img is None:
-                logger.warning("yolo_to_coco_unreadable_image", path=str(img_path))
+                unreadable_images += 1
                 continue
             h, w = img.shape[:2]
 
@@ -78,14 +80,21 @@ def convert_split(
 
             label_path = labels_dir / f"{img_path.stem}.txt"
             if not label_path.exists():
+                background_images += 1
                 continue
 
-            for line in label_path.read_text().strip().splitlines():
+            for lineno, line in enumerate(label_path.read_text().strip().splitlines(), start=1):
                 parts = line.strip().split()
                 if len(parts) < 5:
+                    short_lines += 1
                     continue
-                class_id = int(parts[0])
-                x_c, y_c, bw, bh = map(float, parts[1:5])
+                try:
+                    class_id = int(parts[0])
+                    x_c, y_c, bw, bh = map(float, parts[1:5])
+                except ValueError:
+                    raise ValueError(f"Malformed label value in {label_path}:{lineno}: {line!r}") from None
+                if not 0 <= class_id < NUM_CLASSES:
+                    raise ValueError(f"class_id {class_id} out of range in {label_path}:{lineno}")
 
                 bbox = yolo_to_coco_bbox(x_c, y_c, bw, bh, w, h)
                 area = bbox[2] * bbox[3]
@@ -116,6 +125,9 @@ def convert_split(
             split=split,
             images=len(images),
             annotations=len(annotations),
+            unreadable_images=unreadable_images,
+            background_images=background_images,
+            short_lines=short_lines,
             output=str(out_path),
         )
         return out_path
@@ -125,8 +137,8 @@ def convert_split(
         target_path=out_path,
         fn=_convert,
         loader=lambda p: p,
+        fingerprint=config_fingerprint({"data_dir": str(data_dir), "split": split}),
     )
-
 
 def convert_coco_dataset(data_dir: Path | None = None) -> None:
     """Convert all splits from YOLO to COCO JSON.

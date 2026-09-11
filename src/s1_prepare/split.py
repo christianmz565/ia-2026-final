@@ -14,13 +14,11 @@ import numpy as np
 import structlog
 from tqdm import tqdm
 
-from src.caching import run_cached_step
+from src.caching import config_fingerprint, run_cached_step
 from src.config import SplitConfig
 from src.constants import (
     CLASS_NAMES,
     MAJORITY_CLASS_IDS,
-    PROCESSED_DATASET,
-    RAW_DATASET,
     SPLIT_DATASET,
     TRAIN_SPLIT,
 )
@@ -46,7 +44,7 @@ def greedy_iterative_stratified_split(
     Returns:
         Dict mapping split names to lists of (image_path, label_path) tuples.
     """
-    rng = random.Random(seed)
+    rng = random.Random(seed * 31 + 0)
     n_samples = len(pairs)
     n_classes = len(CLASS_NAMES)
 
@@ -54,8 +52,9 @@ def greedy_iterative_stratified_split(
     for idx, (_, label_path) in enumerate(pairs):
         boxes = read_yolo_labels(label_path)
         for b in boxes:
-            if 0 <= b.class_id < n_classes:
-                Y[idx, b.class_id] += 1
+            if not 0 <= b.class_id < n_classes:
+                raise ValueError(f"class_id {b.class_id} out of range in {label_path}")
+            Y[idx, b.class_id] += 1
 
     split_names = list(ratios.keys())
     split_ratios = np.array([ratios[s] for s in split_names], dtype=float)
@@ -165,7 +164,9 @@ def split_dataset(
         Path to the split output root.
     """
     config = config or SplitConfig()
-    resolved_input = Path(input_dir) if input_dir else PROCESSED_DATASET if PROCESSED_DATASET.exists() else RAW_DATASET
+    if input_dir is None:
+        raise ValueError("split_dataset requires an explicit input_dir")
+    resolved_input = Path(input_dir)
     resolved_output = Path(output_dir or SPLIT_DATASET)
 
     def _split() -> Path:
@@ -178,21 +179,36 @@ def split_dataset(
             total_images=len(pairs),
             ratios=config.ratios,
             seed=config.seed,
+            stratify_by_class=config.stratify_by_class,
             input_dir=str(resolved_input),
         )
 
         ratio_sum = sum(config.ratios.values())
-        assert abs(ratio_sum - 1.0) < 1e-6, f"Ratios must sum to 1.0, got {ratio_sum}"
+        if abs(ratio_sum - 1.0) >= 1e-6:
+            raise ValueError(f"Split ratios must sum to 1.0, got {ratio_sum}")
 
-        split_pairs = greedy_iterative_stratified_split(
-            pairs=pairs,
-            ratios=config.ratios,
-            seed=config.seed,
-        )
+        if config.stratify_by_class:
+            split_pairs = greedy_iterative_stratified_split(
+                pairs=pairs,
+                ratios=config.ratios,
+                seed=config.seed,
+            )
+        else:
+            rng = random.Random(config.seed * 31 + 2)
+            order = list(range(len(pairs)))
+            rng.shuffle(order)
+            split_pairs = {name: [] for name in config.ratios}
+            start = 0
+            names = list(config.ratios.keys())
+            for k, name in enumerate(names):
+                end = len(pairs) if k == len(names) - 1 else start + int(round(len(pairs) * config.ratios[name]))
+                split_pairs[name] = [pairs[i] for i in order[start:end]]
+                start = end
 
         # Downsample pure-majority planks on the training split only to alleviate class imbalance
         if TRAIN_SPLIT in split_pairs and config.majority_downsample_ratio > 0.0:
             train_pairs = split_pairs[TRAIN_SPLIT]
+            rng = random.Random(config.seed * 31 + 1)
             pure_majority_train: list[tuple[Path, Path]] = []
             retained_train: list[tuple[Path, Path]] = []
 
@@ -203,7 +219,6 @@ def split_dataset(
                 else:
                     retained_train.append((img_p, lbl_p))
 
-            rng = random.Random(config.seed)
             rng.shuffle(pure_majority_train)
             num_to_drop = int(round(len(pure_majority_train) * config.majority_downsample_ratio))
             kept_majority = pure_majority_train[num_to_drop:]
@@ -225,14 +240,16 @@ def split_dataset(
             split_images.mkdir(parents=True, exist_ok=True)
             split_labels.mkdir(parents=True, exist_ok=True)
 
+            background = 0
             for img_path, label_path in tqdm(s_pairs, desc=f"Writing {split_name} split", unit="img"):
                 shutil.copy2(img_path, split_images / img_path.name)
                 if label_path.exists():
                     shutil.copy2(label_path, split_labels / img_path.with_suffix(".txt").name)
                 else:
                     (split_labels / img_path.with_suffix(".txt").name).touch()
+                    background += 1
 
-            logger.info("split_complete", split=split_name, count=len(s_pairs))
+            logger.info("split_complete", split=split_name, count=len(s_pairs), background_images=background)
 
         return resolved_output
 
@@ -241,6 +258,7 @@ def split_dataset(
         target_path=resolved_output,
         fn=_split,
         force=force,
+        fingerprint=config_fingerprint(config),
     )
 
 
@@ -251,5 +269,4 @@ if __name__ == "__main__":
         config_model=SplitConfig,
         run_fn=lambda cfg: split_dataset(cfg),
         description="Split dataset into train/test/val using greedy iterative stratification",
-        skip_fields=["stratify_by_class"],
     )

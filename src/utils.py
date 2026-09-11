@@ -82,7 +82,8 @@ def read_image(path: Path | str, *, color: bool = True) -> np.ndarray:
 def write_image(path: Path | str, image: np.ndarray) -> None:
     """Write an image to disk, creating parent directories."""
     Path(path).parent.mkdir(parents=True, exist_ok=True)
-    cv2.imwrite(str(path), image)
+    if not cv2.imwrite(str(path), image):
+        raise OSError(f"Failed to write image: {path}")
 
 
 def read_yolo_labels(label_path: Path | str) -> list[BBox]:
@@ -145,10 +146,13 @@ def find_image_label_pairs(input_dir: Path) -> list[tuple[Path, Path]]:
         Sorted list of ``(image_path, label_path)`` tuples.
     """
     images_dir = input_dir / "images"
+    from src.coco_utils import SUPPORTED_IMAGE_SUFFIXES
+
+    suffixes = tuple(SUPPORTED_IMAGE_SUFFIXES)
     if images_dir.exists():
-        image_files = sorted(images_dir.rglob("*.jpg")) + sorted(images_dir.rglob("*.png"))
+        image_files = sorted(p for p in images_dir.rglob("*") if p.suffix.lower() in suffixes)
     else:
-        image_files = sorted(input_dir.rglob("*.jpg")) + sorted(input_dir.rglob("*.png"))
+        image_files = sorted(p for p in input_dir.rglob("*") if p.suffix.lower() in suffixes)
 
     txt_files = list(input_dir.rglob("*.txt"))
     label_map: dict[str, Path] = {f.stem: f for f in txt_files}
@@ -190,3 +194,26 @@ def configure_torch_backend() -> None:
         torch.backends.cudnn.allow_tf32 = True
 
 
+def seed_all(master_seed: int = 42) -> int:
+    """Seed Python, NumPy, and PyTorch RNGs from one master seed.
+
+    Stream map (fixed ids keep stage draws decorrelated): split tie-breaks use
+    ``seed * 31 + 0``, split majority-drop uses ``seed * 31 + 1``, non-stratified
+    splits use ``seed * 31 + 2``, ``max_images`` sampling uses
+    ``default_rng([sample_seed, 7])``, and s2 augmentation draws share the
+    seeded legacy NumPy stream. cudnn benchmark and TF32 stay enabled for
+    speed, so residual run-to-run jitter remains and is disclosed, not eliminated.
+    """
+    import random
+
+    import torch
+
+    from src.constants import DEFAULT_SEED
+
+    seed = master_seed if master_seed is not None else DEFAULT_SEED
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
+    return seed

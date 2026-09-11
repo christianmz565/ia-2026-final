@@ -42,6 +42,11 @@ Display global CLI help:
 uv run python -m src --help
 ```
 
+> **Rerun protocol:** step caching is existence-based. After any code or config
+> change, re-run end-to-end with per-section `force` (or delete `partials/`);
+> otherwise stale artifacts are silently reused. Cache hits are logged as
+> `step_cached` warnings with the requesting config fingerprint for audit.
+
 ---
 
 ## Global Pipeline CLI (`src`)

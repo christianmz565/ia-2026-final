@@ -18,7 +18,7 @@ import pandas as pd
 import seaborn as sns
 import structlog
 
-from src.caching import run_cached_step
+from src.caching import config_fingerprint, run_cached_step
 from src.config import AnalysisConfig
 from src.constants import S5_OUTPUT
 
@@ -541,6 +541,7 @@ def generate_figures(
         target_path=resolved_output_dir,
         fn=_do_generate,
         force=force,
+        fingerprint=config_fingerprint({"output_dir": str(resolved_output_dir), "config": config}),
     )
     return res if isinstance(res, list) else list(resolved_output_dir.glob("*"))
 

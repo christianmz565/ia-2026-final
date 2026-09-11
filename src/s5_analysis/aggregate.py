@@ -15,7 +15,7 @@ from typing import Any
 
 import structlog
 
-from src.caching import run_cached_step
+from src.caching import config_fingerprint, run_cached_step
 from src.constants import S3_OUTPUT, S4_OUTPUT, S5_OUTPUT
 
 logger = structlog.get_logger(__name__)
@@ -24,8 +24,9 @@ logger = structlog.get_logger(__name__)
 def _load_training_meta(model: str, aug: str) -> dict[str, Any]:
     """Load summary_report.json and history.json from s3_train for one combo.
 
-    Returns a flat dict of training scalars and the epoch history list.
-    Falls back to empty values if files are missing (e.g. not yet trained).
+    Wall-clock/epoch-count scalars come from the summary report; best-mAP
+    fields come from the history-derived best epoch (per-epoch data wins).
+    Absent files or keys stay absent, never zero-filled.
     """
     base = S3_OUTPUT / model / aug
     meta: dict[str, Any] = {}
@@ -34,14 +35,14 @@ def _load_training_meta(model: str, aug: str) -> dict[str, Any]:
     if sr_path.exists():
         try:
             sr = json.loads(sr_path.read_text())
-            meta["train_total_seconds"] = float(sr.get("total_elapsed_seconds", 0.0))
-            meta["train_total_hours"] = round(float(sr.get("total_elapsed_hours", 0.0)), 4)
-            meta["train_epochs_completed"] = int(sr.get("epochs_completed", 0))
-            meta["train_avg_epoch_sec"] = round(float(sr.get("average_epoch_time_seconds", 0.0)), 2)
-            meta["train_best_epoch"] = int(sr.get("best_epoch", 0))
-            meta["train_best_val_mAP_50"] = float(sr.get("final_val_mAP_50", 0.0))
-            meta["train_best_val_mAP_50_95"] = float(sr.get("best_val_mAP_50_95", 0.0))
-            meta["train_best_val_per_class_mAP"] = sr.get("best_val_per_class_mAP", {})
+            for key, sr_key, conv in (
+                ("train_total_seconds", "total_elapsed_seconds", float),
+                ("train_total_hours", "total_elapsed_hours", float),
+                ("train_epochs_completed", "epochs_completed", int),
+                ("train_avg_epoch_sec", "average_epoch_time_seconds", float),
+            ):
+                if sr_key in sr:
+                    meta[key] = conv(sr[sr_key])
         except Exception as err:
             logger.warning("failed_to_load_summary_report", model=model, aug=aug, error=str(err))
 
@@ -52,11 +53,14 @@ def _load_training_meta(model: str, aug: str) -> dict[str, Any]:
             history = json.loads(hist_path.read_text())
             # Derive best epoch metrics from history as ground truth
             if history:
-                best = max(history, key=lambda e: e.get("val_mAP_50_95", 0.0))
-                meta["train_best_epoch"] = int(best.get("epoch", meta.get("train_best_epoch", 0)))
-                meta["train_best_val_mAP_50"] = float(best.get("val_mAP_50", meta.get("train_best_val_mAP_50", 0.0)))
-                meta["train_best_val_mAP_50_95"] = float(best.get("val_mAP_50_95", meta.get("train_best_val_mAP_50_95", 0.0)))
-                meta["train_best_val_per_class_mAP"] = best.get("val_per_class_mAP", meta.get("train_best_val_per_class_mAP", {}))
+                best = max(history, key=lambda e: e["val_mAP_50_95"])
+                meta["train_best_epoch"] = int(best["epoch"])
+                if "val_mAP_50" in best:
+                    meta["train_best_val_mAP_50"] = float(best["val_mAP_50"])
+                if "val_mAP_50_95" in best:
+                    meta["train_best_val_mAP_50_95"] = float(best["val_mAP_50_95"])
+                if "val_per_class_mAP" in best:
+                    meta["train_best_val_per_class_mAP"] = best["val_per_class_mAP"]
         except Exception as err:
             logger.warning("failed_to_load_history", model=model, aug=aug, error=str(err))
 
@@ -87,10 +91,7 @@ def aggregate_results(
     def _aggregate() -> dict[str, Any]:
         result_files = sorted(resolved_input.rglob("results.json"))
         if not result_files:
-            result_files = sorted(
-                f for f in resolved_input.rglob("*.json")
-                if f.name not in ("aggregated.json", "predictions.json")
-            )
+            raise FileNotFoundError(f"No results.json files found under {resolved_input}")
         logger.info("aggregating_results", count=len(result_files), directory=str(resolved_input))
 
         rows: list[dict[str, Any]] = []
@@ -104,12 +105,14 @@ def aggregate_results(
 
             # Infer model/augmentation from directory structure if missing
             if "model" not in data or not data["model"]:
+                logger.warning("inferring_model_from_directory", file=str(rf))
                 data["model"] = (
                     rf.parent.parent.name
                     if rf.parent != resolved_input and rf.parent.parent != resolved_input
                     else "N/A"
                 )
             if "augmentation" not in data or not data["augmentation"]:
+                logger.warning("inferring_augmentation_from_directory", file=str(rf))
                 data["augmentation"] = rf.parent.name if rf.parent != resolved_input else "baseline"
 
             model = data["model"]
@@ -143,6 +146,7 @@ def aggregate_results(
         fn=_aggregate,
         force=force,
         loader=lambda p: json.loads(p.read_text()),
+        fingerprint=config_fingerprint({"results_dir": str(resolved_input)}),
     )
 
 

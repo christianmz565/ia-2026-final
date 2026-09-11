@@ -18,7 +18,7 @@ import structlog
 import torch
 import yaml
 
-from src.caching import run_cached_step
+from src.caching import config_fingerprint, run_cached_step
 from src.config import YOLO26Config
 from src.constants import (
     CLASS_NAMES,
@@ -104,7 +104,9 @@ class YOLO26Trainer:
             out_dir, checkpoints_dir = setup_training_output_dir(output_dir)
             data_yaml = _ensure_yolo_data_yaml(data_dir)
 
-            model_variant = getattr(config, "model_size", "yolo26m.pt") or "yolo26m.pt"
+            model_variant = config.model_size
+            if not model_variant:
+                raise ValueError("YOLO26Config.model_size must not be empty")
 
             logger.info(
                 "yolo26_train_start",
@@ -112,7 +114,7 @@ class YOLO26Trainer:
                 output_dir=str(out_dir),
                 model_size=model_variant,
                 epochs=config.epochs,
-                imgsz=config.imgsz,
+                imgsz=[config.target_height, config.target_width],
                 batch=config.batch,
                 lr0=config.lr0,
                 device=config.device,
@@ -134,26 +136,34 @@ class YOLO26Trainer:
                 epoch_start_time = now
 
                 epoch = trainer.epoch + 1
-                metrics = trainer.metrics or {}
-                train_loss = float(getattr(trainer, "loss", 0.0) or 0.0)
-                val_mAP_50 = float(metrics.get("metrics/mAP50(B)", 0.0))
-                val_mAP_50_95 = float(metrics.get("metrics/mAP50-95(B)", 0.0))
+                if not isinstance(trainer.metrics, dict):
+                    raise ValueError(f"YOLO trainer metrics missing at epoch {epoch}")
+                metrics = trainer.metrics
+                try:
+                    val_mAP_50 = float(metrics["metrics/mAP50(B)"])
+                    val_mAP_50_95 = float(metrics["metrics/mAP50-95(B)"])
+                except KeyError as err:
+                    raise ValueError(f"YOLO trainer metrics missing {err} at epoch {epoch}") from err
+                train_loss = float(trainer.loss)
 
-                raw_per_class: dict[str, float] = {}
                 validator = getattr(trainer, "validator", None)
-                if validator and hasattr(validator, "metrics") and hasattr(validator.metrics, "maps"):
-                    maps = validator.metrics.maps
-                    for i, name in enumerate(CLASS_NAMES):
-                        if i < len(maps):
-                            raw_per_class[name] = float(maps[i])
-
+                validator_metrics = getattr(validator, "metrics", None)
+                maps = getattr(validator_metrics, "maps", None)
+                if maps is None or len(maps) < len(CLASS_NAMES):
+                    raise ValueError(
+                        f"YOLO validator maps missing or short at epoch {epoch}: "
+                        f"got {None if maps is None else len(maps)}, need {len(CLASS_NAMES)}"
+                    )
+                raw_per_class: dict[str, float] = {}
+                for i, name in enumerate(CLASS_NAMES):
+                    raw_per_class[name] = float(maps[i])
                 val_per_class = format_per_class_map(raw_per_class)
 
                 epoch_data = {
                     "epoch": epoch,
                     "epoch_time_sec": epoch_duration,
                     "train_loss": round(train_loss, 4),
-                    "val_loss": 0.0,
+                    "val_loss": None,
                     "val_mAP_50": round(val_mAP_50, 4),
                     "val_mAP_50_95": round(val_mAP_50_95, 4),
                     "val_per_class_mAP": val_per_class,
@@ -163,8 +173,9 @@ class YOLO26Trainer:
 
                 if epoch % 5 == 0 or epoch == config.epochs:
                     ckpt_src = out_dir / "weights" / f"epoch{epoch}.pt"
-                    if ckpt_src.exists():
-                        shutil.copy2(ckpt_src, checkpoints_dir / f"epoch_{epoch}.pt")
+                    if not ckpt_src.exists():
+                        raise FileNotFoundError(f"Expected YOLO epoch checkpoint not found: {ckpt_src}")
+                    shutil.copy2(ckpt_src, checkpoints_dir / f"epoch_{epoch}.pt")
 
                 pbar.set_postfix(
                     {
@@ -239,12 +250,12 @@ class YOLO26Trainer:
 
             logger.info("yolo26_train_complete", checkpoint=str(out_dir / "best.pt"))
             return out_dir / "best.pt"
-
         return run_cached_step(
             step_name="train_yolo26",
             target_path=output_dir,
             fn=_do_train,
             force=force,
+            fingerprint=config_fingerprint(config),
         )
 
     def export(self, checkpoint: Path, output_dir: Path, format: str = "onnx") -> Path:
@@ -263,7 +274,7 @@ class YOLO26Trainer:
         output_dir.mkdir(parents=True, exist_ok=True)
         logger.info("yolo26_export_start", checkpoint=str(checkpoint), format=format)
         model = YOLO(str(checkpoint))
-        exported_path = model.export(format=format, imgsz=self.config.imgsz)
+        exported_path = model.export(format=format, imgsz=[self.config.target_height, self.config.target_width])
         return Path(exported_path)
 
 

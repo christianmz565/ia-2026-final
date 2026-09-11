@@ -12,7 +12,7 @@ from typing import Any
 
 import structlog
 
-from src.caching import run_cached_step
+from src.caching import config_fingerprint, run_cached_step
 from src.constants import S4_OUTPUT
 
 logger = structlog.get_logger(__name__)
@@ -49,6 +49,7 @@ def export_results(
         target_path=resolved_output,
         fn=_export,
         force=force,
+        fingerprint=config_fingerprint({"output": str(resolved_output), "keys": sorted(results.keys())}),
     )
 
 

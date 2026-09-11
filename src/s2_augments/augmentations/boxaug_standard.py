@@ -174,6 +174,8 @@ class BoxAugStandardAugmentor(Augmentor):
         config: Any = None,
     ) -> Path:
         """Generate balanced dataset split via BoxAug paper algorithm."""
+        if config is not None and not isinstance(config, BoxAugStandardConfig):
+            raise TypeError(f"BoxAugStandardConfig expected, got {type(config).__name__}")
         cfg = config if isinstance(config, BoxAugStandardConfig) else BoxAugStandardConfig()
 
         src_dir = Path(input_dir or (SPLIT_DATASET / "train"))
@@ -181,8 +183,10 @@ class BoxAugStandardAugmentor(Augmentor):
 
         out_img_dir = target_dir / "train" / "images"
         out_lbl_dir = target_dir / "train" / "labels"
-        out_img_dir.mkdir(parents=True, exist_ok=True)
-        out_lbl_dir.mkdir(parents=True, exist_ok=True)
+        for stale_dir in (out_img_dir, out_lbl_dir):
+            if stale_dir.exists():
+                shutil.rmtree(stale_dir)
+            stale_dir.mkdir(parents=True, exist_ok=True)
 
         pairs = find_image_label_pairs(src_dir)
         if not pairs:
@@ -220,7 +224,9 @@ class BoxAugStandardAugmentor(Augmentor):
         aug_counter = 0
 
         for class_id in sorted(class_counts.keys()):
-            cls_name = ID_TO_CLASS.get(class_id, str(class_id))
+            if class_id not in ID_TO_CLASS:
+                raise ValueError(f"Unknown class_id {class_id} in BoxAug instance bank")
+            cls_name = ID_TO_CLASS[class_id]
             current = class_counts[class_id]
 
             if current >= target_count or not instance_bank[class_id]:
@@ -229,15 +235,26 @@ class BoxAugStandardAugmentor(Augmentor):
             needed = target_count - current
             logger.info("boxaug_augmenting_class", class_name=cls_name, current=current, needed=needed)
 
+            working: dict[str, tuple[np.ndarray, list[BBox]]] = {}
+
             produced = 0
             pair_idx = 0
+            pair_tries = 0
+            max_pair_tries = max(needed * cfg.max_location_attempts, 1)
             while produced < needed:
+                if pair_tries >= max_pair_tries:
+                    raise RuntimeError(
+                        f"BoxAug failed to place {needed - produced} remaining instances "
+                        f"for class {cls_name} after {pair_tries} pair tries"
+                    )
                 img_p, lbl_p = pairs[pair_idx % len(pairs)]
                 pair_idx += 1
+                pair_tries += 1
 
-                img = read_image(out_img_dir / img_p.name)
+                if img_p.name not in working:
+                    working[img_p.name] = (read_image(img_p), read_yolo_labels(lbl_p))
+                img, curr_bboxes = working[img_p.name]
                 img_h, img_w = img.shape[:2]
-                curr_bboxes = read_yolo_labels(out_lbl_dir / img_p.with_suffix(".txt").name)
 
                 crops_list = instance_bank[class_id]
                 crop_raw, orig_w_norm, orig_h_norm = crops_list[np.random.randint(0, len(crops_list))]
@@ -266,11 +283,14 @@ class BoxAugStandardAugmentor(Augmentor):
                             break
 
                 if placed:
-                    write_image(out_img_dir / img_p.name, img)
-                    write_yolo_labels(out_lbl_dir / img_p.with_suffix(".txt").name, curr_bboxes)
+                    working[img_p.name] = (img, curr_bboxes)
                     class_counts[class_id] += 1
                     produced += 1
                     aug_counter += 1
+
+            for key, (final_img, final_boxes) in working.items():
+                write_image(out_img_dir / key, final_img)
+                write_yolo_labels(out_lbl_dir / (Path(key).stem + ".txt"), final_boxes)
 
         logger.info(
             "boxaug_standard_complete",

@@ -15,8 +15,9 @@ import structlog
 from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
 
-from src.caching import run_cached_step
-from src.constants import CLASS_NAMES, S4_OUTPUT
+from src.caching import config_fingerprint, run_cached_step
+from src.coco_utils import operating_point_metrics
+from src.constants import DEFAULT_CONF_THRESHOLD, S4_OUTPUT
 
 logger = structlog.get_logger(__name__)
 
@@ -24,16 +25,20 @@ logger = structlog.get_logger(__name__)
 def compute_metrics(
     predictions: Path | str,
     ground_truth: Path | str,
-    iou_threshold: float = 0.5,
+    conf_threshold: float = DEFAULT_CONF_THRESHOLD,
     output_path: Path | str | None = None,
     force: bool = False,
 ) -> dict[str, Any]:
     """Compute COCO-style detection metrics from predictions and ground truth.
 
+    ``mAP_50``/``mAP_50_95`` are COCO-standard. ``precision``/``recall``/``f1``
+    are operating-point values at ``conf_threshold`` (greedy IoU>=0.5 matching).
+    ``per_class_ap`` is per-class AP@50.
+
     Args:
         predictions: Path to predictions COCO JSON file.
         ground_truth: Path to ground truth COCO JSON file.
-        iou_threshold: IoU threshold for positive matches (used for F1 at threshold).
+        conf_threshold: Operating confidence for precision/recall/F1.
         output_path: Path to output metrics JSON file.
         force: If True, bypass cache and re-compute metrics.
 
@@ -65,33 +70,28 @@ def compute_metrics(
         mAP_50_95 = float(stats[0])
 
         P = coco_eval.eval["precision"]
-        R = coco_eval.eval["recall"]
-
-        # IoU=0.50 (index 0), all areas (index 0), maxDets=100 (index 2)
-        prec_50_all = P[0, :, :, 0, 2]
-        valid_prec = prec_50_all[prec_50_all > -1]
-        precision = float(np.mean(valid_prec)) if len(valid_prec) > 0 else 0.0
-
-        rec_50_all = R[0, :, 0, 2]
-        valid_rec = rec_50_all[rec_50_all > -1]
-        recall = float(np.mean(valid_rec)) if len(valid_rec) > 0 else 0.0
-
-        f1 = round(2 * precision * recall / (precision + recall + 1e-8), 4)
 
         per_class_ap: dict[str, float] = {}
         cat_ids = coco_gt.getCatIds()
         for i, cat in enumerate(coco_gt.loadCats(cat_ids)):
-            cat_name = cat.get("name", CLASS_NAMES[i] if i < len(CLASS_NAMES) else str(cat["id"]))
+            cat_name = cat.get("name")
+            if cat_name is None:
+                raise ValueError(f"Ground truth category at index {i} is missing its name")
             p_class = P[0, :, i, 0, 2]
             valid_p_class = p_class[p_class > -1]
-            per_class_ap[cat_name] = round(float(np.mean(valid_p_class)), 4) if len(valid_p_class) > 0 else 0.0
+            if len(valid_p_class) == 0:
+                raise ValueError(f"No valid AP@50 samples for ground truth category {cat_name!r}")
+            per_class_ap[cat_name] = round(float(np.mean(valid_p_class)), 4)
+
+        pred_anns = coco_dt.loadAnns(coco_dt.getAnnIds())
+        op = operating_point_metrics(coco_gt, pred_anns, conf_threshold=conf_threshold)
 
         metrics: dict[str, Any] = {
             "mAP_50": mAP_50,
             "mAP_50_95": mAP_50_95,
-            "precision": round(precision, 4),
-            "recall": round(recall, 4),
-            "f1": f1,
+            "precision": op["precision"],
+            "recall": op["recall"],
+            "f1": op["f1"],
             "per_class_ap": per_class_ap,
             "num_images": len(coco_gt.getImgIds()),
             "num_predictions": len(coco_dt.getAnnIds()),
@@ -108,6 +108,9 @@ def compute_metrics(
         fn=_compute,
         force=force,
         loader=lambda p: json.loads(p.read_text()),
+        fingerprint=config_fingerprint(
+            {"predictions": str(predictions), "ground_truth": str(ground_truth), "conf_threshold": conf_threshold}
+        ),
     )
 
 
@@ -119,7 +122,7 @@ if __name__ == "__main__":
         config_model=EvalConfig,
         run_fn=lambda cfg: logger.info(
             "metrics_result",
-            **compute_metrics(cfg.predictions, cfg.ground_truth, cfg.iou_threshold),
+            **compute_metrics(cfg.predictions, cfg.ground_truth, conf_threshold=cfg.conf_threshold),
         ),
         description="Compute COCO detection metrics",
         required_fields=["predictions", "ground_truth"],

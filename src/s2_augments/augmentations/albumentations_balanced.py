@@ -203,6 +203,7 @@ class AlbumentationsBalancedAugmentor(AlbumentationsAugmentor):
             image_aug_counts: dict[Path, int] = defaultdict(int)
 
             class_aug_targets: dict[int, int] = {}
+            unmet_targets: dict[int, int] = {}
             allocated = 0
             sorted_rare = sorted(rare_class_ids, key=lambda c: needed_aug_images_by_class[c], reverse=True)
             for idx, cid in enumerate(sorted_rare):
@@ -214,7 +215,9 @@ class AlbumentationsBalancedAugmentor(AlbumentationsAugmentor):
                     allocated += share
 
             for cid in sorted_rare:
-                cls_name = ID_TO_CLASS.get(cid, str(cid))
+                if cid not in ID_TO_CLASS:
+                    raise ValueError(f"Unknown class_id {cid} in albumentations balancing targets")
+                cls_name = ID_TO_CLASS[cid]
                 target_aug_for_cls = class_aug_targets.get(cid, 0)
                 candidate_pairs = images_by_class[cid]
 
@@ -259,13 +262,19 @@ class AlbumentationsBalancedAugmentor(AlbumentationsAugmentor):
                     for b in aug_bboxes:
                         class_counts[b.class_id] += 1
 
-        final_dataset_size = len(list(out_img_dir.glob("*.jpg"))) + len(list(out_img_dir.glob("*.png")))
+                if produced < target_aug_for_cls:
+                    unmet_targets[cid] = target_aug_for_cls - produced
+        from src.coco_utils import SUPPORTED_IMAGE_SUFFIXES
+
+        suffixes = tuple(SUPPORTED_IMAGE_SUFFIXES)
+        final_dataset_size = len([p for p in out_img_dir.iterdir() if p.suffix.lower() in suffixes])
 
         logger.info(
             "albumentations_balanced_complete",
             total_input_images=total_input_images,
             decremented_majority_images=num_decrements,
             total_augmented_files=aug_counter,
+            unmet_targets={ID_TO_CLASS[cid]: short for cid, short in unmet_targets.items()},
             final_dataset_size=final_dataset_size,
             final_counts={ID_TO_CLASS.get(cid, str(cid)): cnt for cid, cnt in class_counts.items()},
         )

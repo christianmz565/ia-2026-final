@@ -13,8 +13,8 @@ import structlog
 from pydantic import BaseModel, Field
 from tqdm import tqdm
 
-from src.caching import run_cached_step
-from src.constants import CLASS_NAMES, ID_TO_CLASS, PROCESSED_DATASET, RAW_DATASET, S1_OUTPUT
+from src.caching import config_fingerprint, run_cached_step
+from src.constants import CLASS_NAMES, ID_TO_CLASS, S1_OUTPUT
 from src.utils import find_image_label_pairs, read_yolo_labels
 
 logger = structlog.get_logger(__name__)
@@ -28,8 +28,7 @@ def explore_dataset(
     """Compute dataset statistics from YOLO label files.
 
     Args:
-        input_dir: Directory with images/ and labels/ sub-dirs.
-                   Defaults to ``PROCESSED_DATASET`` if exists, else ``RAW_DATASET``.
+        input_dir: Directory with images/ and labels/ sub-dirs (required).
         output_file: Path to output JSON stats file. Defaults to ``S1_OUTPUT / "explore_stats.json"``.
         force: If True, bypass cache and re-compute statistics.
 
@@ -37,11 +36,15 @@ def explore_dataset(
         Dict with keys: total_images, total_annotations, class_counts,
         avg_boxes_per_image, bbox_stats.
     """
-    resolved_input = Path(input_dir) if input_dir else PROCESSED_DATASET if PROCESSED_DATASET.exists() else RAW_DATASET
+    if input_dir is None:
+        raise ValueError("explore_dataset requires an explicit input_dir")
+    resolved_input = Path(input_dir)
     resolved_output = Path(output_file or S1_OUTPUT / "explore_stats.json")
 
     def _explore() -> dict[str, object]:
         pairs = find_image_label_pairs(resolved_input)
+        if not pairs:
+            raise FileNotFoundError(f"No images found in {resolved_input}")
         logger.info("scanning_dataset", directory=str(resolved_input), count=len(pairs))
 
         class_counts: dict[str, int] = dict.fromkeys(CLASS_NAMES, 0)
@@ -52,23 +55,27 @@ def explore_dataset(
             bboxes = read_yolo_labels(label_path)
             total_annotations += len(bboxes)
             for b in bboxes:
-                name = ID_TO_CLASS.get(b.class_id, f"unknown_{b.class_id}")
+                if b.class_id not in ID_TO_CLASS:
+                    raise ValueError(f"Unknown class_id {b.class_id} in {label_path}")
+                name = ID_TO_CLASS[b.class_id]
                 class_counts[name] = class_counts.get(name, 0) + 1
                 widths.append(b.w)
                 heights.append(b.h)
                 aspects.append(b.aspect_ratio())
                 areas.append(b.area())
 
+        if total_annotations == 0:
+            raise ValueError(f"No annotations found in {resolved_input}")
         stats: dict[str, object] = {
             "total_images": len(pairs),
             "total_annotations": total_annotations,
             "class_counts": class_counts,
-            "avg_boxes_per_image": total_annotations / max(len(pairs), 1),
+            "avg_boxes_per_image": total_annotations / len(pairs),
             "bbox_stats": {
-                "mean_width": sum(widths) / max(len(widths), 1),
-                "mean_height": sum(heights) / max(len(heights), 1),
-                "mean_aspect_ratio": sum(aspects) / max(len(aspects), 1),
-                "mean_area": sum(areas) / max(len(areas), 1),
+                "mean_width": sum(widths) / len(widths),
+                "mean_height": sum(heights) / len(heights),
+                "mean_aspect_ratio": sum(aspects) / len(aspects),
+                "mean_area": sum(areas) / len(areas),
             },
         }
 
@@ -87,6 +94,7 @@ def explore_dataset(
         fn=_explore,
         force=force,
         loader=lambda p: json.loads(p.read_text()),
+        fingerprint=config_fingerprint({"input_dir": str(resolved_input)}),
     )
 
 

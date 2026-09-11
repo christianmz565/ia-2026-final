@@ -12,7 +12,7 @@ from typing import Any
 
 import structlog
 
-from src.caching import run_cached_step
+from src.caching import config_fingerprint, run_cached_step
 from src.config import S2Config
 from src.constants import AUGMENTED_DIR, SPLIT_DATASET, TEST_SPLIT, TRAIN_SPLIT, VALID_SPLIT
 from src.s1_prepare.convert_coco import convert_split
@@ -63,6 +63,7 @@ def run_pipeline(config: S2Config | None = None, force: bool = False) -> None:
             target_path=target_dir,
             fn=_run_method,
             force=force,
+            fingerprint=config_fingerprint(config),
         )
 
     logger.info("s2_pipeline_complete")

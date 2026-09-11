@@ -52,8 +52,8 @@ def draw_detections(
             continue
 
         cat_id = det.get("category_id", 0)
-        class_name = CLASS_NAMES[cat_id - 1] if 1 <= cat_id <= len(CLASS_NAMES) else f"class_{cat_id}"
-        color = _COLORS[cat_id - 1] if 1 <= cat_id <= len(_COLORS) else _DEFAULT_COLOR
+        class_name = CLASS_NAMES[cat_id] if 0 <= cat_id < len(CLASS_NAMES) else f"class_{cat_id}"
+        color = _COLORS[cat_id] if 0 <= cat_id < len(_COLORS) else _DEFAULT_COLOR
 
         bbox = det.get("bbox", [])
         if len(bbox) < 4:

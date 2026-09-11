@@ -12,7 +12,6 @@ from __future__ import annotations
 import math
 import pathlib
 import shutil
-import ssl
 import time
 from pathlib import Path
 from typing import Any
@@ -22,15 +21,14 @@ from mmengine.config import Config
 from mmengine.hooks import Hook
 from mmengine.runner import Runner
 
-from src.caching import run_cached_step
+from src.caching import config_fingerprint, run_cached_step
 from src.config import CascadeRCNNConfig
 from src.constants import (
     CLASS_NAMES,
     CLASS_WEIGHTS_LIST,
+    DEFAULT_EARLY_STOP_MIN_DELTA,
     S3_OUTPUT,
     SPLIT_DATASET,
-    TARGET_IMG_HEIGHT,
-    TARGET_IMG_WIDTH,
 )
 from src.s1_prepare.convert_coco import convert_split
 from src.s3_train.base import register_trainer
@@ -48,7 +46,6 @@ logger = structlog.get_logger(__name__)
 
 
 def _ensure_mmdet_setup() -> None:
-    ssl._create_default_https_context = ssl._create_unverified_context
     import mmcv
 
     if getattr(mmcv, "__version__", "") >= "2.2.0":
@@ -85,26 +82,33 @@ class EpochMetricsHook(Hook):
         self.shared_state["epoch_start_time"] = now
 
         epoch = len(self.history) + 1
-        metrics = metrics or {}
+        if metrics is None:
+            raise ValueError("EpochMetricsHook received no validation metrics")
 
-        mAP_50 = float(metrics.get("coco/bbox_mAP_50", 0.0))
-        mAP_50_95 = float(metrics.get("coco/bbox_mAP", 0.0))
-
-        train_loss = 0.0
         try:
-            if hasattr(runner, "message_hub"):
-                loss_val = runner.message_hub.get_scalar("train/loss").current()
-                train_loss = float(loss_val)
-        except Exception:
-            train_loss = 0.0
+            mAP_50 = float(metrics["coco/bbox_mAP_50"])
+            mAP_50_95 = float(metrics["coco/bbox_mAP"])
+        except KeyError as err:
+            raise ValueError(f"EpochMetricsHook is missing expected validation metric: {err}") from err
+
+        train_loss = float(runner.message_hub.get_scalar("train/loss").current())
 
         raw_per_class: dict[str, float] = {}
+        missing_classes: list[str] = []
         for name in CLASS_NAMES:
-            val = metrics.get(f"coco/{name}_precision", metrics.get(f"coco/bbox_mAP_{name}", 0.0))
+            if f"coco/{name}_precision" in metrics:
+                val = metrics[f"coco/{name}_precision"]
+            elif f"coco/bbox_mAP_{name}" in metrics:
+                val = metrics[f"coco/bbox_mAP_{name}"]
+            else:
+                missing_classes.append(name)
+                continue
             if isinstance(val, (int, float)) and not math.isnan(val):
                 raw_per_class[name] = float(val)
             else:
-                raw_per_class[name] = 0.0
+                missing_classes.append(name)
+        if missing_classes:
+            raise ValueError(f"EpochMetricsHook is missing per-class metrics for: {missing_classes}")
 
         val_per_class = format_per_class_map(raw_per_class)
 
@@ -112,7 +116,7 @@ class EpochMetricsHook(Hook):
             "epoch": epoch,
             "epoch_time_sec": epoch_duration,
             "train_loss": round(train_loss, 4),
-            "val_loss": 0.0,
+            "val_loss": None,
             "val_mAP_50": round(mAP_50, 4),
             "val_mAP_50_95": round(mAP_50_95, 4),
             "val_per_class_mAP": val_per_class,
@@ -120,10 +124,10 @@ class EpochMetricsHook(Hook):
         self.history.append(epoch_data)
         save_epoch_history(self.out_dir, self.history)
 
-        ckpt_candidates = list(self.out_dir.glob("epoch_*.pth")) + list(self.out_dir.glob("epoch_*.pt"))
-        if ckpt_candidates:
-            latest_ckpt = max(ckpt_candidates, key=lambda p: p.stat().st_mtime)
-            shutil.copy2(latest_ckpt, self.checkpoints_dir / f"epoch_{epoch}.pth")
+        expected_ckpt = self.out_dir / f"epoch_{epoch}.pth"
+        if not expected_ckpt.exists():
+            raise FileNotFoundError(f"Expected epoch checkpoint not found: {expected_ckpt}")
+        shutil.copy2(expected_ckpt, self.checkpoints_dir / f"epoch_{epoch}.pth")
 
         self.pbar.set_postfix(
             {
@@ -291,7 +295,7 @@ class CascadeRCNNTrainer:
                 }
 
             cfg.custom_hooks = [
-                {"type": "EarlyStoppingHook", "monitor": "coco/bbox_mAP", "patience": config.patience, "min_delta": 0.001},
+                {"type": "EarlyStoppingHook", "monitor": "coco/bbox_mAP", "patience": config.patience, "min_delta": DEFAULT_EARLY_STOP_MIN_DELTA},
             ]
 
             cfg.default_hooks.checkpoint = {
@@ -321,15 +325,29 @@ class CascadeRCNNTrainer:
 
             total_time = time.time() - start_time
 
-            best_candidates = sorted(out_dir.glob("best_coco_bbox_mAP_*.pth"), key=lambda p: p.stat().st_mtime, reverse=True)
-            if not best_candidates:
-                best_candidates = sorted(out_dir.glob("best_*.pth"), key=lambda p: p.stat().st_mtime, reverse=True)
-
-            best: Path | None = best_candidates[0] if best_candidates else None
+            best_coco = sorted(out_dir.glob("best_coco_bbox_mAP_*.pth"), key=lambda p: p.name)
+            if len(best_coco) > 1:
+                raise FileNotFoundError(
+                    f"Ambiguous best checkpoints in {out_dir}: {[p.name for p in best_coco]}"
+                )
+            if best_coco:
+                best = best_coco[0]
+            else:
+                best_plain = sorted(out_dir.glob("best_*.pth"), key=lambda p: p.name)
+                if len(best_plain) > 1:
+                    raise FileNotFoundError(
+                        f"Ambiguous best checkpoints in {out_dir}: {[p.name for p in best_plain]}"
+                    )
+                best = best_plain[0] if best_plain else None
             if best is None:
-                epoch_candidates = sorted(out_dir.glob("epoch_*.pth"), key=lambda p: p.stat().st_mtime, reverse=True)
-                if epoch_candidates:
-                    best = epoch_candidates[0]
+                epoch_files: list[tuple[int, Path]] = []
+                for ckpt in sorted(out_dir.glob("epoch_*.pth"), key=lambda p: p.name):
+                    try:
+                        epoch_files.append((int(ckpt.stem.split("_")[-1]), ckpt))
+                    except ValueError:
+                        raise FileNotFoundError(f"Unparseable epoch checkpoint name: {ckpt}") from None
+                if epoch_files:
+                    best = max(epoch_files, key=lambda t: t[0])[1]
                 else:
                     raise FileNotFoundError(
                         f"Cascade R-CNN training completed, but no expected checkpoint file (best_coco_bbox_mAP_*.pth) was found in {out_dir}"
@@ -352,8 +370,8 @@ class CascadeRCNNTrainer:
             target_path=output_dir,
             fn=_do_train,
             force=force,
+            fingerprint=config_fingerprint(config),
         )
-
     def export(self, checkpoint: Path, output_dir: Path, format: str = "onnx") -> Path:
         """Export Cascade R-CNN model.
 

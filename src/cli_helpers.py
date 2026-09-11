@@ -201,5 +201,9 @@ def standalone_main[T: BaseModel](
     args = parser.parse_args()
     configure_logging(args.log_level)
 
+    from src.utils import seed_all
+
+    seed_all()
+
     cfg = model_from_args(config_model, args)
     run_fn(cfg)

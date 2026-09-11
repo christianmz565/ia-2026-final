@@ -16,7 +16,7 @@ from typing import Any
 import structlog
 import torch
 
-from src.caching import run_cached_step
+from src.caching import config_fingerprint, run_cached_step
 from src.config import RFDETRConfig
 from src.constants import CLASS_NAMES, CLASS_WEIGHTS_LIST, S3_OUTPUT, SPLIT_DATASET
 from src.s3_train.base import register_trainer
@@ -85,7 +85,7 @@ def patch_rfdetr_class_weights() -> None:
 
         lwdetr_mod.SetCriterion.loss_labels = weighted_loss_labels
     except Exception as err:
-        logger.warning("rfdetr_class_weights_patch_failed", error=str(err))
+        raise RuntimeError(f"RF-DETR class-weights patch failed; training without it is forbidden: {err}") from err
 
 
 def patch_rfdetr_coco_extended_metrics() -> None:
@@ -169,7 +169,7 @@ def patch_rfdetr_coco_extended_metrics() -> None:
 
         rf_engine.coco_extended_metrics = safe_coco_extended_metrics
     except Exception as err:
-        logger.warning("rfdetr_patch_failed", error=str(err))
+        raise RuntimeError(f"RF-DETR metrics patch failed; training without it is forbidden: {err}") from err
 
 
 class RFDETRTrainer:
@@ -234,15 +234,29 @@ class RFDETRTrainer:
                 epoch_duration = round(now - epoch_start_time, 2)
                 epoch_start_time = now
 
+                if not kwargs and not stats:
+                    raise ValueError("RF-DETR epoch callback received an empty payload")
                 payload = kwargs if kwargs else (stats or {})
 
-                epoch = int(payload.get("epoch", len(history))) + 1
-                train_loss = float(payload.get("train_loss", 0.0))
-                val_loss = float(payload.get("test_loss", payload.get("val_loss", 0.0)))
+                if "epoch" not in payload:
+                    raise ValueError("RF-DETR epoch payload is missing the epoch key")
+                epoch = int(payload["epoch"]) + 1
+                train_loss = float(payload["train_loss"])
+                if "test_loss" in payload:
+                    val_loss: float | None = float(payload["test_loss"])
+                elif "val_loss" in payload:
+                    val_loss = float(payload["val_loss"])
+                else:
+                    val_loss = None
 
-                coco_bbox = payload.get("ema_test_coco_eval_bbox", payload.get("test_coco_eval_bbox", [0.0, 0.0]))
-                mAP_50_95 = float(coco_bbox[0]) if len(coco_bbox) > 0 else 0.0
-                mAP_50 = float(coco_bbox[1]) if len(coco_bbox) > 1 else 0.0
+                if "ema_test_coco_eval_bbox" in payload:
+                    coco_bbox = payload["ema_test_coco_eval_bbox"]
+                elif "test_coco_eval_bbox" in payload:
+                    coco_bbox = payload["test_coco_eval_bbox"]
+                else:
+                    raise ValueError("RF-DETR epoch payload carries no coco eval bbox")
+                mAP_50_95 = float(coco_bbox[0])
+                mAP_50 = float(coco_bbox[1])
 
                 raw_per_class: dict[str, float] = {}
                 results_json = payload.get("ema_test_results_json", payload.get("test_results_json", {}))
@@ -251,7 +265,7 @@ class RFDETRTrainer:
                         if isinstance(entry, dict):
                             name = entry.get("class", "")
                             if name and name != "all":
-                                raw_per_class[name] = float(entry.get("map@50:95", 0.0))
+                                raw_per_class[name] = float(entry["map@50:95"])
 
                 val_per_class = format_per_class_map(raw_per_class)
 
@@ -259,7 +273,7 @@ class RFDETRTrainer:
                     "epoch": epoch,
                     "epoch_time_sec": epoch_duration,
                     "train_loss": round(train_loss, 4),
-                    "val_loss": round(val_loss, 4),
+                    "val_loss": round(val_loss, 4) if val_loss is not None else None,
                     "val_mAP_50": round(mAP_50, 4),
                     "val_mAP_50_95": round(mAP_50_95, 4),
                     "val_per_class_mAP": val_per_class,
@@ -268,10 +282,11 @@ class RFDETRTrainer:
                 save_epoch_history(out_dir, history)
 
                 ckpt_candidate = out_dir / f"checkpoint{epoch - 1:04d}.pth"
-                if ckpt_candidate.exists():
-                    import shutil
+                if not ckpt_candidate.exists():
+                    raise FileNotFoundError(f"Expected RF-DETR epoch checkpoint not found: {ckpt_candidate}")
+                import shutil
 
-                    shutil.copy2(ckpt_candidate, checkpoints_dir / f"epoch_{epoch}.pth")
+                shutil.copy2(ckpt_candidate, checkpoints_dir / f"epoch_{epoch}.pth")
 
                 pbar.set_postfix(
                     {"mAP50": f"{mAP_50:.3f}", "mAP50-95": f"{mAP_50_95:.3f}", "time_s": f"{epoch_duration:.1f}"}
@@ -341,6 +356,7 @@ class RFDETRTrainer:
             target_path=output_dir,
             fn=_do_train,
             force=force,
+            fingerprint=config_fingerprint(config),
         )
 
     def export(self, checkpoint: Path, output_dir: Path, format: str = "onnx") -> Path:
@@ -348,7 +364,7 @@ class RFDETRTrainer:
 
         Args:
             checkpoint: Path to ``.pth`` weights.
-            output_dir: Where to save exported file.
+            output_dir: Where to save exported model file.
             format: Target export format.
 
         Returns:

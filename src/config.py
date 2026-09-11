@@ -20,6 +20,7 @@ from src.constants import (
     DEFAULT_SEED,
     DEFAULT_SPLIT_RATIOS,
     DEFAULT_YOLO_EPOCHS,
+    DEFAULT_YOLO_PATIENCE,
     KAGGLE_DATASET,
     MIN_ABSOLUTE_DIM_PX,
     MIN_ELONGATED_DIM_PX,
@@ -57,7 +58,6 @@ class PreprocessConfig(BaseModel):
     min_elongated_dim_px: float = Field(
         default=MIN_ELONGATED_DIM_PX, description="Minimum major dimension for elongated labels"
     )
-    black_threshold: int = Field(default=10, description="Grayscale intensity threshold for non-black wood pixels")
 
 
 class SplitConfig(BaseModel):
@@ -117,7 +117,7 @@ class YOLO26Config(BaseModel):
     rect: bool = Field(default=True, description="Enable rectangular training preserving aspect ratio")
     batch: int = Field(default=16)
     lr0: float = Field(default=0.01)
-    patience: int = Field(default=DEFAULT_PATIENCE, description="Early stopping patience")
+    patience: int = Field(default=DEFAULT_YOLO_PATIENCE, description="Early stopping patience (Ultralytics default)")
     device: str = Field(default_factory=_default_device)
     freeze_layer_count: int | None = Field(
         default=None, description="Number of initial backbone layers to freeze during training"
@@ -182,10 +182,12 @@ class EvalConfig(BaseModel):
     predictions: str = Field(default="", description="Path to predictions file")
     ground_truth: str = Field(default="", description="Path to ground truth annotations")
     output_path: str = Field(default="", description="Path to output results file")
-    iou_threshold: float = Field(default=0.5, description="IoU threshold for mAP")
+    checkpoint: str = Field(default="", description="Explicit checkpoint file; empty resolves by priority and fails on ambiguity")
     device: str = Field(default_factory=_default_device)
     conf_threshold: float = Field(default=DEFAULT_CONF_THRESHOLD)
-    max_images: int | None = Field(default=None, description="Max test images for sampled inference")
+    max_images: int | None = Field(default=None, description="Max test images for seeded sampled inference")
+    sample_seed: int = Field(default=DEFAULT_SEED, description="Seed for max_images sampling")
+    resolution: int | None = Field(default=None, description="Input resolution for RF-DETR eval (defaults to RFDETRConfig.imgsz)")
 
 
 

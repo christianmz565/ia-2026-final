@@ -68,13 +68,18 @@ MIN_ELONGATED_DIM_PX = 6.0
 # Preprocessing & Split balancing
 DEFAULT_MAJORITY_DOWNSAMPLE_RATIO = 0.35
 
-# Training defaults
+# Training defaults (per-paradigm literature standards)
+# Cascade: MMDetection 2x schedule = 24 epochs, decay at 16/22
 DEFAULT_CASCADE_EPOCHS = 24
 DEFAULT_YOLO_EPOCHS = 100
 DEFAULT_RFDETR_EPOCHS = 50
+# RF-DETR official guidance: stop after 15 epochs without >=0.005 mAP gain
 DEFAULT_PATIENCE = 15
+DEFAULT_EARLY_STOP_MIN_DELTA = 0.005
+# Ultralytics default patience (framework default for YOLO training)
+DEFAULT_YOLO_PATIENCE = 100
 DEFAULT_RFDETR_LR = 1e-4
 DEFAULT_CASCADE_LR = 1e-4
 
 # Inference & Evaluation
-DEFAULT_CONF_THRESHOLD = 0.001
+DEFAULT_CONF_THRESHOLD = 0.5

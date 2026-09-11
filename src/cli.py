@@ -132,6 +132,11 @@ def _run_section(section: str, config: PipelineConfig) -> None:
 
     mod = importlib.import_module(module_path)
     section_config = getattr(config, section)
+
+    from src.utils import seed_all
+
+    seed_all()
+
     mod.run_pipeline(section_config)
 
     logger.info("pipeline_section_complete", section=section)

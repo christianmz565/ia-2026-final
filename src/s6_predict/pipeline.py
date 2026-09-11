@@ -10,7 +10,6 @@ Standalone usage:
 
 from __future__ import annotations
 
-import ssl
 from pathlib import Path
 from typing import Any
 
@@ -137,13 +136,12 @@ def _load_and_infer(
                 x1, y1, x2, y2 = box
                 bw, bh = x2 - x1, y2 - y1
                 detections.append({
-                    "category_id": int(cls) + 1,
+                    "category_id": int(cls),
                     "bbox": [round(float(x1), 2), round(float(y1), 2), round(float(bw), 2), round(float(bh), 2)],
                     "score": round(float(score), 4),
                 })
 
     elif model_type == "cascade_rcnn":
-        ssl._create_default_https_context = ssl._create_unverified_context
         import mmcv
 
         if getattr(mmcv, "__version__", "") >= "2.2.0":
@@ -170,7 +168,7 @@ def _load_and_infer(
                 x1, y1, x2, y2 = box
                 bw, bh = x2 - x1, y2 - y1
                 detections.append({
-                    "category_id": int(label) + 1,
+                    "category_id": int(label),
                     "bbox": [round(float(x1), 2), round(float(y1), 2), round(float(bw), 2), round(float(bh), 2)],
                     "score": round(float(score), 4),
                 })
@@ -200,7 +198,7 @@ def _load_and_infer(
                 cls = int(detections_rf.class_id[i])
                 bw, bh = x2 - x1, y2 - y1
                 detections.append({
-                    "category_id": cls + 1,
+                    "category_id": cls,
                     "bbox": [round(float(x1), 2), round(float(y1), 2), round(float(bw), 2), round(float(bh), 2)],
                     "score": round(float(conf), 4),
                 })
