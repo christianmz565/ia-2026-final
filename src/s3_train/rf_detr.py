@@ -18,7 +18,7 @@ import torch
 
 from src.caching import run_cached_step
 from src.config import RFDETRConfig
-from src.constants import CLASS_NAMES, S3_OUTPUT, SPLIT_DATASET
+from src.constants import CLASS_NAMES, CLASS_WEIGHTS_LIST, S3_OUTPUT, SPLIT_DATASET
 from src.s3_train.base import register_trainer
 from src.s3_train.common import (
     create_epoch_pbar,
@@ -30,6 +30,62 @@ from src.s3_train.common import (
 from src.utils import configure_torch_backend
 
 logger = structlog.get_logger(__name__)
+
+
+def patch_rfdetr_class_weights() -> None:
+    """Patch rfdetr.models.lwdetr.SetCriterion.loss_labels to apply effective-number class weights."""
+    try:
+        import rfdetr.models.lwdetr as lwdetr_mod
+
+        orig_loss_labels = lwdetr_mod.SetCriterion.loss_labels
+
+        def weighted_loss_labels(self: Any, outputs: Any, targets: Any, indices: Any, num_boxes: Any, log: bool = True) -> Any:
+            assert "pred_logits" in outputs
+            src_logits = outputs["pred_logits"]
+            idx = self._get_src_permutation_idx(indices)
+            target_classes_o = torch.cat([t["labels"][J] for t, (_, J) in zip(targets, indices)])
+
+            if self.ia_bce_loss:
+                alpha = self.focal_alpha
+                gamma = 2
+                src_boxes = outputs["pred_boxes"][idx]
+                target_boxes = torch.cat([t["boxes"][i] for t, (_, i) in zip(targets, indices)], dim=0)
+
+                iou_targets = torch.diag(
+                    lwdetr_mod.box_ops.box_iou(
+                        lwdetr_mod.box_ops.box_cxcywh_to_xyxy(src_boxes.detach()),
+                        lwdetr_mod.box_ops.box_cxcywh_to_xyxy(target_boxes),
+                    )[0]
+                )
+                pos_ious = iou_targets.clone().detach()
+                prob = src_logits.sigmoid()
+                pos_weights = torch.zeros_like(src_logits)
+                neg_weights = prob ** gamma
+
+                pos_ind = [id for id in idx]
+                pos_ind.append(target_classes_o)
+
+                t = prob[pos_ind].pow(alpha) * pos_ious.pow(1 - alpha)
+                t = torch.clamp(t, 0.01).detach()
+
+                cw = torch.tensor(CLASS_WEIGHTS_LIST, dtype=t.dtype, device=t.device)
+                w = cw[target_classes_o]
+                pos_weights[pos_ind] = (t * w).to(pos_weights.dtype)
+                neg_weights[pos_ind] = 1 - t.to(neg_weights.dtype)
+
+                loss_ce = neg_weights * src_logits - torch.nn.functional.logsigmoid(src_logits) * (pos_weights + neg_weights)
+                loss_ce = loss_ce.sum() / num_boxes
+
+                losses = {"loss_ce": loss_ce}
+                if log:
+                    losses["class_error"] = 100 - lwdetr_mod.accuracy(src_logits[idx], target_classes_o)[0]
+                return losses
+
+            return orig_loss_labels(self, outputs, targets, indices, num_boxes, log=log)
+
+        lwdetr_mod.SetCriterion.loss_labels = weighted_loss_labels
+    except Exception as err:
+        logger.warning("rfdetr_class_weights_patch_failed", error=str(err))
 
 
 def patch_rfdetr_coco_extended_metrics() -> None:
@@ -129,6 +185,7 @@ class RFDETRTrainer:
         """
         self.config = config or RFDETRConfig()
         patch_rfdetr_coco_extended_metrics()
+        patch_rfdetr_class_weights()
 
     def train(self, config: RFDETRConfig | None = None, force: bool = False) -> Path:
         """Train RF-DETR model with mixed precision and save standardized outputs.
@@ -143,12 +200,14 @@ class RFDETRTrainer:
         config = config or self.config
         configure_torch_backend()
         patch_rfdetr_coco_extended_metrics()
+        patch_rfdetr_class_weights()
         data_dir = Path(config.data_dir) if config.data_dir else SPLIT_DATASET
 
         output_dir = Path(config.output_dir) if config.output_dir else S3_OUTPUT / "rf_detr"
 
         def _do_train() -> Path:
             patch_rfdetr_coco_extended_metrics()
+            patch_rfdetr_class_weights()
             from rfdetr.detr import RFDETRMedium
 
             out_dir, checkpoints_dir = setup_training_output_dir(output_dir)
@@ -237,9 +296,9 @@ class RFDETRTrainer:
                     weight_decay=1e-4,
                     warmup_epochs=5,
                     early_stopping=True,
-                    early_stopping_patience=10,
+                    early_stopping_patience=config.patience,
                     class_names=CLASS_NAMES,
-                    square_resize_div_64=True,
+                    square_resize_div_64=config.square_resize,
                     num_workers=2,
                     tensorboard=True,
                 )

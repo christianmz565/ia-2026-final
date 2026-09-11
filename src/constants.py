@@ -48,3 +48,32 @@ DEFAULT_SPLIT_RATIOS: dict[str, float] = {
 }
 
 DEFAULT_SEED = 42
+
+TARGET_IMG_WIDTH = 960
+TARGET_IMG_HEIGHT = 384
+
+# Effective-number class weights (Cui et al., beta=0.999, mean=1.0)
+CLASS_WEIGHTS_LIST: list[float] = [1.7229, 0.2756, 1.4546, 0.5666, 0.2861, 0.6472, 2.3761, 0.6708]
+CLASS_WEIGHTS: dict[str, float] = {CLASS_NAMES[i]: CLASS_WEIGHTS_LIST[i] for i in range(NUM_CLASSES)}
+
+# Majority classes (Live_Knot and Dead_Knot, accounting for ~77% of labels)
+MAJORITY_CLASS_IDS: set[int] = {1, 4}
+
+# Label filtering parameters post-downscaling
+MIN_ABSOLUTE_DIM_PX = 2.0
+MIN_LABEL_AREA_PX = 12.0
+MIN_ELONGATED_DIM_PX = 6.0
+
+# Preprocessing & Split balancing
+DEFAULT_MAJORITY_DOWNSAMPLE_RATIO = 0.35
+
+# Training defaults
+DEFAULT_CASCADE_EPOCHS = 24
+DEFAULT_YOLO_EPOCHS = 100
+DEFAULT_RFDETR_EPOCHS = 50
+DEFAULT_PATIENCE = 15
+DEFAULT_RFDETR_LR = 1e-4
+DEFAULT_CASCADE_LR = 1e-4
+
+# Inference & Evaluation
+DEFAULT_CONF_THRESHOLD = 0.001

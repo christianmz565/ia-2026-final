@@ -24,7 +24,14 @@ from mmengine.runner import Runner
 
 from src.caching import run_cached_step
 from src.config import CascadeRCNNConfig
-from src.constants import CLASS_NAMES, S3_OUTPUT, SPLIT_DATASET
+from src.constants import (
+    CLASS_NAMES,
+    CLASS_WEIGHTS_LIST,
+    S3_OUTPUT,
+    SPLIT_DATASET,
+    TARGET_IMG_HEIGHT,
+    TARGET_IMG_WIDTH,
+)
 from src.s1_prepare.convert_coco import convert_split
 from src.s3_train.base import register_trainer
 from src.s3_train.common import (
@@ -208,13 +215,27 @@ class CascadeRCNNTrainer:
             cfg = Config.fromfile(str(cfg_path))
 
             num_classes = len(CLASS_NAMES)
+            full_class_weights = list(CLASS_WEIGHTS_LIST) + [1.0]
             if hasattr(cfg.model, "roi_head") and hasattr(cfg.model.roi_head, "bbox_head"):
                 bbox_heads = cfg.model.roi_head.bbox_head
-                if isinstance(bbox_heads, list):
-                    for head in bbox_heads:
-                        head.num_classes = num_classes
-                else:
-                    bbox_heads.num_classes = num_classes
+                heads = bbox_heads if isinstance(bbox_heads, list) else [bbox_heads]
+                for head in heads:
+                    head.num_classes = num_classes
+                    if hasattr(head, "loss_cls"):
+                        head.loss_cls.class_weight = full_class_weights
+
+            # Standardize rectangular resolution (960, 384) preserving aspect ratio
+            target_scale = (config.target_width, config.target_height)
+            if hasattr(cfg, "train_pipeline"):
+                for step in cfg.train_pipeline:
+                    if step.get("type") in ("Resize", "RandomResize"):
+                        step["scale"] = target_scale
+                        step["keep_ratio"] = True
+            if hasattr(cfg, "test_pipeline"):
+                for step in cfg.test_pipeline:
+                    if step.get("type") == "Resize":
+                        step["scale"] = target_scale
+                        step["keep_ratio"] = True
 
             cfg.train_dataloader.dataset.type = "CocoDataset"
             cfg.train_dataloader.dataset.metainfo = {"classes": tuple(CLASS_NAMES)}
@@ -244,6 +265,14 @@ class CascadeRCNNTrainer:
             cfg.train_cfg = {"type": "EpochBasedTrainLoop", "max_epochs": config.epochs, "val_interval": 1}
             cfg.val_cfg = {"type": "ValLoop"}
 
+            # Multi-step LR schedule
+            step_1 = int(round(config.epochs * (16 / 24)))
+            step_2 = int(round(config.epochs * (22 / 24)))
+            cfg.param_scheduler = [
+                {"type": "LinearLR", "start_factor": 0.001, "by_epoch": False, "begin": 0, "end": 500},
+                {"type": "MultiStepLR", "begin": 0, "end": config.epochs, "by_epoch": True, "milestones": [step_1, step_2], "gamma": 0.1},
+            ]
+
             cfg.work_dir = str(out_dir)
 
             import torch
@@ -262,7 +291,7 @@ class CascadeRCNNTrainer:
                 }
 
             cfg.custom_hooks = [
-                {"type": "EarlyStoppingHook", "monitor": "coco/bbox_mAP", "patience": 10, "min_delta": 0.001},
+                {"type": "EarlyStoppingHook", "monitor": "coco/bbox_mAP", "patience": config.patience, "min_delta": 0.001},
             ]
 
             cfg.default_hooks.checkpoint = {

@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
 
@@ -22,8 +23,10 @@ def yolo_to_coco_bbox(
     """Convert normalized YOLO bbox ``[cx, cy, w, h]`` to COCO ``[x_top_left, y_top_left, w, h]`` in pixels."""
     abs_w = w * img_w
     abs_h = h * img_h
-    x_top_left = x_center * img_w - abs_w / 2
-    y_top_left = y_center * img_h - abs_h / 2
+    x_top_left = max(0.0, x_center * img_w - abs_w / 2.0)
+    y_top_left = max(0.0, y_center * img_h - abs_h / 2.0)
+    abs_w = max(0.1, min(float(img_w) - x_top_left, abs_w))
+    abs_h = max(0.1, min(float(img_h) - y_top_left, abs_h))
     return [round(x_top_left, 2), round(y_top_left, 2), round(abs_w, 2), round(abs_h, 2)]
 
 
@@ -72,27 +75,41 @@ def run_coco_eval(
     coco_eval.summarize()
 
     stats = coco_eval.stats
-    metrics: dict[str, Any] = {
-        "mAP_50": float(stats[1]),
-        "mAP_50_95": float(stats[0]),
-        "precision": float(stats[5]),
-        "recall": float(stats[6]),
-    }
+    mAP_50 = float(stats[1])
+    mAP_50_95 = float(stats[0])
 
-    p, r = metrics["precision"], metrics["recall"]
-    metrics["f1"] = round(2 * p * r / (p + r + 1e-8), 4)
+    P = coco_eval.eval["precision"]
+    R = coco_eval.eval["recall"]
 
-    precision_per_class = coco_eval.eval["precision"]
-    per_class_values = precision_per_class[:, :, :, 0, 0].mean(axis=(0, 1))
+    # IoU=0.50 (index 0), all areas (index 0), maxDets=100 (index 2)
+    prec_50_all = P[0, :, :, 0, 2]
+    valid_prec = prec_50_all[prec_50_all > -1]
+    precision = float(np.mean(valid_prec)) if len(valid_prec) > 0 else 0.0
+
+    rec_50_all = R[0, :, 0, 2]
+    valid_rec = rec_50_all[rec_50_all > -1]
+    recall = float(np.mean(valid_rec)) if len(valid_rec) > 0 else 0.0
+
+    f1 = round(2 * precision * recall / (precision + recall + 1e-8), 4)
+
     per_class_ap: dict[str, float] = {}
-    for i, cat in enumerate(coco_gt.loadCats(coco_gt.getCatIds())):
+    cat_ids = coco_gt.getCatIds()
+    for i, cat in enumerate(coco_gt.loadCats(cat_ids)):
         cat_name = cat.get("name", CLASS_NAMES[i] if i < len(CLASS_NAMES) else str(cat["id"]))
-        per_class_ap[cat_name] = round(float(per_class_values[i]), 4)
+        p_class = P[0, :, i, 0, 2]
+        valid_p_class = p_class[p_class > -1]
+        per_class_ap[cat_name] = round(float(np.mean(valid_p_class)), 4) if len(valid_p_class) > 0 else 0.0
 
-    metrics["per_class_ap"] = per_class_ap
-    metrics["num_images"] = len(coco_gt.getImgIds())
-    metrics["num_predictions"] = len(coco_dt.getAnnIds())
-
+    metrics: dict[str, Any] = {
+        "mAP_50": mAP_50,
+        "mAP_50_95": mAP_50_95,
+        "precision": round(precision, 4),
+        "recall": round(recall, 4),
+        "f1": f1,
+        "per_class_ap": per_class_ap,
+        "num_images": len(coco_gt.getImgIds()),
+        "num_predictions": len(coco_dt.getAnnIds()),
+    }
     return metrics
 
 

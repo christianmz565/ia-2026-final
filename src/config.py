@@ -10,9 +10,22 @@ from __future__ import annotations
 from pydantic import BaseModel, Field
 
 from src.constants import (
+    DEFAULT_CASCADE_EPOCHS,
+    DEFAULT_CASCADE_LR,
+    DEFAULT_CONF_THRESHOLD,
+    DEFAULT_MAJORITY_DOWNSAMPLE_RATIO,
+    DEFAULT_PATIENCE,
+    DEFAULT_RFDETR_EPOCHS,
+    DEFAULT_RFDETR_LR,
     DEFAULT_SEED,
     DEFAULT_SPLIT_RATIOS,
+    DEFAULT_YOLO_EPOCHS,
     KAGGLE_DATASET,
+    MIN_ABSOLUTE_DIM_PX,
+    MIN_ELONGATED_DIM_PX,
+    MIN_LABEL_AREA_PX,
+    TARGET_IMG_HEIGHT,
+    TARGET_IMG_WIDTH,
 )
 from src.s2_augments.augmentations import (
     AlbumentationsBalancedConfig,
@@ -35,8 +48,14 @@ class PreprocessConfig(BaseModel):
     """Configuration for image downscaling, cropping, and label filtering."""
 
     scale_factor: float = Field(default=0.5, description="Factor to resize image (e.g. 0.5 for 50%)")
-    min_label_size_px: float = Field(
-        default=4.0, description="Minimum width or height in pixels after downscale to keep label"
+    min_absolute_dim_px: float = Field(
+        default=MIN_ABSOLUTE_DIM_PX, description="Minimum absolute width and height in pixels after downscale"
+    )
+    min_label_area_px: float = Field(
+        default=MIN_LABEL_AREA_PX, description="Minimum bounding box area in pixels after downscale"
+    )
+    min_elongated_dim_px: float = Field(
+        default=MIN_ELONGATED_DIM_PX, description="Minimum major dimension for elongated labels"
     )
     black_threshold: int = Field(default=10, description="Grayscale intensity threshold for non-black wood pixels")
 
@@ -47,6 +66,10 @@ class SplitConfig(BaseModel):
     ratios: dict[str, float] = Field(default_factory=lambda: dict(DEFAULT_SPLIT_RATIOS))
     seed: int = Field(default=DEFAULT_SEED, description="Random seed for reproducibility")
     stratify_by_class: bool = Field(default=True, description="Stratify splits by defect class")
+    majority_downsample_ratio: float = Field(
+        default=DEFAULT_MAJORITY_DOWNSAMPLE_RATIO,
+        description="Fraction of pure majority planks (classes 1 and 4) to drop from train split",
+    )
 
 
 class S1Config(BaseModel):
@@ -88,15 +111,17 @@ class YOLO26Config(BaseModel):
     data_dir: str = Field(default="", description="Path to training data directory")
     output_dir: str = Field(default="", description="Path to output directory")
     model_size: str = Field(default="yolo26m.pt", description="YOLO26 variant")
-    epochs: int = Field(default=100)
-    imgsz: int = Field(default=640)
+    epochs: int = Field(default=DEFAULT_YOLO_EPOCHS)
+    target_width: int = Field(default=TARGET_IMG_WIDTH, description="Target width for rectangular training")
+    target_height: int = Field(default=TARGET_IMG_HEIGHT, description="Target height for rectangular training")
+    rect: bool = Field(default=True, description="Enable rectangular training preserving aspect ratio")
     batch: int = Field(default=16)
     lr0: float = Field(default=0.01)
+    patience: int = Field(default=DEFAULT_PATIENCE, description="Early stopping patience")
     device: str = Field(default_factory=_default_device)
     freeze_layer_count: int | None = Field(
         default=None, description="Number of initial backbone layers to freeze during training"
     )
-
 
 
 class CascadeRCNNConfig(BaseModel):
@@ -105,10 +130,12 @@ class CascadeRCNNConfig(BaseModel):
     data_dir: str = Field(default="", description="Path to training data directory")
     output_dir: str = Field(default="", description="Path to output directory")
     config_file: str = Field(default="cascade_rcnn_r50_fpn_1x_coco.py")
-    epochs: int = Field(default=12)
-    imgsz: int = Field(default=640)
+    epochs: int = Field(default=DEFAULT_CASCADE_EPOCHS)
+    target_width: int = Field(default=TARGET_IMG_WIDTH, description="Target scale width")
+    target_height: int = Field(default=TARGET_IMG_HEIGHT, description="Target scale height")
     batch_size: int = Field(default=8)
-    lr: float = Field(default=0.0001)
+    lr: float = Field(default=DEFAULT_CASCADE_LR)
+    patience: int = Field(default=DEFAULT_PATIENCE, description="Early stopping patience")
     device: str = Field(default_factory=_default_device)
 
 
@@ -120,10 +147,12 @@ class RFDETRConfig(BaseModel):
     data_dir: str = Field(default="", description="Path to training data directory")
     output_dir: str = Field(default="", description="Path to output directory")
     model_size: str = Field(default="rfdetr-m.pt", description="RF-DETR variant")
-    epochs: int = Field(default=50)
+    epochs: int = Field(default=DEFAULT_RFDETR_EPOCHS)
     imgsz: int = Field(default=512)
     batch: int = Field(default=8)
-    lr0: float = Field(default=0.001)
+    lr0: float = Field(default=DEFAULT_RFDETR_LR)
+    patience: int = Field(default=DEFAULT_PATIENCE, description="Early stopping patience")
+    square_resize: bool = Field(default=False, description="Whether to force square resize or preserve aspect ratio")
     device: str = Field(default_factory=_default_device)
 
 
@@ -155,7 +184,7 @@ class EvalConfig(BaseModel):
     output_path: str = Field(default="", description="Path to output results file")
     iou_threshold: float = Field(default=0.5, description="IoU threshold for mAP")
     device: str = Field(default_factory=_default_device)
-    conf_threshold: float = Field(default=0.25)
+    conf_threshold: float = Field(default=DEFAULT_CONF_THRESHOLD)
     max_images: int | None = Field(default=None, description="Max test images for sampled inference")
 
 
