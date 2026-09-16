@@ -188,8 +188,12 @@ def patch_rfdetr_test_transforms() -> None:
     try:
         import rfdetr
         import rfdetr.datasets.coco as coco_mod
+        try:
+            from importlib.metadata import version as _pkg_version
 
-        version = getattr(rfdetr, "__version__", "unknown")
+            version = _pkg_version("rfdetr")
+        except Exception:
+            version = getattr(rfdetr, "__version__", "unknown")
         if version != RFDETR_PINNED_VERSION:
             raise RuntimeError(
                 f"RF-DETR test-transforms patch verified against {RFDETR_PINNED_VERSION}, "
