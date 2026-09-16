@@ -6,7 +6,7 @@
   footnote: 8pt,
   small: 10pt,
   normal: 12pt,
-  author: 10pt,
+  author: 11pt,
   title: 17.2pt,
 )
 

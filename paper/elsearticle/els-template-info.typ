@@ -1,5 +1,6 @@
 #import "els-globals.typ": *
 #import "els-utils.typ": *
+#import "@preview/orchid:0.1.0" as orchid
 
 #let default-author = (
   name: none,
@@ -8,8 +9,12 @@
   id: "a"
 )
 
-#let make-author(author) = box({
+#let make-author(author, show-orcid: true) = box({
   author.name
+  if show-orcid and author.at("orcid", default: none) != none {
+    h(0.2em)
+    orchid.generate-link(author.orcid)
+  }
 
   let auth-affiliation = if author.at("affiliations", default: none) == none {
     none
@@ -33,9 +38,9 @@
   }
 })
 
-#let make-authors(authors) = par({
+#let make-authors(authors, show-orcid: true) = par({
   set text(size: font-size.author)
-  authors.map(make-author).join(", ", last: " and ")
+  authors.map(a => make-author(a, show-orcid: show-orcid)).join(", ", last: " and ")
 })
 
 #let make-author-meta(authors) = {
@@ -58,7 +63,7 @@
   return names.join(" ")
 }
 
-#let make-corresponding-author(authors, els-columns, lang: "es") = {
+#let make-corresponding-author(authors, els-columns, lang: "es", show-orcid: true) = {
   let corr-authors = authors.filter(a => a.at("corresponding", default: false) == true)
   if corr-authors.len() == 0 { return }
 
@@ -84,6 +89,10 @@
         h(1.4em)
         let email-label = if lang == "en" { "Email: " } else { "Correo electrónico: " }
         [#email-label #email]
+        if show-orcid and author.at("orcid", default: none) != none {
+          h(0.2em)
+          orchid.generate-link(author.orcid)
+        }
       }
     }
   )
@@ -104,10 +113,10 @@
   }
 }
 
-#let make-title(title: none, authors: (), affiliations: ()) = align(center, {
+#let make-title(title: none, authors: (), affiliations: (), orcid-title: true) = align(center, {
   par(leading: 0.95em, text(size: font-size.title, title))
   v(0.9em)
-  text(size: font-size.author, make-authors(authors))
+  text(size: font-size.author, make-authors(authors, show-orcid: orcid-title))
   v(0.2em)
   par(leading: 0.65em, text(size: font-size.small, make-affiliations(affiliations), top-edge: 0.5em))
   v(1.75em)

@@ -48,6 +48,11 @@
   // Language: "es" or "en"
   lang: "es",
 
+  // ORCID badge placement: next to author names in the title block,
+  // and/or next to emails in the corresponding-author footnote.
+  orcid-title: true,
+  orcid-footnote: true,
+
   // The document's content.
   body,
 ) = context {
@@ -106,7 +111,28 @@
 
   // Figures, subfigures, tables
   show figure.where(kind: table): set figure.caption(position: top)
-  show ref: set text(fill: rgb(0, 0, 255))
+  // Figure/Table refs: word ("Figure"/"Table") in normal color and unlinked,
+  // hyperlink (blue) only on the number. Other refs keep previous behavior.
+  show ref: it => {
+    let el = it.element
+    if el == none { return it }
+    if el.func() == figure {
+      let loc = el.location()
+      let n = counter(figure.where(kind: el.kind)).at(loc)
+      let word = if lang == "en" {
+        if el.kind == table [Table] else [Figure]
+      } else {
+        if el.kind == table [Tabla] else [Figura]
+      }
+      [#word #link(loc, text(fill: rgb(0, 0, 255), numbering(el.numbering, ..n)))]
+    } else if el.func() == heading {
+      let loc = el.location()
+      let n = counter(heading).at(loc)
+      link(loc, text(fill: rgb(0, 0, 255), numbering(el.numbering, ..n)))
+    } else {
+      it
+    }
+  }
 
   // Page
   let footer = context{
@@ -162,12 +188,12 @@
     else {0.25em}
 
     v(els-title-above)
-    make-title(title: title, authors: authors, affiliations: affiliations)
+    make-title(title: title, authors: authors, affiliations: affiliations, orcid-title: orcid-title)
     make-abstract(abstract, keywords, els-format, lang: lang)
     v(els-title-below)
   }
 
-  make-corresponding-author(authors, els-columns, lang: lang)
+  make-corresponding-author(authors, els-columns, lang: lang, show-orcid: orcid-footnote)
   front-matter
 
   // Paragraph

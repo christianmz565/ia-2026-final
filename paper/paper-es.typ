@@ -11,37 +11,43 @@
   title: "Benchmark Comparativo de Algoritmos de Detección de Objetos para el Reconocimiento de Defectos Superficiales en Madera",
   authors: (
     (
-      name: [Ricardo Mauricio Chambilla Perca #orcid("0009-0002-4863-0637")],
+      name: "Ricardo Mauricio Chambilla Perca",
+      orcid: "0009-0002-4863-0637",
       affiliations: ("a",),
       corresponding: true,
       email: "rchambillap@unsa.edu.pe",
     ),
     (
-      name: [Mariel Alison Jara Mamani #orcid("0009-0000-9069-5800")],
+      name: "Mariel Alison Jara Mamani",
+      orcid: "0009-0000-9069-5800",
       affiliations: ("a",),
       corresponding: true,
       email: "mjarama@unsa.edu.pe",
     ),
     (
-      name: [Christian Raul Mestas Zegarra #orcid("0009-0001-4338-6551")],
+      name: "Christian Raul Mestas Zegarra",
+      orcid: "0009-0001-4338-6551",
       affiliations: ("a",),
       corresponding: true,
       email: "cmestasz@unsa.edu.pe",
     ),
     (
-      name: [Yenaro Joel Noa Camino #orcid("0009-0001-4338-6551")],
+      name: "Yenaro Joel Noa Camino",
+      orcid: "0009-0001-4338-6551",
       affiliations: ("a",),
       corresponding: true,
       email: "ynoa@unsa.edu.pe",
     ),
     (
-      name: [Luis Gustavo Sequeiros Condori #orcid("0009-0001-4338-6551")],
+      name: "Luis Gustavo Sequeiros Condori",
+      orcid: "0009-0001-4338-6551",
       affiliations: ("a",),
       corresponding: true,
       email: "lsequeiros@unsa.edu.pe",
     ),
     (
-      name: [Yasiel Pérez Vera #orcid("0000-0001-9421-9529")],
+      name: "Yasiel Pérez Vera",
+      orcid: "0000-0001-9421-9529",
       affiliations: ("a",),
     ),
   ),
@@ -61,6 +67,8 @@
   format: "5p",
   paper: "a4",
   lang: "es",
+  orcid-title: false,
+  orcid-footnote: true,
 )
 
 // ============================================================
@@ -388,21 +396,9 @@ Chambilla Perca R.M. se declara bajo los roles de Software y Writing. Jara Maman
 Los autores declaran que no tienen ningún conflicto de intereses económicos conocido ni relaciones personales que pudieran dar la impresión de influir en el trabajo presentado en este artículo.
 
 
-#heading(numbering: none)[Declaración Ética]
-
-Este estudio no implica ningún experimento con seres humanos ni con animales, por lo que no se requirió ninguna autorización ética. Por lo tanto, no procede incluir una declaración ética.
-.
-#heading(numbering: none)[Consentimiento para Participación]
-
-No aplicable
-
-#heading(numbering: none)[Consentimiento para Publicación]
-
-No aplicable
-
 #heading(numbering: none)[Financiamiento]
 
-No aplicable
+Esta investigación no recibió ninguna subvención específica de organismos financiadores de los sectores público, comercial o sin fines de lucro.
 
 #heading(numbering: none)[Reconocimientos]
 

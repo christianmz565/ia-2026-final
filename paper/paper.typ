@@ -11,37 +11,43 @@
   title: "Comparative Benchmark of Object Detection Algorithms for Surface Defect Recognition in Wood",
   authors: (
     (
-      name: [Ricardo Mauricio Chambilla Perca #orcid("0009-0002-4863-0637")],
+      name: "Ricardo Mauricio Chambilla Perca",
+      orcid: "0009-0002-4863-0637",
       affiliations: ("a",),
       corresponding: true,
       email: "rchambillap@unsa.edu.pe",
     ),
     (
-      name: [Mariel Alison Jara Mamani #orcid("0009-0000-9069-5800")],
+      name: "Mariel Alison Jara Mamani",
+      orcid: "0009-0000-9069-5800",
       affiliations: ("a",),
       corresponding: true,
       email: "mjarama@unsa.edu.pe",
     ),
     (
-      name: [Christian Raul Mestas Zegarra #orcid("0009-0001-4338-6551")],
+      name: "Christian Raul Mestas Zegarra",
+      orcid: "0009-0001-4338-6551",
       affiliations: ("a",),
       corresponding: true,
       email: "cmestasz@unsa.edu.pe",
     ),
     (
-      name: [Yenaro Joel Noa Camino #orcid("0009-0001-4338-6551")],
+      name: "Yenaro Joel Noa Camino",
+      orcid: "0009-0001-4338-6551",
       affiliations: ("a",),
       corresponding: true,
       email: "ynoa@unsa.edu.pe",
     ),
     (
-      name: [Luis Gustavo Sequeiros Condori #orcid("0009-0001-4338-6551")],
+      name: "Luis Gustavo Sequeiros Condori",
+      orcid: "0009-0001-4338-6551",
       affiliations: ("a",),
       corresponding: true,
       email: "lsequeiros@unsa.edu.pe",
     ),
     (
-      name: [Yasiel Pérez Vera #orcid("0000-0001-9421-9529")],
+      name: "Yasiel Pérez Vera",
+      orcid: "0000-0001-9421-9529",
       affiliations: ("a",),
     )
   ),
@@ -61,6 +67,8 @@
   format: "5p",
   paper: "a4",
   lang: "en",
+  orcid-title: false,
+  orcid-footnote: true,
 )
 
 // ============================================================
@@ -384,21 +392,9 @@ Chambilla Perca R.M. declares roles in Software and Writing. Jara Mamani M.A. de
 The authors declare that they have no known competing financial interests or personal relationships that could have appeared to influence the work reported in this article.
 
 
-#heading(numbering: none)[Ethics Declaration]
-
-This study does not involve any experiments with humans or animals, so no ethical authorization was required. Therefore, it is not appropriate to include an ethics statement.
-.
-#heading(numbering: none)[Consent for Participation]
-
-Not applicable
-
-#heading(numbering: none)[Consent for Publication]
-
-Not applicable
-
 #heading(numbering: none)[Funding]
 
-Not applicable
+This research did not receive any specific grant from funding agencies in the public, commercial, or not-for-profit sectors.
 
 #heading(numbering: none)[Acknowledgments]
 
