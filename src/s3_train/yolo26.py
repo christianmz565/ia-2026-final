@@ -41,6 +41,7 @@ from src.utils import configure_torch_backend
 
 logger = structlog.get_logger(__name__)
 
+YOLO_SAVE_PERIOD = 5
 
 
 def _ensure_yolo_data_yaml(data_dir: Path) -> Path:
@@ -171,8 +172,11 @@ class YOLO26Trainer:
                 history.append(epoch_data)
                 save_epoch_history(out_dir, history)
 
-                if epoch % 5 == 0 or epoch == config.epochs:
+                if epoch % YOLO_SAVE_PERIOD == 0 or epoch == config.epochs:
                     ckpt_src = out_dir / "weights" / f"epoch{epoch}.pt"
+                    if not ckpt_src.exists() and epoch == config.epochs:
+                        ckpt_src = out_dir / "weights" / "last.pt"
+                        logger.info("yolo26_final_checkpoint_fallback", fallback=str(ckpt_src), epoch=epoch)
                     if not ckpt_src.exists():
                         raise FileNotFoundError(f"Expected YOLO epoch checkpoint not found: {ckpt_src}")
                     shutil.copy2(ckpt_src, checkpoints_dir / f"epoch_{epoch}.pt")
@@ -212,7 +216,7 @@ class YOLO26Trainer:
                     "patience": config.patience,
                     "workers": 2,
                     "save": True,
-                    "save_period": 5,
+                    "save_period": YOLO_SAVE_PERIOD,
                     "verbose": False,
                 }
                 if config.freeze_layer_count is not None:
