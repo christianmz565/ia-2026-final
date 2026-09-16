@@ -1,4 +1,7 @@
 #import "elsearticle/elsearticle.typ": *
+#import "@preview/orchid:0.1.0" as orchid
+
+#let orcid(id, format: "logo") = [#h(0.2em)#orchid.generate-link(id, format: format)]
 
 #set heading(numbering: "1.1")
 #set text(lang: "en")
@@ -8,42 +11,42 @@
   title: "Comparative Benchmark of Object Detection Algorithms for Surface Defect Recognition in Wood",
   authors: (
     (
-      name: "Ricardo Mauricio Chambilla Perca",
+      name: [Ricardo Mauricio Chambilla Perca #orcid("0009-0002-4863-0637")],
       affiliations: ("a",),
       corresponding: true,
       email: "rchambillap@unsa.edu.pe",
     ),
     (
-      name: "Mariel Alison Jara Mamani",
+      name: [Mariel Alison Jara Mamani #orcid("0009-0000-9069-5800")],
       affiliations: ("a",),
       corresponding: true,
       email: "mjarama@unsa.edu.pe",
     ),
     (
-      name: "Christian Raul Mestas Zegarra",
+      name: [Christian Raul Mestas Zegarra #orcid("0009-0001-4338-6551")],
       affiliations: ("a",),
       corresponding: true,
       email: "cmestasz@unsa.edu.pe",
     ),
     (
-      name: "Yenaro Joel Noa Camino",
+      name: [Yenaro Joel Noa Camino #orcid("0009-0001-4338-6551")],
       affiliations: ("a",),
       corresponding: true,
       email: "ynoa@unsa.edu.pe",
     ),
     (
-      name: "Luis Gustavo Sequeiros Condori",
+      name: [Luis Gustavo Sequeiros Condori #orcid("0009-0001-4338-6551")],
       affiliations: ("a",),
       corresponding: true,
       email: "lsequeiros@unsa.edu.pe",
     ),
     (
-      name: "Yasiel Pérez Vera",
+      name: [Yasiel Pérez Vera #orcid("0000-0001-9421-9529")],
       affiliations: ("a",),
-    ),
+    )
   ),
   affiliations: (
-    "a": [Escuela Profesional de Ingeniería de Sistemas, Universidad Nacional de San Agustín de Arequipa, Av. Venezuela s/n, Arequipa, Perú],
+      "a": [Systems Engineering Professional Program, Universidad Nacional de San Agustín, Av. Venezuela s/n corner with Calle Paucarpata, Paucarpata 04001, Arequipa, Peru]
   ),
   abstract: [
     Automated inspection of surface defects in wood faces challenges arising from severe long-tail class imbalance and high intra-class variability of organic anomalies. This article presents a comparative benchmark evaluating the intersection of three object detection paradigms: one-stage, two-stage, and transformers with four data augmentation strategies: no augmentation, Albumentations with class balancing, BoxAug with noise transformations, and BoxAug with neural harmonization via LibCom. The study is conducted on a dataset of 4,000 images with 8,888 annotations distributed across 8 defect categories, employing a reproducible five-stage pipeline with step caching. Experimental results demonstrate that RF-DETR achieves the highest ranking precision with mAP\@0.5 of 0.717 under per-model calibrated confidence thresholds, while Cascade R-CNN with BoxAug LibCom reaches the best operating-point F1 of 0.798. Augmentation effects are paradigm-specific: BoxAug LibCom improves Cascade R-CNN by +0.033 mAP\@0.5, whereas all three augmentation strategies leave YOLO26 at or below its unaugmented baseline (0.592 to 0.604 versus 0.618). Per-class analysis at AP\@0.5 shows marrow reaching 0.910 while quartzite peaks at 0.550, confirming that visual distinguishability interacts with class frequency. The calibrated-threshold protocol and the paradigm-dependent augmentation response are discussed and future directions are proposed, including extended training budgets and diffusion-based augmentation.

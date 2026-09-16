@@ -1,4 +1,7 @@
 #import "elsearticle/elsearticle.typ": *
+#import "@preview/orchid:0.1.0" as orchid
+
+#let orcid(id, format: "logo") = [#h(0.2em)#orchid.generate-link(id, format: format)]
 
 #set heading(numbering: "1.1")
 #set text(lang: "es")
@@ -8,38 +11,42 @@
   title: "Benchmark Comparativo de Algoritmos de Detección de Objetos para el Reconocimiento de Defectos Superficiales en Madera",
   authors: (
     (
-      name: "Chambilla Perca Ricardo Mauricio",
+      name: [Ricardo Mauricio Chambilla Perca #orcid("0009-0002-4863-0637")],
       affiliations: ("a",),
       corresponding: true,
       email: "rchambillap@unsa.edu.pe",
     ),
     (
-      name: "Jara Mamani Mariel Alison",
+      name: [Mariel Alison Jara Mamani #orcid("0009-0000-9069-5800")],
       affiliations: ("a",),
       corresponding: true,
       email: "mjarama@unsa.edu.pe",
     ),
     (
-      name: "Mestas Zegarra Christian Raul",
+      name: [Christian Raul Mestas Zegarra #orcid("0009-0001-4338-6551")],
       affiliations: ("a",),
       corresponding: true,
       email: "cmestasz@unsa.edu.pe",
     ),
     (
-      name: "Noa Camino Yenaro Joel",
+      name: [Yenaro Joel Noa Camino #orcid("0009-0001-4338-6551")],
       affiliations: ("a",),
       corresponding: true,
       email: "ynoa@unsa.edu.pe",
     ),
     (
-      name: "Sequeiros Condori Luis Gustavo",
+      name: [Luis Gustavo Sequeiros Condori #orcid("0009-0001-4338-6551")],
       affiliations: ("a",),
       corresponding: true,
       email: "lsequeiros@unsa.edu.pe",
     ),
+    (
+      name: [Yasiel Pérez Vera #orcid("0000-0001-9421-9529")],
+      affiliations: ("a",),
+    ),
   ),
   affiliations: (
-    "a": [Universidad Nacional de San Agustín de Arequipa, Facultad de Ingeniería de Producción y Servicios, Arequipa, Perú],
+    "a": [Escuela Profesional de Ingeniería de Sistemas, Universidad Nacional de San Agustín, esquina con Calle Paucarpata y Vía Rápida Venezuela s/n, Paucarpata 04001, Arequipa, Perú],
   ),
   abstract: [
     La inspección automatizada de defectos superficiales en madera enfrenta desafíos derivados del severo desequilibrio de clases en distribuciones de cola larga y de la alta variabilidad intraclase de las anomalías orgánicas. Este artículo presenta un benchmark comparativo que evalúa la intersección de tres paradigmas de detección de objetos: una etapa, dos etapas y transformers con cuatro estrategias de aumento de datos: sin augmentación, Albumentations con balanceo de clases, BoxAug con transformaciones de ruido, y BoxAug con armonización neuronal mediante LibCom. El estudio se ejecuta sobre un dataset de 4,000 imágenes con 8,888 anotaciones distribuidas en 8 categorías de defectos, empleando un pipeline reproducible de cinco etapas con caché por pasos. Los resultados experimentales demuestran que RF-DETR alcanza la mayor precisión de ranking con mAP\@0.5 de 0.717 bajo umbrales de confianza calibrados por modelo, mientras que Cascade R-CNN con BoxAug LibCom alcanza el mejor F1 de punto operativo de 0.798. Los efectos del aumento dependen del paradigma: BoxAug LibCom mejora Cascade R-CNN en +0.033 mAP\@0.5, mientras que las tres estrategias de aumento dejan a YOLO26 en o por debajo de su baseline sin aumento (0.592 a 0.604 frente a 0.618). El análisis por clase en AP\@0.5 muestra que médula alcanza 0.910 mientras que cuarcita llega a 0.550 como máximo, confirmando que la distinguibilidad visual interactúa con la frecuencia de clase. Se discuten el protocolo de umbrales calibrados y la respuesta al aumento dependiente del paradigma, y se proponen direcciones futuras incluyendo presupuestos de entrenamiento extendidos y aumento basado en difusión.
@@ -184,7 +191,14 @@ Las anotaciones proporcionan coordenadas normalizadas de cajas delimitadoras en 
 
 == Método propuesto <sec:proposed>
 
-El método propuesto implementa un pipeline de experimentación de cinco etapas diseñado para garantizar la reproducibilidad y la comparabilidad justa entre configuraciones. Las etapas comprenden: (1) preparación de datos, (2) aumento de datos, (3) entrenamiento de modelos, (4) evaluación y (5) análisis de resultados. La configuración de toda la tubería se gestiona mediante modelos Pydantic tipados que garantizan la validación de parámetros en tiempo de compilación @colvin2024pydantic. La interfaz de línea de comandos permite la personalización de cualquier parámetro anidado mediante notación de puntos, facilitando la experimentación reproducible. Todos los generadores aleatorios (Python, NumPy, PyTorch) se siembran desde una semilla maestra con identificadores de flujo fijos por etapa; sin embargo, cudnn benchmarking y TF32 permanecen activos.
+El método propuesto implementa un pipeline de experimentación de cinco etapas diseñado para garantizar la reproducibilidad y la comparabilidad justa entre configuraciones. Las etapas comprenden: (1) preparación de datos, (2) aumento de datos, (3) entrenamiento de modelos, (4) evaluación y (5) análisis de resultados. @fig:pipeline resume el flujo con la operación esencial de cada etapa; el texto detalla parámetros y decisiones de diseño. La configuración de toda la tubería se gestiona mediante modelos Pydantic tipados que garantizan la validación de parámetros en tiempo de compilación @colvin2024pydantic. La interfaz de línea de comandos permite la personalización de cualquier parámetro anidado mediante notación de puntos, facilitando la experimentación reproducible. Todos los generadores aleatorios (Python, NumPy, PyTorch) se siembran desde una semilla maestra con identificadores de flujo fijos por etapa; sin embargo, cudnn benchmarking y TF32 permanecen activos.
+
+#figure(
+  image("figures/methods/pipeline.png", width: 100%),
+  caption: [Pipeline experimental propuesto de cinco etapas.],
+  kind: image,
+  scope: "parent",
+) <fig:pipeline>
 
 La etapa de preparación de datos aplica tres operaciones secuenciales sobre el dataset crudo. Primero, se recortan los bordes negros mediante segmentación por umbralización de Otsu @otsu1979threshold y operaciones morfológicas de cierre, aislando la región válida del tablón de madera. Segundo, las imágenes se reducen a la mitad de su resolución original mediante interpolación de área. Tercero, las anotaciones de cajas delimitadoras se transforman al espacio coordinado resultante y se filtran con una compuerta de tamaño de tres reglas (dimensión absoluta mínima de 2.0 px salvo que el área alcance 12.0 px² o la dimensión mayor alcance 6.0 px, preservando grietas delgadas y descartando motas inservibles). El conjunto resultante se particiona en entrenamiento con 80%, validación con 10% y prueba con 10% mediante estratificación iterativa codiciosa que preserva la distribución de clases en cada partición @kubat2000addressing. Para aliviar el desequilibrio, se descartan luego el 35% de los tablones de entrenamiento que contienen solo las dos clases mayoritarias; esto desplaza intencionalmente los priors de entrenamiento respecto a las distribuciones naturales de validación y prueba, por lo que se esperan puntajes reducidos en clases mayoritarias aun cuando el balanceo funcione.
 

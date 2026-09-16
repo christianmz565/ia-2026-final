@@ -44,8 +44,13 @@
   if authors.len() == 0 {return ()}
 
   for author in authors {
-    if type(author.name) == content {
+    if type(author.name) == content and author.name.has("text") {
       names.push(author.name.text)
+    } else if type(author.name) == content {
+      // Name carries extra content (e.g. an ORCID badge): keep only the
+      // plain-text children so PDF metadata stays clean.
+      let parts = author.name.children.filter(c => type(c) == content and c.has("text")).map(c => c.text)
+      names.push(parts.join(" ").trim())
     } else {
       names.push(author.name)
     }
