@@ -8,38 +8,42 @@
   title: "Comparative Benchmark of Object Detection Algorithms for Surface Defect Recognition in Wood",
   authors: (
     (
-      name: "Chambilla Perca Ricardo Mauricio",
+      name: "Ricardo Mauricio Chambilla Perca",
       affiliations: ("a",),
       corresponding: true,
       email: "rchambillap@unsa.edu.pe",
     ),
     (
-      name: "Jara Mamani Mariel Alison",
+      name: "Mariel Alison Jara Mamani",
       affiliations: ("a",),
       corresponding: true,
       email: "mjarama@unsa.edu.pe",
     ),
     (
-      name: "Mestas Zegarra Christian Raul",
+      name: "Christian Raul Mestas Zegarra",
       affiliations: ("a",),
       corresponding: true,
       email: "cmestasz@unsa.edu.pe",
     ),
     (
-      name: "Noa Camino Yenaro Joel",
+      name: "Yenaro Joel Noa Camino",
       affiliations: ("a",),
       corresponding: true,
       email: "ynoa@unsa.edu.pe",
     ),
     (
-      name: "Sequeiros Condori Luis Gustavo",
+      name: "Luis Gustavo Sequeiros Condori",
       affiliations: ("a",),
       corresponding: true,
       email: "lsequeiros@unsa.edu.pe",
     ),
+    (
+      name: "Yasiel Pérez Vera",
+      affiliations: ("a",),
+    ),
   ),
   affiliations: (
-    "a": [Universidad Nacional de San Agustín de Arequipa, Facultad de Ingeniería de Producción y Servicios, Arequipa, Perú],
+    "a": [Escuela Profesional de Ingeniería de Sistemas, Universidad Nacional de San Agustín de Arequipa, Av. Venezuela s/n, Arequipa, Perú],
   ),
   abstract: [
     Automated inspection of surface defects in wood faces challenges arising from severe long-tail class imbalance and high intra-class variability of organic anomalies. This article presents a comparative benchmark evaluating the intersection of three object detection paradigms: one-stage, two-stage, and transformers with four data augmentation strategies: no augmentation, Albumentations with class balancing, BoxAug with noise transformations, and BoxAug with neural harmonization via LibCom. The study is conducted on a dataset of 4,000 images with 8,888 annotations distributed across 8 defect categories, employing a reproducible five-stage pipeline with step caching. Experimental results demonstrate that RF-DETR achieves the highest ranking precision with mAP\@0.5 of 0.717 under per-model calibrated confidence thresholds, while Cascade R-CNN with BoxAug LibCom reaches the best operating-point F1 of 0.798. Augmentation effects are paradigm-specific: BoxAug LibCom improves Cascade R-CNN by +0.033 mAP\@0.5, whereas all three augmentation strategies leave YOLO26 at or below its unaugmented baseline (0.592 to 0.604 versus 0.618). Per-class analysis at AP\@0.5 shows marrow reaching 0.910 while quartzite peaks at 0.550, confirming that visual distinguishability interacts with class frequency. The calibrated-threshold protocol and the paradigm-dependent augmentation response are discussed and future directions are proposed, including extended training budgets and diffusion-based augmentation.
@@ -185,7 +189,14 @@ The annotations provide normalized bounding box coordinates in YOLO format. The 
 
 == Proposed Method <sec:proposed>
 
-The proposed method implements a five-stage experiment pipeline designed to ensure reproducibility and fair comparability between configurations. The stages comprise: (1) data preparation, (2) data augmentation, (3) model training, (4) evaluation, and (5) results analysis. The entire pipeline configuration is managed through typed Pydantic models that guarantee parameter validation at compile time @colvin2024pydantic. The command-line interface allows customization of any nested parameter through dot notation, facilitating reproducible experimentation. All random number generators (Python, NumPy, PyTorch) are seeded from a single master seed with fixed per-stage stream ids, however, cudnn benchmarking and TF32 remain enabled.
+The proposed method implements a five-stage experiment pipeline designed to ensure reproducibility and fair comparability between configurations. The stages comprise: (1) data preparation, (2) data augmentation, (3) model training, (4) evaluation, and (5) results analysis. @fig:pipeline overviews the flow with the essential operation of each stage; the surrounding text details parameters and design choices. The entire pipeline configuration is managed through typed Pydantic models that guarantee parameter validation at compile time @colvin2024pydantic. The command-line interface allows customization of any nested parameter through dot notation, facilitating reproducible experimentation. All random number generators (Python, NumPy, PyTorch) are seeded from a single master seed with fixed per-stage stream ids, however, cudnn benchmarking and TF32 remain enabled.
+
+#figure(
+  image("figures/methods/pipeline.png", width: 100%),
+  caption: [Overview of the proposed five-stage experimental pipeline for timber defect detection benchmarking.],
+  kind: image,
+  scope: "parent",
+) <fig:pipeline>
 
 The data preparation stage applies three sequential operations on the raw dataset. First, black edges are cropped through Otsu thresholding segmentation @otsu1979threshold and morphological closing operations, isolating the valid region of the wood plank. Second, images are reduced to half their original resolution through area interpolation. Third, bounding box annotations are transformed to the resulting coordinate space and filtered by a three-rule size gate (minimum absolute dimension 2.0 px unless area reaches 12.0 px² or the major dimension reaches 6.0 px, preserving thin cracks while dropping unusable specks). The resulting set is partitioned into 80% training, 10% validation, and 10% test through greedy iterative stratification that preserves class distribution in each partition @kubat2000addressing. To alleviate imbalance, 35% of training planks containing only the two majority defect classes are then dropped; this intentionally shifts training priors away from the natural validation and test distributions, so reduced majority-class scores are expected even when the balancing works.
 
