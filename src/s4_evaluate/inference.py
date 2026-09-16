@@ -141,6 +141,75 @@ def _detect_model_type(model_path: Path) -> str:
     raise ValueError(f"Cannot identify model paradigm from path: {model_path}")
 
 
+def _rfdetr_predict_rect(
+    rfdetr_model: Any,
+    img_rgb: np.ndarray,
+    threshold: float,
+    target_height: int,
+    target_width: int,
+) -> Any:
+    """Run RF-DETR inference on a fixed rectangular canvas.
+
+    Mirrors ``RFDETR.predict`` preprocessing/inference/postprocessing exactly, except the
+    input is resized to ``(target_height, target_width)`` instead of the lib's hardcoded
+    square ``(resolution, resolution)`` — matching rectangular training geometry. Both
+    dimensions must satisfy the backbone /32 gate. Returns a single ``Detections``.
+    """
+    import supervision as sv
+    import torchvision.transforms.functional as func
+
+    if target_height % 32 != 0 or target_width % 32 != 0:
+        raise ValueError(
+            f"Rectangular eval canvas {(target_height, target_width)} violates the backbone /32 gate"
+        )
+
+    device = rfdetr_model.model.device
+    img_tensor = func.to_tensor(img_rgb).to(device)
+    if (img_tensor > 1).any():
+        raise ValueError("Image has pixel values above 1; expected uint8 RGB input")
+    if img_tensor.shape[0] != 3:
+        raise ValueError(f"Invalid image shape; expected 3 channels, got {img_tensor.shape[0]}")
+    img_tensor = func.normalize(img_tensor, rfdetr_model.means, rfdetr_model.stds)
+    img_tensor = func.resize(img_tensor, (target_height, target_width))
+    orig_h, orig_w = img_rgb.shape[:2]
+    batch_tensor = img_tensor.unsqueeze(0)
+
+    with torch.inference_mode():
+        predictions = rfdetr_model.model.model(batch_tensor)
+        if isinstance(predictions, tuple):
+            predictions = {
+                "pred_logits": predictions[1],
+                "pred_boxes": predictions[0],
+                "pred_masks": predictions[2],
+            }
+        target_sizes = torch.tensor([(orig_h, orig_w)], device=device)
+        results = rfdetr_model.model.postprocess(predictions, target_sizes=target_sizes)
+
+    result = results[0]
+    scores = result["scores"]
+    labels = result["labels"]
+    boxes = result["boxes"]
+
+    keep = scores > threshold
+    scores = scores[keep]
+    labels = labels[keep]
+    boxes = boxes[keep]
+
+    if "masks" in result:
+        masks = result["masks"][keep]
+        return sv.Detections(
+            xyxy=boxes.float().cpu().numpy(),
+            confidence=scores.float().cpu().numpy(),
+            class_id=labels.cpu().numpy(),
+            mask=masks.squeeze(1).cpu().numpy(),
+        )
+    return sv.Detections(
+        xyxy=boxes.float().cpu().numpy(),
+        confidence=scores.float().cpu().numpy(),
+        class_id=labels.cpu().numpy(),
+    )
+
+
 def run_inference(
     model_path: Path | str,
     data_dir: Path | str,
@@ -153,6 +222,7 @@ def run_inference(
     checkpoint: Path | str | None = None,
     sample_seed: int | None = None,
     yolo_imgsz: list[int] | None = None,
+    rfdetr_imgsz: list[int] | None = None,
 ) -> dict[str, object]:
     """Run model inference and produce COCO-format predictions.
 
@@ -170,6 +240,7 @@ def run_inference(
         checkpoint: Explicit checkpoint file; empty resolves by priority, ambiguity raises.
         sample_seed: Seed for ``max_images`` sampling (defaults to ``DEFAULT_SEED``).
         yolo_imgsz: ``[height, width]`` eval size for YOLO (defaults to training size).
+        rfdetr_imgsz: ``[height, width]`` eval canvas for RF-DETR (defaults to training size).
 
     Returns:
         Dict with keys: predictions_path, total_inference_ms, avg_inference_ms,
@@ -189,12 +260,14 @@ def run_inference(
         resolved_checkpoint = _find_checkpoint(model_path, explicit=checkpoint)
         model_type = _detect_model_type(model_path)
         resolved_yolo_imgsz = yolo_imgsz or [TARGET_IMG_HEIGHT, TARGET_IMG_WIDTH]
+        resolved_rfdetr_imgsz = rfdetr_imgsz or [TARGET_IMG_HEIGHT, TARGET_IMG_WIDTH]
         logger.info(
             "inference_start",
             model_type=model_type,
             checkpoint=str(resolved_checkpoint),
             device=resolved_device,
             yolo_imgsz=resolved_yolo_imgsz,
+            rfdetr_imgsz=resolved_rfdetr_imgsz,
             resolution=resolution,
         )
 
@@ -361,7 +434,13 @@ def run_inference(
                 if img is None:
                     continue
                 img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-                detections = rfdetr_model.predict(img_rgb, threshold=conf_threshold)
+                detections = _rfdetr_predict_rect(
+                    rfdetr_model,
+                    img_rgb,
+                    conf_threshold,
+                    resolved_rfdetr_imgsz[0],
+                    resolved_rfdetr_imgsz[1],
+                )
                 if isinstance(detections, list):
                     detections = detections[0]
                 if detections.confidence is None or detections.class_id is None:

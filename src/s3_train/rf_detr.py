@@ -18,7 +18,7 @@ import torch
 
 from src.caching import config_fingerprint, run_cached_step
 from src.config import RFDETRConfig
-from src.constants import CLASS_NAMES, CLASS_WEIGHTS_LIST, S3_OUTPUT, SPLIT_DATASET
+from src.constants import CLASS_NAMES, CLASS_WEIGHTS_LIST, S3_OUTPUT, SPLIT_DATASET, TARGET_IMG_HEIGHT, TARGET_IMG_WIDTH
 from src.s3_train.base import register_trainer
 from src.s3_train.common import (
     create_epoch_pbar,
@@ -174,20 +174,29 @@ def patch_rfdetr_coco_extended_metrics() -> None:
 RFDETR_PINNED_VERSION = "1.3.0"
 
 
-def patch_rfdetr_test_transforms() -> None:
-    """Map the ``test`` image_set to deterministic val-equivalent transforms.
+def patch_rfdetr_rect_transforms(
+    target_height: int = TARGET_IMG_HEIGHT,
+    target_width: int = TARGET_IMG_WIDTH,
+) -> None:
+    """Install a static rectangular transform factory for RF-DETR training.
 
-    ``rfdetr.datasets.coco.make_coco_transforms`` (aspect-preserving path selected by
-    ``square_resize_div_64=False``) only handles ``train``/``val``/``val_speed`` and raises
-    ``ValueError: unknown test`` when the trainer unconditionally builds its startup
-    ``dataset_test``. Test-time transforms must be deterministic, so ``test`` maps to the
-    ``val`` pipeline (``RandomResize`` + normalize) — the same mapping upstream adopted in
-    1.6.0 (``if image_set in ('val', 'test')``). Fail-closed: unpinned versions, unexpected
-    probe errors, and re-patching all raise instead of silently changing behavior.
+    Upstream 1.3.0 ships no rectangular path: ``make_coco_transforms`` resizes by short
+    side (output width varies with plank aspect and breaks the backbone /32 gate and batch
+    collation), while ``make_coco_transforms_square_div_64`` pads to square. This installs
+    a factory producing a fixed ``(target_height, target_width)`` canvas for every split —
+    the same geometry YOLO26/Cascade train on — via a ``RectangularResize`` mirroring the
+    lib's ``SquareResize`` box/area/mask rescaling. Train uses flip + rectangular resize;
+    val/test/val_speed use the deterministic rectangular resize; anything else raises.
+    Both dimensions must be divisible by 32 (backbone gate, checked explicitly).
+    ``multi_scale``/``expanded_scales`` must be ``False`` (train call passes them
+    explicitly); fail-closed on unpinned lib versions, geometry mismatch on re-patch,
+    and unexpected errors.
     """
     try:
         import rfdetr
         import rfdetr.datasets.coco as coco_mod
+        import rfdetr.datasets.transforms as lib_transforms
+
         try:
             from importlib.metadata import version as _pkg_version
 
@@ -196,33 +205,104 @@ def patch_rfdetr_test_transforms() -> None:
             version = getattr(rfdetr, "__version__", "unknown")
         if version != RFDETR_PINNED_VERSION:
             raise RuntimeError(
-                f"RF-DETR test-transforms patch verified against {RFDETR_PINNED_VERSION}, "
+                f"RF-DETR rectangular-transforms patch verified against {RFDETR_PINNED_VERSION}, "
                 f"found {version}; training without review is forbidden"
             )
+        if target_height % 32 != 0 or target_width % 32 != 0:
+            raise ValueError(
+                f"Rectangular canvas {(target_height, target_width)} violates the backbone /32 gate"
+            )
 
-        orig = coco_mod.make_coco_transforms
-        if getattr(orig, "__rfdetr_test_mapped__", False):
+        installed = getattr(coco_mod.make_coco_transforms, "__rfdetr_rect_hw__", None)
+        if installed is not None:
+            if installed != (target_height, target_width):
+                raise RuntimeError(
+                    f"Conflicting rectangular canvas installed {installed}, "
+                    f"requested {(target_height, target_width)}"
+                )
             return
 
-        try:
-            orig("test", 512)
-            logger.info("rfdetr_test_transforms_native", version=version)
-            return
-        except ValueError as err:
-            if "unknown test" not in str(err):
-                raise
+        class RectangularResize:
+            """Stretch to a fixed ``(height, width)`` canvas, mirroring ``SquareResize``."""
 
-        def make_coco_transforms_with_test(image_set: str, *args: Any, **kwargs: Any) -> Any:
-            if image_set == "test":
-                logger.info("rfdetr_test_transforms_mapped", mapped_to="val", version=version)
-                return orig("val", *args, **kwargs)
-            return orig(image_set, *args, **kwargs)
+            def __init__(self, size: tuple[int, int]) -> None:
+                self.size = size
 
-        make_coco_transforms_with_test.__rfdetr_test_mapped__ = True  # type: ignore[attr-defined]
-        coco_mod.make_coco_transforms = make_coco_transforms_with_test
-        logger.info("rfdetr_test_transforms_patched", version=version)
+            def __call__(self, img: Any, target: Any = None) -> Any:
+                import torchvision.transforms.functional as func
+
+                height, width = self.size
+                rescaled_img = func.resize(img, (height, width))
+                if target is None:
+                    return rescaled_img, None
+                rescaled_w, rescaled_h = rescaled_img.size[0], rescaled_img.size[1]
+                orig_w, orig_h = img.size[0], img.size[1]
+                ratio_width = float(rescaled_w) / float(orig_w)
+                ratio_height = float(rescaled_h) / float(orig_h)
+
+                import torch
+
+                target = target.copy()
+                if "boxes" in target:
+                    boxes = target["boxes"]
+                    scaled_boxes = boxes * torch.as_tensor(
+                        [ratio_width, ratio_height, ratio_width, ratio_height]
+                    )
+                    target["boxes"] = scaled_boxes
+
+                if "area" in target:
+                    area = target["area"]
+                    scaled_area = area * (ratio_width * ratio_height)
+                    target["area"] = scaled_area
+
+                target["size"] = torch.tensor([rescaled_h, rescaled_w])
+
+                if "masks" in target:
+                    from rfdetr.util.misc import interpolate
+
+                    target["masks"] = interpolate(
+                        target["masks"][:, None].float(), (rescaled_h, rescaled_w), mode="nearest"
+                    )[:, 0] > 0.5
+
+                return rescaled_img, target
+
+        normalize = lib_transforms.Compose(
+            [
+                lib_transforms.ToTensor(),
+                lib_transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
+            ]
+        )
+
+        def make_coco_transforms_rect(
+            image_set: str,
+            resolution: int,
+            multi_scale: bool = False,
+            expanded_scales: bool = False,
+            **kwargs: Any,
+        ) -> Any:
+            if multi_scale or expanded_scales:
+                raise ValueError(
+                    "Rectangular factory requires multi_scale=False and expanded_scales=False"
+                )
+            rect = RectangularResize((target_height, target_width))
+            if image_set == "train":
+                return lib_transforms.Compose(
+                    [lib_transforms.RandomHorizontalFlip(), rect, normalize]
+                )
+            if image_set in ("val", "test", "val_speed"):
+                return lib_transforms.Compose([rect, normalize])
+            raise ValueError(f"unknown {image_set}")
+
+        make_coco_transforms_rect.__rfdetr_rect_hw__ = (target_height, target_width)  # type: ignore[attr-defined]
+        coco_mod.make_coco_transforms = make_coco_transforms_rect
+        logger.info(
+            "rfdetr_rect_transforms_patched",
+            version=version,
+            target_height=target_height,
+            target_width=target_width,
+        )
     except Exception as err:
-        raise RuntimeError(f"RF-DETR test-transforms patch failed; training without it is forbidden: {err}") from err
+        raise RuntimeError(f"RF-DETR rectangular-transforms patch failed; training without it is forbidden: {err}") from err
 
 
 class RFDETRTrainer:
@@ -239,7 +319,7 @@ class RFDETRTrainer:
         self.config = config or RFDETRConfig()
         patch_rfdetr_coco_extended_metrics()
         patch_rfdetr_class_weights()
-        patch_rfdetr_test_transforms()
+        patch_rfdetr_rect_transforms()
 
     def train(self, config: RFDETRConfig | None = None, force: bool = False) -> Path:
         """Train RF-DETR model with mixed precision and save standardized outputs.
@@ -252,10 +332,12 @@ class RFDETRTrainer:
             Path to best checkpoint (best.pt).
         """
         config = config or self.config
+        if config.square_resize:
+            raise ValueError("Rectangular RF-DETR pipeline requires square_resize=False")
         configure_torch_backend()
         patch_rfdetr_coco_extended_metrics()
         patch_rfdetr_class_weights()
-        patch_rfdetr_test_transforms()
+        patch_rfdetr_rect_transforms()
         data_dir = Path(config.data_dir) if config.data_dir else SPLIT_DATASET
 
         output_dir = Path(config.output_dir) if config.output_dir else S3_OUTPUT / "rf_detr"
@@ -263,7 +345,7 @@ class RFDETRTrainer:
         def _do_train() -> Path:
             patch_rfdetr_coco_extended_metrics()
             patch_rfdetr_class_weights()
-            patch_rfdetr_test_transforms()
+            patch_rfdetr_rect_transforms()
             from rfdetr.detr import RFDETRMedium
 
             out_dir, checkpoints_dir = setup_training_output_dir(output_dir)
@@ -370,6 +452,8 @@ class RFDETRTrainer:
                     early_stopping_patience=config.patience,
                     class_names=CLASS_NAMES,
                     square_resize_div_64=config.square_resize,
+                    multi_scale=False,
+                    expanded_scales=False,
                     num_workers=2,
                     tensorboard=True,
                 )
