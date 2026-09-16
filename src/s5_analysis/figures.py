@@ -239,9 +239,37 @@ def _fig_per_class_ap_heatmap(rows: list[dict[str, Any]], output_dir: Path, dpi:
     else:
         ax.text(0.5, 0.5, "No per-class AP data available", ha="center", va="center")
 
-    ax.set_title("Per-Class Average Precision (AP@50:95) Heatmap", fontsize=12)
+    ax.set_title("Per-Class Average Precision (AP@50) Heatmap", fontsize=12)
     plt.tight_layout()
     return _save_fig(fig, output_dir, "per_class_ap_heatmap", dpi)
+
+def _fig_per_class_ap50_95_heatmap(rows: list[dict[str, Any]], output_dir: Path, dpi: int) -> list[Path]:
+    """Figure 7b: Per-class AP@50:95 heatmap across models."""
+    class_map: dict[str, dict[str, float]] = {}
+    for r in rows:
+        m_lbl = MODEL_LABELS.get(r.get("model", ""), r.get("model", "N/A"))
+        a_lbl = AUG_LABELS.get(r.get("augmentation", ""), r.get("augmentation", ""))
+        label = f"{m_lbl} ({a_lbl})" if a_lbl else m_lbl
+        per_class = r.get("per_class_ap_50_95", {})
+        if per_class:
+            class_map[label] = {cls: float(val) for cls, val in per_class.items()}
+
+    df = pd.DataFrame(class_map).T
+    fig, ax = plt.subplots(figsize=(10, 5.5))
+    if not df.empty:
+        sns.heatmap(df, annot=True, fmt=".3f", cmap="YlOrRd", cbar=True, ax=ax, linewidths=0.5,
+                    annot_kws={"size": 8})
+        ax.set_ylabel("Model / Augmentation", fontsize=10)
+        ax.set_xlabel("Defect Class", fontsize=10)
+        plt.xticks(rotation=35, ha="right", fontsize=9)
+        plt.yticks(fontsize=9)
+    else:
+        ax.text(0.5, 0.5, "No per-class AP@50:95 data available", ha="center", va="center")
+
+    ax.set_title("Per-Class Average Precision (AP@50:95) Heatmap", fontsize=12)
+    plt.tight_layout()
+    return _save_fig(fig, output_dir, "per_class_ap50_95_heatmap", dpi)
+
 
 
 def _fig_per_class_ap_bars(rows: list[dict[str, Any]], output_dir: Path, dpi: int) -> list[Path]:
@@ -265,7 +293,7 @@ def _fig_per_class_ap_bars(rows: list[dict[str, Any]], output_dir: Path, dpi: in
     else:
         ax.text(0.5, 0.5, "No per-class AP data available", ha="center", va="center")
 
-    ax.set_xlabel("Average Precision (AP@50:95)", fontsize=10)
+    ax.set_xlabel("Average Precision (AP@50)", fontsize=10)
     ax.set_ylabel("")
     ax.set_title("Per-Class Detection Performance Across Models", fontsize=12)
     sns.despine(left=True, bottom=True)
@@ -473,7 +501,7 @@ def generate_figures(
     config: AnalysisConfig | None = None,
     force: bool = False,
 ) -> list[Path]:
-    """Generate all 14 paper-ready comparison figures.
+    """Generate all 15 paper-ready comparison figures.
 
     Args:
         aggregated: Output of ``aggregate_results()``.
@@ -517,6 +545,7 @@ def generate_figures(
 
         # Group C: Per-Class Performance
         all_paths.extend(_fig_per_class_ap_heatmap(rows, resolved_output_dir, config.figure_dpi))
+        all_paths.extend(_fig_per_class_ap50_95_heatmap(rows, resolved_output_dir, config.figure_dpi))
         all_paths.extend(_fig_per_class_ap_bars(rows, resolved_output_dir, config.figure_dpi))
 
         # Group D: Training Dynamics

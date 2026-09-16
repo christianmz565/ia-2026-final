@@ -1,4 +1,5 @@
 import json
+import os
 import subprocess
 from pathlib import Path
 
@@ -8,7 +9,7 @@ import seaborn as sns
 from matplotlib import font_manager
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
-STATS_FILE = PROJECT_ROOT / "partials" / "s1_prepare" / "explore_stats.json"
+STATS_FILE = Path(os.environ.get("STATS_JSON", PROJECT_ROOT / "partials" / "s1_prepare" / "explore_stats.json"))
 
 sns.set_theme(style="whitegrid")
 

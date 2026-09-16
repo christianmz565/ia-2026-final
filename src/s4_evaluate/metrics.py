@@ -33,7 +33,7 @@ def compute_metrics(
 
     ``mAP_50``/``mAP_50_95`` are COCO-standard. ``precision``/``recall``/``f1``
     are operating-point values at ``conf_threshold`` (greedy IoU>=0.5 matching).
-    ``per_class_ap`` is per-class AP@50.
+    ``per_class_ap`` is per-class AP@50 and ``per_class_ap_50_95`` is per-class AP@50:95.
 
     Args:
         predictions: Path to predictions COCO JSON file.
@@ -44,7 +44,7 @@ def compute_metrics(
 
     Returns:
         Dict with keys: mAP_50, mAP_50_95, precision, recall, f1,
-        per_class_ap, num_images, num_predictions.
+        per_class_ap, per_class_ap_50_95, num_images, num_predictions.
     """
     resolved_output = Path(output_path or S4_OUTPUT / "metrics.json")
 
@@ -72,6 +72,7 @@ def compute_metrics(
         P = coco_eval.eval["precision"]
 
         per_class_ap: dict[str, float] = {}
+        per_class_ap_50_95: dict[str, float] = {}
         cat_ids = coco_gt.getCatIds()
         for i, cat in enumerate(coco_gt.loadCats(cat_ids)):
             cat_name = cat.get("name")
@@ -82,6 +83,11 @@ def compute_metrics(
             if len(valid_p_class) == 0:
                 raise ValueError(f"No valid AP@50 samples for ground truth category {cat_name!r}")
             per_class_ap[cat_name] = round(float(np.mean(valid_p_class)), 4)
+            p_strict = P[:, :, i, 0, 2]
+            valid_p_strict = p_strict[p_strict > -1]
+            if len(valid_p_strict) == 0:
+                raise ValueError(f"No valid AP@50:95 samples for ground truth category {cat_name!r}")
+            per_class_ap_50_95[cat_name] = round(float(np.mean(valid_p_strict)), 4)
 
         pred_anns = coco_dt.loadAnns(coco_dt.getAnnIds())
         op = operating_point_metrics(coco_gt, pred_anns, conf_threshold=conf_threshold)
@@ -93,6 +99,7 @@ def compute_metrics(
             "recall": op["recall"],
             "f1": op["f1"],
             "per_class_ap": per_class_ap,
+            "per_class_ap_50_95": per_class_ap_50_95,
             "num_images": len(coco_gt.getImgIds()),
             "num_predictions": len(coco_dt.getAnnIds()),
         }
