@@ -454,8 +454,8 @@ class RFDETRTrainer:
                     square_resize_div_64=config.square_resize,
                     multi_scale=False,
                     expanded_scales=False,
+                    checkpoint_interval=1,
                     num_workers=2,
-                    tensorboard=True,
                 )
             finally:
                 pbar.close()
