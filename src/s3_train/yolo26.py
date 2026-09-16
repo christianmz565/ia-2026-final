@@ -132,6 +132,10 @@ class YOLO26Trainer:
 
             def on_fit_epoch_end(trainer: Any) -> None:
                 nonlocal epoch_start_time
+                if trainer.epoch >= config.epochs:
+                    # Post-training best-validation re-fires this event with epoch bumped
+                    # past the last trained epoch; the lib writes no checkpoint for it.
+                    return
                 now = time.time()
                 epoch_duration = round(now - epoch_start_time, 2)
                 epoch_start_time = now
@@ -172,8 +176,10 @@ class YOLO26Trainer:
                 history.append(epoch_data)
                 save_epoch_history(out_dir, history)
 
-                if epoch % YOLO_SAVE_PERIOD == 0 or epoch == config.epochs:
-                    ckpt_src = out_dir / "weights" / f"epoch{epoch}.pt"
+                # Ultralytics counts 0-based: weights/epoch{N}.pt exists iff N % save_period == 0.
+                lib_epoch = trainer.epoch
+                if lib_epoch % YOLO_SAVE_PERIOD == 0 or epoch == config.epochs:
+                    ckpt_src = out_dir / "weights" / f"epoch{lib_epoch}.pt"
                     if not ckpt_src.exists() and epoch == config.epochs:
                         ckpt_src = out_dir / "weights" / "last.pt"
                         logger.info("yolo26_final_checkpoint_fallback", fallback=str(ckpt_src), epoch=epoch)
