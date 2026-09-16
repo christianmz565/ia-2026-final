@@ -325,33 +325,20 @@ class CascadeRCNNTrainer:
 
             total_time = time.time() - start_time
 
+            # Fail closed: only the mAP-tracked best_coco file may become the
+            # evaluated model. Falling back to a plain best or the last epoch
+            # file would silently evaluate a non-best model.
             best_coco = sorted(out_dir.glob("best_coco_bbox_mAP_*.pth"), key=lambda p: p.name)
             if len(best_coco) > 1:
                 raise FileNotFoundError(
                     f"Ambiguous best checkpoints in {out_dir}: {[p.name for p in best_coco]}"
                 )
-            if best_coco:
-                best = best_coco[0]
-            else:
-                best_plain = sorted(out_dir.glob("best_*.pth"), key=lambda p: p.name)
-                if len(best_plain) > 1:
-                    raise FileNotFoundError(
-                        f"Ambiguous best checkpoints in {out_dir}: {[p.name for p in best_plain]}"
-                    )
-                best = best_plain[0] if best_plain else None
-            if best is None:
-                epoch_files: list[tuple[int, Path]] = []
-                for ckpt in sorted(out_dir.glob("epoch_*.pth"), key=lambda p: p.name):
-                    try:
-                        epoch_files.append((int(ckpt.stem.split("_")[-1]), ckpt))
-                    except ValueError:
-                        raise FileNotFoundError(f"Unparseable epoch checkpoint name: {ckpt}") from None
-                if epoch_files:
-                    best = max(epoch_files, key=lambda t: t[0])[1]
-                else:
-                    raise FileNotFoundError(
-                        f"Cascade R-CNN training completed, but no expected checkpoint file (best_coco_bbox_mAP_*.pth) was found in {out_dir}"
-                    )
+            if not best_coco:
+                present = sorted(p.name for p in out_dir.glob("*.pth"))
+                raise FileNotFoundError(
+                    f"Cascade R-CNN training completed, but no mAP-tracked checkpoint (best_coco_bbox_mAP_*.pth) was found in {out_dir} (present: {present})"
+                )
+            best = best_coco[0]
 
             save_summary_reports(
                 output_dir=out_dir,

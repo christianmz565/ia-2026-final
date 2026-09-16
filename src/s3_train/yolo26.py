@@ -227,20 +227,14 @@ class YOLO26Trainer:
                 pbar.close()
 
             total_time = time.time() - start_time
-            best_candidates = [
-                out_dir / "weights" / "best.pt",
-                out_dir / "weights" / "last.pt",
-                out_dir / "best.pt",
-            ]
-            best_weights: Path | None = None
-            for cand in best_candidates:
-                if cand.exists() and cand.stat().st_size > 0:
-                    best_weights = cand
-                    break
-
-            if best_weights is None:
+            # Fail closed: only the fitness-tracked best.pt may become the
+            # evaluated model. Falling back to last.pt would silently evaluate
+            # a non-best model while the report names the history argmax.
+            best_weights = out_dir / "weights" / "best.pt"
+            if not best_weights.exists() or best_weights.stat().st_size == 0:
+                present = sorted(p.name for p in (out_dir / "weights").glob("*.pt"))
                 raise FileNotFoundError(
-                    f"YOLO26 training completed, but expected weights file (weights/best.pt) was not found in {out_dir}"
+                    f"YOLO26 training completed, but fitness-tracked best.pt is missing in {out_dir} (present: {present})"
                 )
 
             save_summary_reports(

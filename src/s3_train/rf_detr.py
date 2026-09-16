@@ -462,11 +462,13 @@ class RFDETRTrainer:
 
             total_time = time.time() - start_time
 
+            # Fail closed: only a best-track file may become the evaluated
+            # model. Falling back to checkpoint.pth (last) would silently
+            # evaluate a non-best model while the report names history argmax.
             best_candidates = [
                 out_dir / "checkpoint_best_total.pth",
                 out_dir / "checkpoint_best_regular.pth",
                 out_dir / "checkpoint_best_ema.pth",
-                out_dir / "checkpoint.pth",
             ]
             best: Path | None = None
             for cand in best_candidates:
@@ -475,8 +477,9 @@ class RFDETRTrainer:
                     break
 
             if best is None:
+                present = sorted(p.name for p in out_dir.glob("*.pth"))
                 raise FileNotFoundError(
-                    f"RF-DETR training completed, but expected checkpoint (checkpoint_best_total.pth) was not found in {out_dir}"
+                    f"RF-DETR training completed, but no best-track checkpoint (checkpoint_best_*.pth) was found in {out_dir} (present: {present})"
                 )
 
             save_summary_reports(
