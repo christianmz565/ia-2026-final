@@ -171,6 +171,55 @@ def patch_rfdetr_coco_extended_metrics() -> None:
     except Exception as err:
         raise RuntimeError(f"RF-DETR metrics patch failed; training without it is forbidden: {err}") from err
 
+RFDETR_PINNED_VERSION = "1.3.0"
+
+
+def patch_rfdetr_test_transforms() -> None:
+    """Map the ``test`` image_set to deterministic val-equivalent transforms.
+
+    ``rfdetr.datasets.coco.make_coco_transforms`` (aspect-preserving path selected by
+    ``square_resize_div_64=False``) only handles ``train``/``val``/``val_speed`` and raises
+    ``ValueError: unknown test`` when the trainer unconditionally builds its startup
+    ``dataset_test``. Test-time transforms must be deterministic, so ``test`` maps to the
+    ``val`` pipeline (``RandomResize`` + normalize) — the same mapping upstream adopted in
+    1.6.0 (``if image_set in ('val', 'test')``). Fail-closed: unpinned versions, unexpected
+    probe errors, and re-patching all raise instead of silently changing behavior.
+    """
+    try:
+        import rfdetr
+        import rfdetr.datasets.coco as coco_mod
+
+        version = getattr(rfdetr, "__version__", "unknown")
+        if version != RFDETR_PINNED_VERSION:
+            raise RuntimeError(
+                f"RF-DETR test-transforms patch verified against {RFDETR_PINNED_VERSION}, "
+                f"found {version}; training without review is forbidden"
+            )
+
+        orig = coco_mod.make_coco_transforms
+        if getattr(orig, "__rfdetr_test_mapped__", False):
+            return
+
+        try:
+            orig("test", 512)
+            logger.info("rfdetr_test_transforms_native", version=version)
+            return
+        except ValueError as err:
+            if "unknown test" not in str(err):
+                raise
+
+        def make_coco_transforms_with_test(image_set: str, *args: Any, **kwargs: Any) -> Any:
+            if image_set == "test":
+                logger.info("rfdetr_test_transforms_mapped", mapped_to="val", version=version)
+                return orig("val", *args, **kwargs)
+            return orig(image_set, *args, **kwargs)
+
+        make_coco_transforms_with_test.__rfdetr_test_mapped__ = True  # type: ignore[attr-defined]
+        coco_mod.make_coco_transforms = make_coco_transforms_with_test
+        logger.info("rfdetr_test_transforms_patched", version=version)
+    except Exception as err:
+        raise RuntimeError(f"RF-DETR test-transforms patch failed; training without it is forbidden: {err}") from err
+
 
 class RFDETRTrainer:
     """Train RF-DETR model with AMP and tqdm progress logging."""
@@ -186,6 +235,7 @@ class RFDETRTrainer:
         self.config = config or RFDETRConfig()
         patch_rfdetr_coco_extended_metrics()
         patch_rfdetr_class_weights()
+        patch_rfdetr_test_transforms()
 
     def train(self, config: RFDETRConfig | None = None, force: bool = False) -> Path:
         """Train RF-DETR model with mixed precision and save standardized outputs.
@@ -201,6 +251,7 @@ class RFDETRTrainer:
         configure_torch_backend()
         patch_rfdetr_coco_extended_metrics()
         patch_rfdetr_class_weights()
+        patch_rfdetr_test_transforms()
         data_dir = Path(config.data_dir) if config.data_dir else SPLIT_DATASET
 
         output_dir = Path(config.output_dir) if config.output_dir else S3_OUTPUT / "rf_detr"
@@ -208,6 +259,7 @@ class RFDETRTrainer:
         def _do_train() -> Path:
             patch_rfdetr_coco_extended_metrics()
             patch_rfdetr_class_weights()
+            patch_rfdetr_test_transforms()
             from rfdetr.detr import RFDETRMedium
 
             out_dir, checkpoints_dir = setup_training_output_dir(output_dir)
