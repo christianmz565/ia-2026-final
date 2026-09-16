@@ -74,6 +74,11 @@ def _find_checkpoint(model_path: Path, explicit: Path | str | None = None) -> Pa
         if model_path.stat().st_size > 0:
             return model_path
         raise FileNotFoundError(f"Checkpoint file is empty: {model_path}")
+    for name in ("best.pt", "best.pth"):
+        candidate = model_path / name
+        if candidate.is_file() and candidate.stat().st_size > 0:
+            logger.info("checkpoint_selected", pattern=name, checkpoint=str(candidate))
+            return candidate
     for pattern in _CHECKPOINT_PRIORITY:
         matches = sorted(
             p for p in model_path.rglob(pattern) if p.is_file() and p.stat().st_size > 0
