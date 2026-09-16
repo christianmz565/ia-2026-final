@@ -488,6 +488,26 @@ class RFDETRTrainer:
                 best_checkpoint=best,
             )
 
+            # Disk mitigation: numbered periodic checkpoints (~512MB each, x2
+            # locations) would total ~50GB/arm at 50 epochs. Best-track files,
+            # final checkpoint.pth, best.pt, and history.json carry all
+            # provenance S4/S5 consume; per-epoch weight files are expendable.
+            pruned_files = 0
+            pruned_bytes = 0
+            for numbered_ckpt in sorted(out_dir.glob("checkpoint[0-9]*.pth")):
+                pruned_bytes += numbered_ckpt.stat().st_size
+                numbered_ckpt.unlink()
+                pruned_files += 1
+            for epoch_copy in sorted(checkpoints_dir.glob("epoch_*.pth")):
+                pruned_bytes += epoch_copy.stat().st_size
+                epoch_copy.unlink()
+                pruned_files += 1
+            logger.info(
+                "rf_detr_numbered_checkpoints_pruned",
+                pruned_files=pruned_files,
+                freed_bytes=pruned_bytes,
+            )
+
             logger.info("rf_detr_train_complete", checkpoint=str(out_dir / "best.pt"))
             return out_dir / "best.pt"
 
