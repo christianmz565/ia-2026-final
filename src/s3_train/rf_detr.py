@@ -18,7 +18,15 @@ import torch
 
 from src.caching import config_fingerprint, run_cached_step
 from src.config import RFDETRConfig
-from src.constants import CLASS_NAMES, CLASS_WEIGHTS_LIST, S3_OUTPUT, SPLIT_DATASET, TARGET_IMG_HEIGHT, TARGET_IMG_WIDTH
+from src.constants import (
+    CLASS_NAMES,
+    CLASS_WEIGHTS_LIST,
+    DEFAULT_EARLY_STOP_MIN_DELTA,
+    S3_OUTPUT,
+    SPLIT_DATASET,
+    TARGET_IMG_HEIGHT,
+    TARGET_IMG_WIDTH,
+)
 from src.s3_train.base import register_trainer
 from src.s3_train.common import (
     create_epoch_pbar,
@@ -450,6 +458,7 @@ class RFDETRTrainer:
                     warmup_epochs=5,
                     early_stopping=True,
                     early_stopping_patience=config.patience,
+                    early_stopping_min_delta=DEFAULT_EARLY_STOP_MIN_DELTA,
                     class_names=CLASS_NAMES,
                     square_resize_div_64=config.square_resize,
                     multi_scale=False,

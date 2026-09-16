@@ -12,6 +12,7 @@ from pydantic import BaseModel, Field
 from src.constants import (
     DEFAULT_CASCADE_EPOCHS,
     DEFAULT_CASCADE_LR,
+    DEFAULT_CASCADE_PATIENCE,
     DEFAULT_CONF_THRESHOLD,
     DEFAULT_MAJORITY_DOWNSAMPLE_RATIO,
     DEFAULT_PATIENCE,
@@ -135,7 +136,7 @@ class CascadeRCNNConfig(BaseModel):
     target_height: int = Field(default=TARGET_IMG_HEIGHT, description="Target scale height")
     batch_size: int = Field(default=8)
     lr: float = Field(default=DEFAULT_CASCADE_LR)
-    patience: int = Field(default=DEFAULT_PATIENCE, description="Early stopping patience")
+    patience: int = Field(default=DEFAULT_CASCADE_PATIENCE, description="Early stopping patience")
     device: str = Field(default_factory=_default_device)
 
 
