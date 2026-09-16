@@ -190,6 +190,8 @@ La etapa de preparación de datos aplica tres operaciones secuenciales sobre el 
 
 Se evaluaron tres estrategias de aumento diseñadas para mitigar el desequilibrio de clases, dirigidas a alcanzar una proporción del 33% entre la clase minoritaria y la mayoritaria. Cada estrategia agranda el conjunto de entrenamiento sintetizando instancias de clases minoritarias, por lo que los tamaños de entrenamiento aumentado difieren del original por diseño y el tamaño se reporta por estrategia. Para la comparativa entre los paradigmas, se configuraron tres arquitecturas representativas de cada enfoque de detección de objetos. La evaluación se realiza en el conjunto de prueba de 400 imágenes utilizando mAP\@0.5 y mAP\@0.5:0.95 estándar COCO, AP\@0.5 por clase, y precisión, recall y F1 de punto operativo en umbrales de confianza calibrados por modelo. El tiempo de inferencia se mide promediando el tiempo total de procesamiento sobre todas las imágenes del conjunto de prueba.
 
+La incertidumbre por clase se cuantifica en los mismos puntos operativos. Para cada clase c, los conteos de TP, FP y FN provienen del emparejamiento voraz de punto operativo con IoU>=0.5, y la precisión y el recall por clase se tratan como proporciones binomiales; la cobertura simultánea del 95% a nivel familiar sobre las K = 8 clases de defecto se obtiene con la corrección de Bonferroni, reportando cada clase con un intervalo de Wilson al nivel 1 - 0.05/8 = 99.375% (z = 2.73), es decir IC\_c = Wilson(x\_c, n\_c; z\_{1-0.05/16}), con un guion cuando n\_c = 0. Dado que el emparejamiento se restringe a la misma clase, una etiqueta cruzada errónea aparece como un falso positivo de la clase predicha más un falso negativo de la clase verdadera en lugar de una entrada fuera de la diagonal de confusión.
+
 Todas las arquitecturas se entrenan con ponderación por clase de número efectivo @cui2019classbalanced inyectada en la pérdida de clasificación de cada modelo. Si bien técnicas como Focal Loss @lin2017focal y Seesaw Loss @wang2021seesaw apuntan al mismo desequilibrio, el estudio fija un único tratamiento a nivel de pérdida para que los efectos del aumento sigan siendo atribuibles, dejando estrategias de pérdida alternativas como trabajo futuro. Cada modelo se evalúa en su propio punto operativo calibrado infiriendo a su propia resolución de entrenamiento, de modo que ni el manejo del tamaño de entrada ni un umbral de confianza fijo pueden favorecer a ningún paradigma.
 
 Albumentations con balanceo de clases emplea seis transformaciones activas a nivel de píxel con las siguientes probabilidades de aplicación: volteo horizontal a 0.5, volteo vertical a 0.5, rotación-escala-traslación a 0.5, contraste y brillo aleatorios a 0.4, variación de color a 0.3 y desenfoque gaussiano a 0.2. La generación del dataset identifica las clases raras por debajo del umbral objetivo y aumenta selectivamente las imágenes que las contienen, agregando las imágenes sintetizadas al conjunto de entrenamiento.
@@ -275,6 +277,33 @@ La @fig:heatmap-clase presenta el AP promedio por clase en AP\@0.5 para las 12 c
   kind: image,
 ) <fig:clase-barras>
 
+La @fig:tabla-bonferroni y la @fig:recall-bonferroni reportan el recall por clase con IC simultáneos del 95% para la mejor configuración de cada paradigma. Las clases abundantes dan intervalos estrechos (Live\_Knot, n = 395: recall 0.729-0.792 con anchos 0.111-0.122), mientras que las clases raras abarcan decenas de puntos (cuarcita, n = 15: 0.400-0.733 con anchos 0.533-0.576; Knot\_missing, n = 12: anchos de hasta 0.614), por lo que los órdenes entre clases raras no son estadísticamente distinguibles: la brecha en cuarcita entre RF-DETR (0.733) y YOLO26 (0.400) se solapa en los tres intervalos. La precisión muestra el mismo patrón, con Cascade R-CNN manteniendo los intervalos más estrechos en clases mayoritarias (Live\_Knot 0.853 \[0.795, 0.896\], Dead\_Knot 0.905 \[0.841, 0.945\]) mientras que la precisión de RF-DETR en cuarcita abarca 0.133-0.501.
+
+#figure(
+  table(
+    columns: (1fr, 1fr, 1fr, 1fr, 0.6fr),
+    align: (left, center, center, center, center),
+    table.header([Clase], [RF-DETR (Alb.)], [Cascade (LibCom)], [YOLO26 (Base.)], [n]),
+    [Quartzity], [0.733 \[0.389, 0.922\]], [0.467 \[0.190, 0.766\]], [0.400 \[0.149, 0.718\]], [15],
+    [Live\_Knot], [0.754 \[0.691, 0.809\]], [0.792 \[0.731, 0.843\]], [0.729 \[0.664, 0.786\]], [395],
+    [Marrow], [0.857 \[0.561, 0.966\]], [0.857 \[0.561, 0.966\]], [0.905 \[0.614, 0.983\]], [21],
+    [resin], [0.891 \[0.741, 0.959\]], [0.813 \[0.649, 0.910\]], [0.703 \[0.533, 0.831\]], [64],
+    [Dead\_Knot], [0.767 \[0.692, 0.828\]], [0.763 \[0.688, 0.825\]], [0.788 \[0.715, 0.846\]], [287],
+    [knot\_with\_crack], [0.787 \[0.591, 0.905\]], [0.766 \[0.568, 0.891\]], [0.702 \[0.503, 0.846\]], [47],
+    [Knot\_missing], [0.833 \[0.441, 0.969\]], [0.750 \[0.369, 0.939\]], [0.417 \[0.142, 0.756\]], [12],
+    [Crack], [0.922 \[0.758, 0.978\]], [0.902 \[0.733, 0.969\]], [0.706 \[0.515, 0.845\]], [51],
+  ),
+  caption: [Recall por clase con IC simultáneos del 95% a nivel familiar (Bonferroni) para la mejor configuración de cada paradigma, con soporte n de prueba.],
+  kind: table,
+  scope: "parent",
+) <fig:tabla-bonferroni>
+
+#figure(
+  image("figures/results/per_class_recall_bonferroni.png", width: 95%),
+  caption: [Recall por clase con intervalos de confianza simultáneos del 95% a nivel familiar para la mejor configuración de cada paradigma. Las barras de error son intervalos de Wilson al 99.375% por clase, es decir cobertura simultánea del 95% a nivel familiar sobre las 8 clases (Bonferroni).],
+  kind: image,
+) <fig:recall-bonferroni>
+
 La @fig:velocidad-precision ilustra el compromiso entre velocidad de inferencia y precisión. YOLO26 procesa cada imagen en 7.5 ms en promedio de las cuatro configuraciones, RF-DETR en 12.6 ms y Cascade R-CNN en 25.7 ms. Cascade R-CNN es 3.4 veces más lento que YOLO26 mientras que su mejor mAP\@0.5 de 0.677 está por debajo del mejor de RF-DETR de 0.717. RF-DETR ofrece la mejor precisión de ranking con 12.6 ms, 1.7 veces más lento que YOLO26, cuyo mejor mAP\@0.5 es 0.618. La @fig:pr-f1 detalla la precisión, recall y F1 de punto operativo detrás de estos compromisos.
 
 #figure(
@@ -332,6 +361,8 @@ Este estudio presentó un benchmark comparativo de tres paradigmas de detección
 = Limitaciones y Trabajos Futuros <sec:future>
 
 Los presupuestos fijos de épocas por familia truncan el aprendizaje donde las curvas aún ascienden: las mejores épocas de YOLO26 caen entre 40 y 50 de un presupuesto de 50 épocas, y Cascade R-CNN con BoxAug LibCom aún está en ascenso en la época 12 de 12, de modo que los puntajes reportados son cotas inferiores para esas configuraciones más que valores convergidos. Extender YOLO26 más allá de 50 épocas y Cascade R-CNN a su programa 2x probaría si el ranking se mantiene en convergencia. La dirección de modelado más inmediata corresponde al aumento basado en difusión. Los métodos de cut-and-paste evaluados, como BoxAug, están limitados por la cantidad de instancias raras disponibles para recortar del dataset original. Con solo 144 anotaciones de cuarcita, el banco de objetos es demasiado pequeño para generar aumento diverso. Los modelos de difusión condicional como Stable Diffusion con ControlNet pueden generar instancias sintéticas de clases raras sin depender de recortes existentes, ofreciendo una alternativa potencialmente más efectiva para desbalance severo @capogrosso2024diffusion.
+
+Los mapas de calor de AP por clase anteriores siguen siendo estimaciones puntuales (la construcción binomial-Bonferroni no aplica a AP, una métrica de ranking), y la confusión entre clases se pliega en falsos positivos y falsos negativos por clase en lugar de mostrarse como matriz fuera de la diagonal.
 
 La expansión del dataset hacia otras especies de madera con diferentes patrones de grano y defectos es esencial para validar la generalización más allá de la especie y entorno industrial actuales. En paralelo, la cuantización de modelos a INT8 y FP16 podría reducir tiempos de inferencia para el despliegue en líneas de producción con restricciones de hardware, mientras que la evaluación de arquitecturas transformer como DINO y Grounding DINO podría determinar si los mecanismos de autoatención global mejoran la detección de defectos de bajo contraste. La combinación de múltiples líneas de investigación, incluyendo ponderación por clase, augmentación basada en difusión y optimización de modelos, podría conducir a sistemas de inspección más robustos y eficientes para la industria maderera. Estas direcciones futuras buscan abordar las limitaciones identificadas en el presente benchmark y acercar los sistemas de detección automatizada a los requisitos operativos de las plantas de procesamiento de madera. El desarrollo de pipelines experimentales reproducibles, como el empleado en este estudio, facilitará la evaluación comparativa de las nuevas técnicas que surjan de estas líneas de investigación.
 

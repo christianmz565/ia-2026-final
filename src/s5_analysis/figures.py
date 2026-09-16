@@ -20,7 +20,7 @@ import structlog
 
 from src.caching import config_fingerprint, run_cached_step
 from src.config import AnalysisConfig
-from src.constants import S5_OUTPUT
+from src.constants import CLASS_NAMES, S5_OUTPUT
 
 logger = structlog.get_logger(__name__)
 
@@ -36,6 +36,14 @@ AUG_LABELS = {
     "boxaug_standard": "BoxAug Std",
     "boxaug_libcom": "BoxAug LibCom",
 }
+
+BONFERRONI_INTERVALS_JSON = Path(__file__).resolve().parent.parent.parent / "partials" / "s5_analysis_new" / "bonferroni_per_class_intervals.json"
+
+BEST_PARADIGM_CONFIGS: tuple[tuple[str, str], ...] = (
+    ("rf_detr", "albumentations_balanced"),
+    ("cascade_rcnn", "boxaug_libcom"),
+    ("yolo26", "baseline"),
+)
 
 
 def _setup_style() -> None:
@@ -301,6 +309,78 @@ def _fig_per_class_ap_bars(rows: list[dict[str, Any]], output_dir: Path, dpi: in
     return _save_fig(fig, output_dir, "per_class_ap_bars", dpi)
 
 
+def _fig_per_class_recall_bonferroni(output_dir: Path, dpi: int) -> list[Path]:
+    """Figure 8b: Per-class recall with simultaneous 95% CIs (Bonferroni).
+
+    Reads ``bonferroni_per_class_intervals.json`` and plots recall point
+    estimates with asymmetric ``[lo, hi]`` error bars at the simultaneous 95%
+    family-wise level (99.375% Wilson interval per class over 8 classes) for
+    the three best-per-paradigm configs. Classes follow ``CLASS_NAMES`` order.
+    Configs or classes with a null interval (``n == 0``) are plotted without a
+    bar and marked ``n/a``.
+    """
+    if not BONFERRONI_INTERVALS_JSON.exists():
+        raise FileNotFoundError(
+            f"Bonferroni intervals not found: {BONFERRONI_INTERVALS_JSON} "
+            "(run src.s5_analysis.bonferroni_intervals first)"
+        )
+    payload = json.loads(BONFERRONI_INTERVALS_JSON.read_text())
+    configs = payload.get("configs", {})
+    for model, aug in BEST_PARADIGM_CONFIGS:
+        if f"{model}/{aug}" not in configs:
+            raise KeyError(f"Config {model}/{aug} missing from {BONFERRONI_INTERVALS_JSON}")
+
+    x = range(len(CLASS_NAMES))
+    width = 0.25
+    offsets = [-width, 0.0, width]
+    palette = sns.color_palette("muted", n_colors=len(BEST_PARADIGM_CONFIGS))
+    fig, ax = plt.subplots(figsize=(12, 5))
+    for pos, ((model, aug), color, offset) in enumerate(zip(BEST_PARADIGM_CONFIGS, palette, offsets, strict=True)):
+        label = f"{MODEL_LABELS.get(model, model)} ({AUG_LABELS.get(aug, aug)})"
+        estimates: list[float] = []
+        lower: list[float] = []
+        upper: list[float] = []
+        missing: list[int] = []
+        for class_name in CLASS_NAMES:
+            cell = configs[f"{model}/{aug}"]["classes"][class_name]["recall"]
+            if cell["estimate"] is None or cell["lo"] is None or cell["hi"] is None:
+                estimates.append(0.0)
+                lower.append(0.0)
+                upper.append(0.0)
+                missing.append(CLASS_NAMES.index(class_name))
+            else:
+                estimates.append(float(cell["estimate"]))
+                lower.append(float(cell["estimate"]) - float(cell["lo"]))
+                upper.append(float(cell["hi"]) - float(cell["estimate"]))
+        positions = [i + offset for i in x]
+        ax.bar(positions, estimates, width=width, label=label, color=color, edgecolor="black", linewidth=0.5)
+        present = [i for i in range(len(CLASS_NAMES)) if i not in missing]
+        if present:
+            ax.errorbar(
+                [positions[i] for i in present],
+                [estimates[i] for i in present],
+                yerr=[[lower[i] for i in present], [upper[i] for i in present]],
+                fmt="none",
+                ecolor="black",
+                elinewidth=1.2,
+                capsize=3,
+            )
+        for i in missing:
+            ax.text(positions[i], 0.02, "n/a", ha="center", va="bottom", fontsize=8)
+
+    ax.set_ylim(0, 1.0)
+    ax.set_xticks(list(x))
+    ax.set_xticklabels(CLASS_NAMES, rotation=30, ha="right", fontsize=9)
+    ax.set_ylabel("Recall (IoU>=0.5 operating point)", fontsize=10)
+    ax.set_xlabel("Defect Class", fontsize=10)
+    ax.set_title("Per-Class Recall with Simultaneous 95% CIs (Bonferroni, 8 classes)", fontsize=12)
+    ax.legend(title="Config", fontsize=8, title_fontsize=9, loc="lower right", framealpha=0.9)
+    sns.despine(left=True, bottom=True)
+    plt.tight_layout()
+    return _save_fig(fig, output_dir, "per_class_recall_bonferroni", dpi)
+
+
+
 # --- Group D: Training Dynamics ---
 
 def _fig_training_curves_map(history: dict[str, list[dict[str, Any]]], output_dir: Path, dpi: int) -> list[Path]:
@@ -493,15 +573,13 @@ def _fig_efficiency_tradeoff(rows: list[dict[str, Any]], output_dir: Path, dpi: 
     return _save_fig(fig, output_dir, "efficiency_tradeoff", dpi)
 
 
-# --- Public API ---
-
 def generate_figures(
     aggregated: dict[str, Any],
     output_dir: Path | str | None = None,
     config: AnalysisConfig | None = None,
     force: bool = False,
 ) -> list[Path]:
-    """Generate all 15 paper-ready comparison figures.
+    """Generate all 16 paper-ready comparison figures.
 
     Args:
         aggregated: Output of ``aggregate_results()``.
@@ -542,11 +620,11 @@ def generate_figures(
         all_paths.extend(_fig_aug_paradigm_heatmap(rows, "mAP_50_95", "Augmentation x Paradigm (mAP@50:95)", "aug_paradigm_map50_95_heatmap", "YlOrRd", resolved_output_dir, config.figure_dpi))
         all_paths.extend(_fig_aug_effect_per_model(rows, resolved_output_dir, config.figure_dpi))
         all_paths.extend(_fig_aug_delta_vs_baseline(rows, resolved_output_dir, config.figure_dpi))
-
         # Group C: Per-Class Performance
         all_paths.extend(_fig_per_class_ap_heatmap(rows, resolved_output_dir, config.figure_dpi))
         all_paths.extend(_fig_per_class_ap50_95_heatmap(rows, resolved_output_dir, config.figure_dpi))
         all_paths.extend(_fig_per_class_ap_bars(rows, resolved_output_dir, config.figure_dpi))
+        all_paths.extend(_fig_per_class_recall_bonferroni(resolved_output_dir, config.figure_dpi))
 
         # Group D: Training Dynamics
         all_paths.extend(_fig_training_curves_map(history, resolved_output_dir, config.figure_dpi))

@@ -191,6 +191,8 @@ The data preparation stage applies three sequential operations on the raw datase
 
 Three augmentation strategies were evaluated designed to mitigate class imbalance, aimed at achieving a 33% ratio between the minority and majority class. Each strategy grows the training set by synthesizing minority-class instances, so augmented training sizes differ from the original by design and dataset size is reported per strategy. For the paradigm comparison, three representative architectures of each object detection approach were configured. Evaluation is performed on the test set of 400 images using COCO-standard mAP\@0.5 and mAP\@0.5:0.95, per-class AP\@0.5, and operating-point precision, recall, and F1 at per-model calibrated confidence thresholds. Inference time is measured by averaging total processing time across all test set images.
 
+Per-class uncertainty is quantified at the same operating points. For each class c, TP, FP, and FN counts come from the IoU>=0.5 greedy operating-point matching, and per-class precision and recall are treated as binomial proportions; simultaneous 95% family-wise coverage over the K = 8 defect classes is obtained with the Bonferroni correction, reporting each class with a Wilson score interval at level 1 - 0.05/8 = 99.375% (z = 2.73), i.e. IC\_c = Wilson(x\_c, n\_c; z\_{1-0.05/16}), with a dash shown when n\_c = 0. Because matching is restricted to the same class, a cross-class mislabel surfaces as a false positive of the predicted class plus a false negative of the true class rather than as an off-diagonal confusion entry.
+
 All architectures are trained with effective-number class weighting @cui2019classbalanced injected into each model's classification loss. While techniques such as Focal Loss @lin2017focal and Seesaw Loss @wang2021seesaw target the same imbalance, the study fixes a single loss-level treatment so that augmentation effects remain attributable, leaving alternative loss strategies as future work. Each model is evaluated at its own calibrated operating point while inferring at its own training resolution, so neither input-size handling nor a fixed confidence cutoff can favor any paradigm.
 
 Albumentations with class balancing employs six active pixel-level transformations with the following application probabilities: horizontal flip at 0.5, vertical flip at 0.5, rotation-scale-translation at 0.5, random contrast and brightness at 0.4, color variation at 0.3, and Gaussian blur at 0.2. Dataset generation identifies rare classes below the target threshold and selectively augments images containing them, appending the synthesized images to the training set.
@@ -268,13 +270,40 @@ Confidence thresholds are calibrated per model rather than fixed globally. A val
   kind: image,
 ) <fig:heatmap-clase>
 
-@fig:heatmap-clase-5095 presents the same per-class breakdown under the AP\@0.5:0.95 metric. The class ordering is preserved: marrow remains the easiest class at 0.499 to 0.639 and quartzite the hardest at 0.064 to 0.285. The metric compresses the score range, most visibly on the majority classes, as live and dead knots drop from 0.651 to 0.781 at AP\@0.5 to 0.297 to 0.449, indicating that these high-variance defects are detected but poorly localized. The weakest cell is YOLO26 with BoxAug LibCom on quartzite at 0.064, against 0.255 for its unaugmented baseline, showing that pasted augmentation degrades rare-class localization for the one-stage paradigm. RF-DETR leads six of eight classes under the metric, with its best cells on marrow at 0.639 (BoxAug Std) and Knot_missing at 0.502 (Albumentations).
+@fig:heatmap-clase-5095 presents the same per-class breakdown under the AP\@0.5:0.95 metric. The class ordering is preserved: marrow remains the easiest class at 0.499 to 0.639 and quartzite the hardest at 0.064 to 0.285. The metric compresses the score range, most visibly on the majority classes, as live and dead knots drop from 0.651 to 0.781 at AP\@0.5 to 0.297 to 0.449, indicating that these high-variance defects are detected but poorly localized. The weakest cell is YOLO26 with BoxAug LibCom on quartzite at 0.064, against 0.255 for its unaugmented baseline, showing that pasted augmentation degrades rare-class localization for the one-stage paradigm. RF-DETR leads six of eight classes under the metric, with its best cells on marrow at 0.639 (BoxAug Std) and Knot\_missing at 0.502 (Albumentations).
 
 #figure(
   image("figures/results/per_class_ap50_95_heatmap.png", width: 95%),
   caption: [Heatmap of average precision per defect class (AP\@0.5:0.95).],
   kind: image,
 ) <fig:heatmap-clase-5095>
+
+@fig:tabla-bonferroni and @fig:recall-bonferroni report per-class recall with simultaneous 95% CIs for the best configuration of each paradigm. Abundant classes give narrow intervals (Live\_Knot, n = 395: recall 0.729-0.792 with widths 0.111-0.122), while rare classes span tens of points (Quartzity, n = 15: 0.400-0.733 with widths 0.533-0.576; Knot\_missing, n = 12: widths up to 0.614), so rank orders among rare classes are not statistically distinguishable: the Quartzity gap between RF-DETR (0.733) and YOLO26 (0.400) overlaps across all three intervals. Precision shows the same pattern, with Cascade R-CNN keeping the narrowest majority-class intervals (Live\_Knot 0.853 \[0.795, 0.896\], Dead\_Knot 0.905 \[0.841, 0.945\]) while RF-DETR's Quartzity precision spans 0.133-0.501.
+
+#figure(
+  table(
+    columns: (1fr, 1fr, 1fr, 1fr, 0.6fr),
+    align: (left, center, center, center, center),
+    table.header([Class], [RF-DETR (Alb.)], [Cascade (LibCom)], [YOLO26 (Base.)], [n]),
+    [Quartzity], [0.733 \[0.389, 0.922\]], [0.467 \[0.190, 0.766\]], [0.400 \[0.149, 0.718\]], [15],
+    [Live\_Knot], [0.754 \[0.691, 0.809\]], [0.792 \[0.731, 0.843\]], [0.729 \[0.664, 0.786\]], [395],
+    [Marrow], [0.857 \[0.561, 0.966\]], [0.857 \[0.561, 0.966\]], [0.905 \[0.614, 0.983\]], [21],
+    [resin], [0.891 \[0.741, 0.959\]], [0.813 \[0.649, 0.910\]], [0.703 \[0.533, 0.831\]], [64],
+    [Dead\_Knot], [0.767 \[0.692, 0.828\]], [0.763 \[0.688, 0.825\]], [0.788 \[0.715, 0.846\]], [287],
+    [knot\_with\_crack], [0.787 \[0.591, 0.905\]], [0.766 \[0.568, 0.891\]], [0.702 \[0.503, 0.846\]], [47],
+    [Knot\_missing], [0.833 \[0.441, 0.969\]], [0.750 \[0.369, 0.939\]], [0.417 \[0.142, 0.756\]], [12],
+    [Crack], [0.922 \[0.758, 0.978\]], [0.902 \[0.733, 0.969\]], [0.706 \[0.515, 0.845\]], [51],
+  ),
+  caption: [Per-class recall with simultaneous 95% family-wise CIs (Bonferroni) for the best configuration of each paradigm, with test support n.],
+  kind: table,
+  scope: "parent",
+) <fig:tabla-bonferroni>
+
+#figure(
+  image("figures/results/per_class_recall_bonferroni.png", width: 95%),
+  caption: [Per-class recall with simultaneous 95% family-wise confidence intervals for the best configuration of each paradigm. Error bars are 99.375% Wilson intervals per class, i.e. simultaneous 95% family-wise coverage over the 8 classes (Bonferroni).],
+  kind: image,
+) <fig:recall-bonferroni>
 
 @fig:velocidad-precision illustrates the trade-off between inference speed and precision. YOLO26 processes each image in 7.5 ms on average across the four configurations, RF-DETR in 12.6 ms, and Cascade R-CNN in 25.7 ms. Cascade R-CNN is 3.4 times slower than YOLO26 while its best mAP\@0.5 of 0.677 trails RF-DETR's best of 0.717. RF-DETR offers the best ranking precision at 12.6 ms, 1.7 times slower than YOLO26, whose best mAP\@0.5 is 0.618.
 
@@ -328,6 +357,8 @@ This study presented a comparative benchmark of three object detection paradigms
 = Limitations and Future Work <sec:future>
 
 The fixed per-family epoch budgets truncate learning where curves still rise: YOLO26 best epochs fall between 40 and 50 of a 50-epoch budget, and Cascade R-CNN with BoxAug LibCom is still climbing at epoch 12 of 12, so reported scores are lower bounds for those configurations rather than converged values. Extending YOLO26 beyond 50 epochs and Cascade R-CNN to its 2x schedule would test whether the ranking holds at convergence. The most immediate modeling direction corresponds to diffusion-based augmentation. The cut-and-paste methods evaluated, such as BoxAug, are limited by the number of rare instances available for cropping from the original dataset. With only 144 quartzite annotations, the object bank is too small to generate diverse augmentation. Conditional diffusion models such as Stable Diffusion with ControlNet can generate synthetic instances of rare classes without relying on existing crops, offering a potentially more effective alternative for severe imbalance @capogrosso2024diffusion.
+
+The per-class AP heatmaps above remain point estimates (the Bonferroni-binomial construction does not apply to AP, a ranking metric), and cross-class confusion is folded into per-class false positives and false negatives rather than shown as an off-diagonal matrix.
 
 Expanding the dataset to other wood species with different grain patterns and defects is essential to validate generalization beyond the current species and industrial environment. In parallel, model quantization to INT8 and FP16 could reduce inference times for deployment on production lines with hardware constraints, while evaluating transformer architectures such as DINO and Grounding DINO could determine whether global self-attention mechanisms improve detection of low-contrast defects. The combination of multiple research directions, including class weighting, diffusion-based augmentation, and model optimization, could lead to more robust and efficient inspection systems for the wood industry. These future directions seek to address the limitations identified in the present benchmark and bring automated detection systems closer to the operational requirements of wood processing plants. The development of reproducible experimental pipelines, such as the one employed in this study, will facilitate comparative evaluation of new techniques emerging from these research directions.
 

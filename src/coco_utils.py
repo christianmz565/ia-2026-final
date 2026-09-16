@@ -65,6 +65,68 @@ def _bbox_iou_xywh(a: list[float], b: list[float]) -> float:
     return inter / union if union > 0 else 0.0
 
 
+def per_class_operating_point_counts(
+    coco_gt: COCO,
+    pred_anns: list[dict[str, Any]],
+    conf_threshold: float = 0.5,
+    iou_threshold: float = 0.5,
+) -> dict[int, dict[str, int]]:
+    """Greedy operating-point TP/FP/FN per class at a fixed confidence threshold.
+
+    Same matching as ``operating_point_metrics``: predictions below
+    ``conf_threshold`` are ignored; the rest, in descending score order, each
+    match the highest-IoU unmatched ground truth of the same image and category
+    at ``iou_threshold``. Crowd annotations never match.
+
+    A prediction whose class has no overlapping unmatched ground truth of the
+    same class counts as FP of the predicted class (cross-class mislabels thus
+    surface as FP of the predicted class plus FN of the true class, never as an
+    off-diagonal cell). ``support`` equals ``tp + fn`` (GT annotations of the
+    class). Every ground-truth category gets an entry; prediction-only category
+    ids are added on demand.
+    """
+    gt_by_key: dict[tuple[int, int], list[dict[str, Any]]] = {}
+    for ann in coco_gt.loadAnns(coco_gt.getAnnIds()):
+        if ann.get("iscrowd", 0):
+            continue
+        gt_by_key.setdefault((ann["image_id"], ann["category_id"]), []).append(ann)
+    matched: set[tuple[tuple[int, int], int]] = set()
+    counts: dict[int, dict[str, int]] = {
+        int(cat_id): {"tp": 0, "fp": 0, "fn": 0, "support": 0} for cat_id in coco_gt.getCatIds()
+    }
+    candidates = [p for p in pred_anns if float(p.get("score", 0.0)) >= conf_threshold]
+    candidates.sort(key=lambda p: float(p.get("score", 0.0)), reverse=True)
+    for pred in candidates:
+        key = (pred["image_id"], pred["category_id"])
+        best_iou = iou_threshold
+        best_idx = -1
+        for idx, gt_ann in enumerate(gt_by_key.get(key, [])):
+            if (key, idx) in matched:
+                continue
+            iou = _bbox_iou_xywh(pred["bbox"], gt_ann["bbox"])
+            if iou >= best_iou:
+                best_iou = iou
+                best_idx = idx
+        cat_id = int(pred["category_id"])
+        if cat_id not in counts:
+            counts[cat_id] = {"tp": 0, "fp": 0, "fn": 0, "support": 0}
+        if best_idx >= 0:
+            matched.add((key, best_idx))
+            counts[cat_id]["tp"] += 1
+        else:
+            counts[cat_id]["fp"] += 1
+    for key, anns in gt_by_key.items():
+        cat_id = int(key[1])
+        if cat_id not in counts:
+            counts[cat_id] = {"tp": 0, "fp": 0, "fn": 0, "support": 0}
+        for idx in range(len(anns)):
+            if (key, idx) not in matched:
+                counts[cat_id]["fn"] += 1
+    for entry in counts.values():
+        entry["support"] = entry["tp"] + entry["fn"]
+    return counts
+
+
 def operating_point_metrics(
     coco_gt: COCO,
     pred_anns: list[dict[str, Any]],
@@ -80,35 +142,10 @@ def operating_point_metrics(
     1.0 only when nothing was predicted and nothing was missed, else 0.0; recall
     is 1.0 when there is nothing to miss.
     """
-    gt_by_key: dict[tuple[int, int], list[dict[str, Any]]] = {}
-    for ann in coco_gt.loadAnns(coco_gt.getAnnIds()):
-        if ann.get("iscrowd", 0):
-            continue
-        gt_by_key.setdefault((ann["image_id"], ann["category_id"]), []).append(ann)
-    matched: set[tuple[tuple[int, int], int]] = set()
-    tp = 0
-    fp = 0
-    candidates = [p for p in pred_anns if float(p.get("score", 0.0)) >= conf_threshold]
-    candidates.sort(key=lambda p: float(p.get("score", 0.0)), reverse=True)
-    for pred in candidates:
-        key = (pred["image_id"], pred["category_id"])
-        best_iou = iou_threshold
-        best_idx = -1
-        for idx, gt_ann in enumerate(gt_by_key.get(key, [])):
-            if (key, idx) in matched:
-                continue
-            iou = _bbox_iou_xywh(pred["bbox"], gt_ann["bbox"])
-            if iou >= best_iou:
-                best_iou = iou
-                best_idx = idx
-        if best_idx >= 0:
-            matched.add((key, best_idx))
-            tp += 1
-        else:
-            fp += 1
-    fn = sum(
-        1 for key, anns in gt_by_key.items() for idx in range(len(anns)) if (key, idx) not in matched
-    )
+    counts = per_class_operating_point_counts(coco_gt, pred_anns, conf_threshold, iou_threshold)
+    tp = sum(entry["tp"] for entry in counts.values())
+    fp = sum(entry["fp"] for entry in counts.values())
+    fn = sum(entry["fn"] for entry in counts.values())
     precision = tp / (tp + fp) if (tp + fp) > 0 else (1.0 if fn == 0 else 0.0)
     recall = tp / (tp + fn) if (tp + fn) > 0 else 1.0
     f1 = round(2 * precision * recall / (precision + recall), 4) if (precision + recall) > 0 else 0.0
