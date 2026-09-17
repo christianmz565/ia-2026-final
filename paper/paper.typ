@@ -33,14 +33,14 @@
     ),
     (
       name: "Yenaro Joel Noa Camino",
-      orcid: "0009-0001-4338-6551",
+      orcid: "0009-0002-8326-5436",
       affiliations: ("a",),
       corresponding: true,
       email: "ynoa@unsa.edu.pe",
     ),
     (
       name: "Luis Gustavo Sequeiros Condori",
-      orcid: "0009-0001-4338-6551",
+      orcid: "0009-0005-5750-3551",
       affiliations: ("a",),
       corresponding: true,
       email: "lsequeiros@unsa.edu.pe",

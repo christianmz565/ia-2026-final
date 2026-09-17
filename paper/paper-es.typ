@@ -33,14 +33,14 @@
     ),
     (
       name: "Yenaro Joel Noa Camino",
-      orcid: "0009-0001-4338-6551",
+      orcid: "0009-0002-8326-5436",
       affiliations: ("a",),
       corresponding: true,
       email: "ynoa@unsa.edu.pe",
     ),
     (
       name: "Luis Gustavo Sequeiros Condori",
-      orcid: "0009-0001-4338-6551",
+      orcid: "0009-0005-5750-3551",
       affiliations: ("a",),
       corresponding: true,
       email: "lsequeiros@unsa.edu.pe",
@@ -49,7 +49,7 @@
       name: "Yasiel Pérez Vera",
       orcid: "0000-0001-9421-9529",
       affiliations: ("a",),
-    ),
+    )
   ),
   affiliations: (
     "a": [Escuela Profesional de Ingeniería de Sistemas, Universidad Nacional de San Agustín, esquina con Calle Paucarpata y Vía Rápida Venezuela s/n, Paucarpata 04001, Arequipa, Perú],
