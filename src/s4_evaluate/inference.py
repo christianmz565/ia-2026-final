@@ -34,7 +34,6 @@ from src.utils import configure_torch_backend
 logger = structlog.get_logger(__name__)
 
 
-
 @contextmanager
 def _weights_only_false_load():
     """Temporarily allow full-pickle ``torch.load`` for trusted local checkpoints."""
@@ -80,9 +79,7 @@ def _find_checkpoint(model_path: Path, explicit: Path | str | None = None) -> Pa
             logger.info("checkpoint_selected", pattern=name, checkpoint=str(candidate))
             return candidate
     for pattern in _CHECKPOINT_PRIORITY:
-        matches = sorted(
-            p for p in model_path.rglob(pattern) if p.is_file() and p.stat().st_size > 0
-        )
+        matches = sorted(p for p in model_path.rglob(pattern) if p.is_file() and p.stat().st_size > 0)
         if len(matches) > 1:
             raise FileNotFoundError(
                 f"Ambiguous checkpoints for {pattern!r} in {model_path}: {[str(p) for p in matches]}"
@@ -91,7 +88,6 @@ def _find_checkpoint(model_path: Path, explicit: Path | str | None = None) -> Pa
             logger.info("checkpoint_selected", pattern=pattern, checkpoint=str(matches[0]))
             return matches[0]
     raise FileNotFoundError(f"No checkpoint weights found in {model_path}")
-
 
 
 def _build_coco_predictions(coco_gt: dict, image_detections: dict[int, list[dict]]) -> dict:
@@ -164,9 +160,7 @@ def _rfdetr_predict_rect(
     import torchvision.transforms.functional as func
 
     if target_height % 32 != 0 or target_width % 32 != 0:
-        raise ValueError(
-            f"Rectangular eval canvas {(target_height, target_width)} violates the backbone /32 gate"
-        )
+        raise ValueError(f"Rectangular eval canvas {(target_height, target_width)} violates the backbone /32 gate")
 
     device = rfdetr_model.model.device
     img_tensor = func.to_tensor(img_rgb).to(device)
@@ -175,7 +169,7 @@ def _rfdetr_predict_rect(
     if img_tensor.shape[0] != 3:
         raise ValueError(f"Invalid image shape; expected 3 channels, got {img_tensor.shape[0]}")
     img_tensor = func.normalize(img_tensor, rfdetr_model.means, rfdetr_model.stds)
-    img_tensor = func.resize(img_tensor, (target_height, target_width))
+    img_tensor = func.resize(img_tensor, [target_height, target_width])
     orig_h, orig_w = img_rgb.shape[:2]
     batch_tensor = img_tensor.unsqueeze(0)
 
@@ -258,7 +252,6 @@ def run_inference(
     configure_torch_backend()
     resolved_device = device or ("cuda:0" if torch.cuda.is_available() else "cpu")
 
-
     meta_output = resolved_output.parent / "inference_meta.json"
 
     def _do_inference() -> dict[str, object]:
@@ -290,7 +283,8 @@ def run_inference(
         images_dir = data_dir / "images"
 
         target_images = [
-            p for p in sorted(images_dir.iterdir())
+            p
+            for p in sorted(images_dir.iterdir())
             if p.suffix.lower() in SUPPORTED_IMAGE_SUFFIXES and f"images/{p.name}" in img_id_map
         ]
         if max_images and max_images > 0:
@@ -323,12 +317,12 @@ def run_inference(
                     imgsz=resolved_yolo_imgsz,
                     verbose=False,
                 )
-                res = results[0]
+                res = list(results)[0]  # type: ignore[index]
                 dets: list[dict] = []
-                if res.boxes is not None and len(res.boxes) > 0:
-                    boxes = res.boxes.xyxy.cpu().numpy()
-                    scores = res.boxes.conf.cpu().numpy()
-                    clss = res.boxes.cls.cpu().numpy()
+                if res.boxes is not None and len(res.boxes) > 0:  # type: ignore[union-attr]
+                    boxes = res.boxes.xyxy.cpu().numpy()  # type: ignore[union-attr]
+                    scores = res.boxes.conf.cpu().numpy()  # type: ignore[union-attr]
+                    clss = res.boxes.cls.cpu().numpy()  # type: ignore[union-attr]
                     for box, score, cls in zip(boxes, scores, clss, strict=False):
                         x1, y1, x2, y2 = box
                         w, h = x2 - x1, y2 - y1
@@ -390,9 +384,9 @@ def run_inference(
                 num_images += 1
 
                 res = inference_detector(mmdet_model, str(img_path))
-                pred_instances = res.pred_instances
+                pred_instances: Any = getattr(res, "pred_instances", None)
                 dets: list[dict] = []
-                if hasattr(pred_instances, "bboxes") and len(pred_instances.bboxes) > 0:
+                if pred_instances is not None and hasattr(pred_instances, "bboxes") and len(pred_instances.bboxes) > 0:
                     bboxes = pred_instances.bboxes.cpu().numpy()
                     scores = pred_instances.scores.cpu().numpy()
                     labels = pred_instances.labels.cpu().numpy()
@@ -427,8 +421,8 @@ def run_inference(
                 rfdetr_model.model.reinitialize_detection_head(num_classes=len(CLASS_NAMES))
                 ckpt = torch.load(str(resolved_checkpoint), map_location=resolved_device, weights_only=False)
                 state_dict = ckpt["model"] if isinstance(ckpt, dict) and "model" in ckpt else ckpt
-                rfdetr_model.model.model.load_state_dict(state_dict)
-                rfdetr_model.model.model.eval()
+                rfdetr_model.model.model.load_state_dict(state_dict)  # type: ignore[union-attr]
+                rfdetr_model.model.model.eval()  # type: ignore[union-attr]
 
             for img_path in target_images:
                 file_name = f"images/{img_path.name}"

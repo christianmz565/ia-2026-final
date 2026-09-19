@@ -47,30 +47,32 @@ def patch_rfdetr_class_weights() -> None:
 
         orig_loss_labels = lwdetr_mod.SetCriterion.loss_labels
 
-        def weighted_loss_labels(self: Any, outputs: Any, targets: Any, indices: Any, num_boxes: Any, log: bool = True) -> Any:
+        def weighted_loss_labels(
+            self: Any, outputs: Any, targets: Any, indices: Any, num_boxes: Any, log: bool = True
+        ) -> Any:
             assert "pred_logits" in outputs
             src_logits = outputs["pred_logits"]
             idx = self._get_src_permutation_idx(indices)
-            target_classes_o = torch.cat([t["labels"][J] for t, (_, J) in zip(targets, indices)])
+            target_classes_o = torch.cat([t["labels"][J] for t, (_, J) in zip(targets, indices, strict=False)])
 
             if self.ia_bce_loss:
                 alpha = self.focal_alpha
                 gamma = 2
                 src_boxes = outputs["pred_boxes"][idx]
-                target_boxes = torch.cat([t["boxes"][i] for t, (_, i) in zip(targets, indices)], dim=0)
+                target_boxes = torch.cat([t["boxes"][i] for t, (_, i) in zip(targets, indices, strict=False)], dim=0)
 
                 iou_targets = torch.diag(
-                    lwdetr_mod.box_ops.box_iou(
-                        lwdetr_mod.box_ops.box_cxcywh_to_xyxy(src_boxes.detach()),
-                        lwdetr_mod.box_ops.box_cxcywh_to_xyxy(target_boxes),
+                    lwdetr_mod.box_ops.box_iou(  # type: ignore[attr-defined]
+                        lwdetr_mod.box_ops.box_cxcywh_to_xyxy(src_boxes.detach()),  # type: ignore[attr-defined]
+                        lwdetr_mod.box_ops.box_cxcywh_to_xyxy(target_boxes),  # type: ignore[attr-defined]
                     )[0]
                 )
                 pos_ious = iou_targets.clone().detach()
                 prob = src_logits.sigmoid()
                 pos_weights = torch.zeros_like(src_logits)
-                neg_weights = prob ** gamma
+                neg_weights = prob**gamma
 
-                pos_ind = [id for id in idx]
+                pos_ind = list(idx)
                 pos_ind.append(target_classes_o)
 
                 t = prob[pos_ind].pow(alpha) * pos_ious.pow(1 - alpha)
@@ -81,12 +83,14 @@ def patch_rfdetr_class_weights() -> None:
                 pos_weights[pos_ind] = (t * w).to(pos_weights.dtype)
                 neg_weights[pos_ind] = 1 - t.to(neg_weights.dtype)
 
-                loss_ce = neg_weights * src_logits - torch.nn.functional.logsigmoid(src_logits) * (pos_weights + neg_weights)
+                loss_ce = neg_weights * src_logits - torch.nn.functional.logsigmoid(src_logits) * (
+                    pos_weights + neg_weights
+                )
                 loss_ce = loss_ce.sum() / num_boxes
 
                 losses = {"loss_ce": loss_ce}
                 if log:
-                    losses["class_error"] = 100 - lwdetr_mod.accuracy(src_logits[idx], target_classes_o)[0]
+                    losses["class_error"] = 100 - lwdetr_mod.accuracy(src_logits[idx], target_classes_o)[0]  # type: ignore[attr-defined]
                 return losses
 
             return orig_loss_labels(self, outputs, targets, indices, num_boxes, log=log)
@@ -179,6 +183,7 @@ def patch_rfdetr_coco_extended_metrics() -> None:
     except Exception as err:
         raise RuntimeError(f"RF-DETR metrics patch failed; training without it is forbidden: {err}") from err
 
+
 RFDETR_PINNED_VERSION = "1.3.0"
 
 
@@ -217,16 +222,13 @@ def patch_rfdetr_rect_transforms(
                 f"found {version}; training without review is forbidden"
             )
         if target_height % 32 != 0 or target_width % 32 != 0:
-            raise ValueError(
-                f"Rectangular canvas {(target_height, target_width)} violates the backbone /32 gate"
-            )
+            raise ValueError(f"Rectangular canvas {(target_height, target_width)} violates the backbone /32 gate")
 
         installed = getattr(coco_mod.make_coco_transforms, "__rfdetr_rect_hw__", None)
         if installed is not None:
             if installed != (target_height, target_width):
                 raise RuntimeError(
-                    f"Conflicting rectangular canvas installed {installed}, "
-                    f"requested {(target_height, target_width)}"
+                    f"Conflicting rectangular canvas installed {installed}, requested {(target_height, target_width)}"
                 )
             return
 
@@ -240,11 +242,14 @@ def patch_rfdetr_rect_transforms(
                 import torchvision.transforms.functional as func
 
                 height, width = self.size
-                rescaled_img = func.resize(img, (height, width))
+                rescaled_img = func.resize(img, [height, width])
                 if target is None:
                     return rescaled_img, None
-                rescaled_w, rescaled_h = rescaled_img.size[0], rescaled_img.size[1]
-                orig_w, orig_h = img.size[0], img.size[1]
+                rescaled_w, rescaled_h = width, height
+                if hasattr(img, "size") and not callable(img.size):
+                    orig_w, orig_h = img.size[0], img.size[1]
+                else:
+                    orig_h, orig_w = img.shape[-2:]
                 ratio_width = float(rescaled_w) / float(orig_w)
                 ratio_height = float(rescaled_h) / float(orig_h)
 
@@ -253,9 +258,7 @@ def patch_rfdetr_rect_transforms(
                 target = target.copy()
                 if "boxes" in target:
                     boxes = target["boxes"]
-                    scaled_boxes = boxes * torch.as_tensor(
-                        [ratio_width, ratio_height, ratio_width, ratio_height]
-                    )
+                    scaled_boxes = boxes * torch.as_tensor([ratio_width, ratio_height, ratio_width, ratio_height])
                     target["boxes"] = scaled_boxes
 
                 if "area" in target:
@@ -268,9 +271,10 @@ def patch_rfdetr_rect_transforms(
                 if "masks" in target:
                     from rfdetr.util.misc import interpolate
 
-                    target["masks"] = interpolate(
-                        target["masks"][:, None].float(), (rescaled_h, rescaled_w), mode="nearest"
-                    )[:, 0] > 0.5
+                    target["masks"] = (
+                        interpolate(target["masks"][:, None].float(), [rescaled_h, rescaled_w], mode="nearest")[:, 0]
+                        > 0.5
+                    )
 
                 return rescaled_img, target
 
@@ -289,14 +293,10 @@ def patch_rfdetr_rect_transforms(
             **kwargs: Any,
         ) -> Any:
             if multi_scale or expanded_scales:
-                raise ValueError(
-                    "Rectangular factory requires multi_scale=False and expanded_scales=False"
-                )
+                raise ValueError("Rectangular factory requires multi_scale=False and expanded_scales=False")
             rect = RectangularResize((target_height, target_width))
             if image_set == "train":
-                return lib_transforms.Compose(
-                    [lib_transforms.RandomHorizontalFlip(), rect, normalize]
-                )
+                return lib_transforms.Compose([lib_transforms.RandomHorizontalFlip(), rect, normalize])
             if image_set in ("val", "test", "val_speed"):
                 return lib_transforms.Compose([rect, normalize])
             raise ValueError(f"unknown {image_set}")
@@ -310,7 +310,9 @@ def patch_rfdetr_rect_transforms(
             target_width=target_width,
         )
     except Exception as err:
-        raise RuntimeError(f"RF-DETR rectangular-transforms patch failed; training without it is forbidden: {err}") from err
+        raise RuntimeError(
+            f"RF-DETR rectangular-transforms patch failed; training without it is forbidden: {err}"
+        ) from err
 
 
 class RFDETRTrainer:

@@ -51,7 +51,9 @@ def compute_class_weights(
     raw = [(1.0 - beta) / (1.0 - beta**n) for n in counts]
     mean = sum(raw) / len(raw)
     weights = [round(w / mean, 4) for w in raw]
-    logger.info("class_weights_computed", split=split, counts=dict(zip(CLASS_NAMES, counts, strict=True)), weights=weights)
+    logger.info(
+        "class_weights_computed", split=split, counts=dict(zip(CLASS_NAMES, counts, strict=True)), weights=weights
+    )
     return weights
 
 

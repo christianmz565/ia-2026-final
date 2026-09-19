@@ -15,8 +15,9 @@ from typing import Any
 
 import cv2
 import matplotlib
-import numpy as np
+import matplotlib.figure
 import matplotlib.pyplot as plt
+import numpy as np
 import structlog
 import torch
 
@@ -76,11 +77,13 @@ def _discover_checkpoints() -> list[dict[str, Any]]:
                 if key in seen_names:
                     continue
                 seen_names.add(key)
-                combos.append({
-                    "model": model_name,
-                    "augment": augment_name,
-                    "checkpoint": ckpt,
-                })
+                combos.append(
+                    {
+                        "model": model_name,
+                        "augment": augment_name,
+                        "checkpoint": ckpt,
+                    }
+                )
 
     return combos
 
@@ -127,19 +130,21 @@ def _load_and_infer(
             device=device,
             verbose=False,
         )
-        res = results[0]
-        if res.boxes is not None and len(res.boxes) > 0:
-            boxes = res.boxes.xyxy.cpu().numpy()
-            scores = res.boxes.conf.cpu().numpy()
-            clss = res.boxes.cls.cpu().numpy()
+        res = list(results)[0]  # type: ignore[index]
+        if res.boxes is not None and len(res.boxes) > 0:  # type: ignore[union-attr]
+            boxes = res.boxes.xyxy.cpu().numpy()  # type: ignore[union-attr]
+            scores = res.boxes.conf.cpu().numpy()  # type: ignore[union-attr]
+            clss = res.boxes.cls.cpu().numpy()  # type: ignore[union-attr]
             for box, score, cls in zip(boxes, scores, clss, strict=False):
                 x1, y1, x2, y2 = box
                 bw, bh = x2 - x1, y2 - y1
-                detections.append({
-                    "category_id": int(cls),
-                    "bbox": [round(float(x1), 2), round(float(y1), 2), round(float(bw), 2), round(float(bh), 2)],
-                    "score": round(float(score), 4),
-                })
+                detections.append(
+                    {
+                        "category_id": int(cls),
+                        "bbox": [round(float(x1), 2), round(float(y1), 2), round(float(bw), 2), round(float(bh), 2)],
+                        "score": round(float(score), 4),
+                    }
+                )
 
     elif model_type == "cascade_rcnn":
         import mmcv
@@ -148,6 +153,7 @@ def _load_and_infer(
             mmcv.__version__ = "2.1.0"
 
         from mmdet.apis import inference_detector, init_detector
+
         from src.s3_train.cascade_rcnn import _get_cascade_rcnn_default_config
 
         cfg_file = _get_cascade_rcnn_default_config()
@@ -157,8 +163,8 @@ def _load_and_infer(
             logger.warning("cascade_rcnn_checkpoint_invalid_using_pretrained", checkpoint=str(checkpoint))
             mmdet_model = init_detector(str(cfg_file), None, device=device)
         res = inference_detector(mmdet_model, image)
-        pred_instances = res.pred_instances
-        if hasattr(pred_instances, "bboxes") and len(pred_instances.bboxes) > 0:
+        pred_instances: Any = getattr(res, "pred_instances", None)
+        if pred_instances is not None and hasattr(pred_instances, "bboxes") and len(pred_instances.bboxes) > 0:
             bboxes = pred_instances.bboxes.cpu().numpy()
             scores = pred_instances.scores.cpu().numpy()
             labels = pred_instances.labels.cpu().numpy()
@@ -167,11 +173,13 @@ def _load_and_infer(
                     continue
                 x1, y1, x2, y2 = box
                 bw, bh = x2 - x1, y2 - y1
-                detections.append({
-                    "category_id": int(label),
-                    "bbox": [round(float(x1), 2), round(float(y1), 2), round(float(bw), 2), round(float(bh), 2)],
-                    "score": round(float(score), 4),
-                })
+                detections.append(
+                    {
+                        "category_id": int(label),
+                        "bbox": [round(float(x1), 2), round(float(y1), 2), round(float(bw), 2), round(float(bh), 2)],
+                        "score": round(float(score), 4),
+                    }
+                )
 
     else:  # rf_detr
         from rfdetr.detr import RFDETRMedium
@@ -180,10 +188,10 @@ def _load_and_infer(
         try:
             state_dict = torch.load(str(checkpoint), map_location=device, weights_only=False)
             if isinstance(state_dict, dict) and "model" in state_dict:
-                rfdetr_model.model.load_state_dict(state_dict["model"])
+                rfdetr_model.model.load_state_dict(state_dict["model"])  # type: ignore[union-attr]
             elif isinstance(state_dict, dict):
-                rfdetr_model.model.load_state_dict(state_dict)
-            rfdetr_model.model.eval()
+                rfdetr_model.model.load_state_dict(state_dict)  # type: ignore[union-attr]
+            rfdetr_model.model.eval()  # type: ignore[union-attr]
         except Exception:
             logger.warning("rf_detr_checkpoint_invalid_using_pretrained", checkpoint=str(checkpoint))
             rfdetr_model = RFDETRMedium(resolution=512)
@@ -197,11 +205,13 @@ def _load_and_infer(
                 conf = float(detections_rf.confidence[i])
                 cls = int(detections_rf.class_id[i])
                 bw, bh = x2 - x1, y2 - y1
-                detections.append({
-                    "category_id": cls,
-                    "bbox": [round(float(x1), 2), round(float(y1), 2), round(float(bw), 2), round(float(bh), 2)],
-                    "score": round(float(conf), 4),
-                })
+                detections.append(
+                    {
+                        "category_id": cls,
+                        "bbox": [round(float(x1), 2), round(float(y1), 2), round(float(bw), 2), round(float(bh), 2)],
+                        "score": round(float(conf), 4),
+                    }
+                )
 
     return detections
 
@@ -235,7 +245,8 @@ def _build_grid(
     fig_w = cols * cell_size[0] / dpi
     fig_h = rows * cell_size[1] / dpi
     fig, axes = plt.subplots(
-        rows, cols,
+        rows,
+        cols,
         figsize=(fig_w, fig_h),
         dpi=dpi,
         gridspec_kw={"wspace": 0.05, "hspace": 0.15},
@@ -361,13 +372,15 @@ def run_pipeline(
             individual_path = resolved_output / individual_name
             cv2.imwrite(str(individual_path), vis)
 
-            results.append({
-                "model": model_name,
-                "augment": aug_name,
-                "checkpoint": ckpt,
-                "detections": detections,
-                "image": vis,
-            })
+            results.append(
+                {
+                    "model": model_name,
+                    "augment": aug_name,
+                    "checkpoint": ckpt,
+                    "detections": detections,
+                    "image": vis,
+                }
+            )
 
             logger.info(
                 "s6_inference_complete",
@@ -392,13 +405,15 @@ def run_pipeline(
 
     summary = []
     for res in results:
-        summary.append({
-            "model": res["model"],
-            "augment": res["augment"],
-            "checkpoint": str(res["checkpoint"]),
-            "num_detections": len(res["detections"]),
-            "detections": res["detections"],
-        })
+        summary.append(
+            {
+                "model": res["model"],
+                "augment": res["augment"],
+                "checkpoint": str(res["checkpoint"]),
+                "num_detections": len(res["detections"]),
+                "detections": res["detections"],
+            }
+        )
 
     summary_path = resolved_output / "predictions.json"
     summary_path.write_text(json.dumps(summary, indent=2))
@@ -408,8 +423,9 @@ def run_pipeline(
 
 
 if __name__ == "__main__":
-    from src.cli_helpers import standalone_main
     from pydantic import BaseModel, Field
+
+    from src.cli_helpers import standalone_main
 
     class PredictConfig(BaseModel):
         """CLI config for single-image inference grid."""

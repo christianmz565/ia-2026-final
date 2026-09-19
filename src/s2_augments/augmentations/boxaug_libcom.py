@@ -112,7 +112,6 @@ class BoxAugLibcomAugmentor(Augmentor):
                 self._harmonization_model = False
         return self._harmonization_model
 
-
     def apply(
         self,
         image: np.ndarray,
@@ -159,14 +158,16 @@ class BoxAugLibcomAugmentor(Augmentor):
 
         elif blending_mode == "color_transfer":
             try:
-                ct_crop = libcom.color_transfer(fg_resized, fg_mask, bg_img, bbox_list)
-                comp_img, _ = libcom.get_composite_image(
-                    ct_crop,
+                comp_initial, _ = libcom.get_composite_image(
+                    fg_resized,
                     fg_mask,
                     bg_img,
                     bbox_list,
-                    option="poisson",
+                    option="none",
                 )
+                full_mask = np.zeros(bg_img.shape[:2], dtype=np.uint8)
+                full_mask[y1:y2, x1:x2] = 255
+                comp_img = libcom.color_transfer(comp_initial, full_mask)
                 return comp_img, "color_transfer"
             except Exception as err:
                 logger.warning("color_transfer_failed_fallback_poisson", error=str(err))
@@ -228,6 +229,8 @@ class BoxAugLibcomAugmentor(Augmentor):
         device = getattr(cfg, "device", self.device) or get_default_device()
 
         src_dir = Path(input_dir or (SPLIT_DATASET / "train"))
+        if output_dir is None:
+            raise ValueError("output_dir must be provided")
         target_dir = Path(output_dir)
 
         out_img_dir = target_dir / "train" / "images"
@@ -277,7 +280,7 @@ class BoxAugLibcomAugmentor(Augmentor):
         )
 
         aug_counter = 0
-        blending_manifest: dict[str, dict[str, object]] = {}
+        blending_manifest: dict[str, dict[str, Any]] = {}
 
         for class_id in sorted(class_counts.keys()):
             if class_id not in ID_TO_CLASS:

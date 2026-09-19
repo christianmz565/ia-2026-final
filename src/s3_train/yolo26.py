@@ -254,6 +254,7 @@ class YOLO26Trainer:
 
             logger.info("yolo26_train_complete", checkpoint=str(out_dir / "best.pt"))
             return out_dir / "best.pt"
+
         return run_cached_step(
             step_name="train_yolo26",
             target_path=output_dir,

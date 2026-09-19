@@ -56,9 +56,7 @@ def _git_hash() -> str:
     try:
         import subprocess
 
-        out = subprocess.run(
-            ["git", "rev-parse", "--short", "HEAD"], capture_output=True, text=True, timeout=5
-        )
+        out = subprocess.run(["git", "rev-parse", "--short", "HEAD"], capture_output=True, text=True, timeout=5)
         return out.stdout.strip() or "unknown"
     except Exception:
         return "unknown"
@@ -106,9 +104,7 @@ def run_cached_step(
             return loader(primary_path)
         return primary_path
 
-    logger.info(
-        "step_start", step=step_name, path=str(primary_path), code_hash=code_hash, fingerprint=fingerprint
-    )
+    logger.info("step_start", step=step_name, path=str(primary_path), code_hash=code_hash, fingerprint=fingerprint)
     result = fn()
     logger.info("step_complete", step=step_name, path=str(primary_path))
     return result

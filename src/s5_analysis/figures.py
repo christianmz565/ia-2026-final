@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any
 
 import matplotlib
+import matplotlib.figure
 import matplotlib.font_manager as font_manager
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -37,7 +38,12 @@ AUG_LABELS = {
     "boxaug_libcom": "BoxAug LibCom",
 }
 
-BONFERRONI_INTERVALS_JSON = Path(__file__).resolve().parent.parent.parent / "partials" / "s5_analysis_new" / "bonferroni_per_class_intervals.json"
+BONFERRONI_INTERVALS_JSON = (
+    Path(__file__).resolve().parent.parent.parent
+    / "partials"
+    / "s5_analysis_new"
+    / "bonferroni_per_class_intervals.json"
+)
 
 BEST_PARADIGM_CONFIGS: tuple[tuple[str, str], ...] = (
     ("rf_detr", "albumentations_balanced"),
@@ -57,7 +63,7 @@ def _setup_style() -> None:
         logger.debug("font_xits_not_loaded", error=str(e))
 
 
-def _save_fig(fig: plt.Figure, output_dir: Path, stem: str, dpi: int = 300) -> list[Path]:
+def _save_fig(fig: matplotlib.figure.Figure, output_dir: Path, stem: str, dpi: int = 300) -> list[Path]:
     """Save figure as both SVG and PNG."""
     output_dir.mkdir(parents=True, exist_ok=True)
     svg_out = output_dir / f"{stem}.svg"
@@ -69,6 +75,7 @@ def _save_fig(fig: plt.Figure, output_dir: Path, stem: str, dpi: int = 300) -> l
 
 
 # --- Group A: Accuracy Overview ---
+
 
 def _fig_map_overview(rows: list[dict[str, Any]], output_dir: Path, dpi: int) -> list[Path]:
     """Figure 1: mAP@50 and mAP@50:95 comparison across model/augmentation combos."""
@@ -85,7 +92,7 @@ def _fig_map_overview(rows: list[dict[str, Any]], output_dir: Path, dpi: int) ->
     if not df.empty:
         sns.barplot(data=df, x="Score", y="Combo", hue="Metric", palette="muted", ax=ax)
         for container in ax.containers:
-            ax.bar_label(container, fmt="%.3f", padding=3, fontsize=9)
+            ax.bar_label(container, fmt="%.3f", padding=3, fontsize=9)  # type: ignore[arg-type]
         ax.set_xlim(0, 1.0)
     else:
         ax.text(0.5, 0.5, "No data available", ha="center", va="center")
@@ -114,7 +121,7 @@ def _fig_precision_recall_f1(rows: list[dict[str, Any]], output_dir: Path, dpi: 
     if not df.empty:
         sns.barplot(data=df, x="Model", y="Score", hue="Metric", palette="Set2", ax=ax)
         for container in ax.containers:
-            ax.bar_label(container, fmt="%.3f", padding=3, fontsize=9)
+            ax.bar_label(container, fmt="%.3f", padding=3, fontsize=9)  # type: ignore[arg-type]
         ax.set_ylim(0, 1.0)
     else:
         ax.text(0.5, 0.5, "No data available", ha="center", va="center")
@@ -129,14 +136,15 @@ def _fig_precision_recall_f1(rows: list[dict[str, Any]], output_dir: Path, dpi: 
 
 # --- Group B: Augmentation x Paradigm Matrix ---
 
+
 def _fig_aug_paradigm_heatmap(
     rows: list[dict[str, Any]], metric_key: str, title: str, stem: str, cmap: str, output_dir: Path, dpi: int
 ) -> list[Path]:
     """Figures 3 & 4: Model x Augmentation heatmap for a given metric."""
     grid_data: dict[str, dict[str, float]] = {}
     for r in rows:
-        m = MODEL_LABELS.get(r.get("model", ""), r.get("model", "N/A"))
-        a = AUG_LABELS.get(r.get("augmentation", ""), r.get("augmentation", "N/A"))
+        m = MODEL_LABELS.get(r.get("model", ""), r.get("model", "N/A")) or "N/A"
+        a = AUG_LABELS.get(r.get("augmentation", ""), r.get("augmentation", "N/A")) or "N/A"
         if m not in grid_data:
             grid_data[m] = {}
         grid_data[m][a] = float(r.get(metric_key, 0.0))
@@ -159,18 +167,20 @@ def _fig_aug_effect_per_model(rows: list[dict[str, Any]], output_dir: Path, dpi:
     """Figure 5: Augmentation effect per model architecture."""
     data = []
     for r in rows:
-        data.append({
-            "Model": MODEL_LABELS.get(r.get("model", ""), r.get("model", "N/A")),
-            "Augmentation": AUG_LABELS.get(r.get("augmentation", ""), r.get("augmentation", "N/A")),
-            "mAP_50": float(r.get("mAP_50", 0.0)),
-        })
+        data.append(
+            {
+                "Model": MODEL_LABELS.get(r.get("model", ""), r.get("model", "N/A")),
+                "Augmentation": AUG_LABELS.get(r.get("augmentation", ""), r.get("augmentation", "N/A")),
+                "mAP_50": float(r.get("mAP_50", 0.0)),
+            }
+        )
 
     df = pd.DataFrame(data)
     fig, ax = plt.subplots(figsize=(8, 4.5))
     if not df.empty:
         sns.barplot(data=df, x="Augmentation", y="mAP_50", hue="Model", palette="muted", ax=ax)
         for container in ax.containers:
-            ax.bar_label(container, fmt="%.3f", padding=3, fontsize=9)
+            ax.bar_label(container, fmt="%.3f", padding=3, fontsize=9)  # type: ignore[arg-type]
         ax.set_ylim(0, 1.0)
     else:
         ax.text(0.5, 0.5, "No data available", ha="center", va="center")
@@ -196,11 +206,13 @@ def _fig_aug_delta_vs_baseline(rows: list[dict[str, Any]], output_dir: Path, dpi
         aug = r.get("augmentation", "")
         if aug != "baseline" and m in baselines:
             delta = float(r.get("mAP_50", 0.0)) - baselines[m]
-            data.append({
-                "Model": MODEL_LABELS.get(m, m),
-                "Augmentation": AUG_LABELS.get(aug, aug),
-                "Delta_mAP_50": delta,
-            })
+            data.append(
+                {
+                    "Model": MODEL_LABELS.get(m, m),
+                    "Augmentation": AUG_LABELS.get(aug, aug),
+                    "Delta_mAP_50": delta,
+                }
+            )
 
     df = pd.DataFrame(data)
     fig, ax = plt.subplots(figsize=(10, 4.5))
@@ -208,7 +220,7 @@ def _fig_aug_delta_vs_baseline(rows: list[dict[str, Any]], output_dir: Path, dpi
         sns.barplot(data=df, x="Delta_mAP_50", y="Augmentation", hue="Model", palette="coolwarm", ax=ax)
         ax.axvline(0, color="black", linestyle="--", linewidth=0.8)
         for container in ax.containers:
-            ax.bar_label(container, fmt="%+.3f", padding=3, fontsize=9)
+            ax.bar_label(container, fmt="%+.3f", padding=3, fontsize=9)  # type: ignore[arg-type]
         ax.legend(title="Model", loc="upper left", bbox_to_anchor=(1.02, 1), framealpha=0.9)
     else:
         ax.text(0.5, 0.5, "No multi-augmentation data available vs baseline", ha="center", va="center")
@@ -224,12 +236,13 @@ def _fig_aug_delta_vs_baseline(rows: list[dict[str, Any]], output_dir: Path, dpi
 
 # --- Group C: Per-Class Performance ---
 
+
 def _fig_per_class_ap_heatmap(rows: list[dict[str, Any]], output_dir: Path, dpi: int) -> list[Path]:
     """Figure 7: Per-class AP heatmap across models."""
     class_map: dict[str, dict[str, float]] = {}
     for r in rows:
-        m_lbl = MODEL_LABELS.get(r.get("model", ""), r.get("model", "N/A"))
-        a_lbl = AUG_LABELS.get(r.get("augmentation", ""), r.get("augmentation", ""))
+        m_lbl = MODEL_LABELS.get(r.get("model", ""), r.get("model", "N/A")) or "N/A"
+        a_lbl = AUG_LABELS.get(r.get("augmentation", ""), r.get("augmentation", "")) or ""
         label = f"{m_lbl} ({a_lbl})" if a_lbl else m_lbl
         per_class = r.get("per_class_ap", {})
         if per_class:
@@ -238,8 +251,7 @@ def _fig_per_class_ap_heatmap(rows: list[dict[str, Any]], output_dir: Path, dpi:
     df = pd.DataFrame(class_map).T
     fig, ax = plt.subplots(figsize=(10, 5.5))
     if not df.empty:
-        sns.heatmap(df, annot=True, fmt=".3f", cmap="YlGnBu", cbar=True, ax=ax, linewidths=0.5,
-                    annot_kws={"size": 8})
+        sns.heatmap(df, annot=True, fmt=".3f", cmap="YlGnBu", cbar=True, ax=ax, linewidths=0.5, annot_kws={"size": 8})
         ax.set_ylabel("Model / Augmentation", fontsize=10)
         ax.set_xlabel("Defect Class", fontsize=10)
         plt.xticks(rotation=35, ha="right", fontsize=9)
@@ -251,12 +263,13 @@ def _fig_per_class_ap_heatmap(rows: list[dict[str, Any]], output_dir: Path, dpi:
     plt.tight_layout()
     return _save_fig(fig, output_dir, "per_class_ap_heatmap", dpi)
 
+
 def _fig_per_class_ap50_95_heatmap(rows: list[dict[str, Any]], output_dir: Path, dpi: int) -> list[Path]:
     """Figure 7b: Per-class AP@50:95 heatmap across models."""
     class_map: dict[str, dict[str, float]] = {}
     for r in rows:
-        m_lbl = MODEL_LABELS.get(r.get("model", ""), r.get("model", "N/A"))
-        a_lbl = AUG_LABELS.get(r.get("augmentation", ""), r.get("augmentation", ""))
+        m_lbl = MODEL_LABELS.get(r.get("model", ""), r.get("model", "N/A")) or "N/A"
+        a_lbl = AUG_LABELS.get(r.get("augmentation", ""), r.get("augmentation", "")) or ""
         label = f"{m_lbl} ({a_lbl})" if a_lbl else m_lbl
         per_class = r.get("per_class_ap_50_95", {})
         if per_class:
@@ -265,8 +278,7 @@ def _fig_per_class_ap50_95_heatmap(rows: list[dict[str, Any]], output_dir: Path,
     df = pd.DataFrame(class_map).T
     fig, ax = plt.subplots(figsize=(10, 5.5))
     if not df.empty:
-        sns.heatmap(df, annot=True, fmt=".3f", cmap="YlOrRd", cbar=True, ax=ax, linewidths=0.5,
-                    annot_kws={"size": 8})
+        sns.heatmap(df, annot=True, fmt=".3f", cmap="YlOrRd", cbar=True, ax=ax, linewidths=0.5, annot_kws={"size": 8})
         ax.set_ylabel("Model / Augmentation", fontsize=10)
         ax.set_xlabel("Defect Class", fontsize=10)
         plt.xticks(rotation=35, ha="right", fontsize=9)
@@ -277,7 +289,6 @@ def _fig_per_class_ap50_95_heatmap(rows: list[dict[str, Any]], output_dir: Path,
     ax.set_title("Per-Class Average Precision (AP@50:95) Heatmap", fontsize=12)
     plt.tight_layout()
     return _save_fig(fig, output_dir, "per_class_ap50_95_heatmap", dpi)
-
 
 
 def _fig_per_class_ap_bars(rows: list[dict[str, Any]], output_dir: Path, dpi: int) -> list[Path]:
@@ -295,7 +306,7 @@ def _fig_per_class_ap_bars(rows: list[dict[str, Any]], output_dir: Path, dpi: in
     if not df.empty:
         sns.barplot(data=df, x="AP", y="Class", hue="Model", palette="tab10", ax=ax)
         for container in ax.containers:
-            ax.bar_label(container, fmt="%.2f", padding=3, fontsize=7)
+            ax.bar_label(container, fmt="%.2f", padding=3, fontsize=7)  # type: ignore[arg-type]
         ax.set_xlim(0, 1.0)
         ax.legend(title="Model", fontsize=7, title_fontsize=8, loc="lower right", framealpha=0.9, ncol=2)
     else:
@@ -335,7 +346,7 @@ def _fig_per_class_recall_bonferroni(output_dir: Path, dpi: int) -> list[Path]:
     offsets = [-width, 0.0, width]
     palette = sns.color_palette("muted", n_colors=len(BEST_PARADIGM_CONFIGS))
     fig, ax = plt.subplots(figsize=(12, 5))
-    for pos, ((model, aug), color, offset) in enumerate(zip(BEST_PARADIGM_CONFIGS, palette, offsets, strict=True)):
+    for _pos, ((model, aug), color, offset) in enumerate(zip(BEST_PARADIGM_CONFIGS, palette, offsets, strict=True)):
         label = f"{MODEL_LABELS.get(model, model)} ({AUG_LABELS.get(aug, aug)})"
         estimates: list[float] = []
         lower: list[float] = []
@@ -380,8 +391,8 @@ def _fig_per_class_recall_bonferroni(output_dir: Path, dpi: int) -> list[Path]:
     return _save_fig(fig, output_dir, "per_class_recall_bonferroni", dpi)
 
 
-
 # --- Group D: Training Dynamics ---
+
 
 def _fig_training_curves_map(history: dict[str, list[dict[str, Any]]], output_dir: Path, dpi: int) -> list[Path]:
     """Figure 9: Validation mAP@50 over epochs for all runs."""
@@ -392,11 +403,13 @@ def _fig_training_curves_map(history: dict[str, list[dict[str, Any]]], output_di
         a = AUG_LABELS.get(parts[1], parts[1]) if len(parts) > 1 else ""
         label = f"{m} ({a})" if a else m
         for ep in epochs:
-            data.append({
-                "Run": label,
-                "Epoch": int(ep.get("epoch", 0)),
-                "val_mAP_50": float(ep.get("val_mAP_50", 0.0)),
-            })
+            data.append(
+                {
+                    "Run": label,
+                    "Epoch": int(ep.get("epoch", 0)),
+                    "val_mAP_50": float(ep.get("val_mAP_50", 0.0)),
+                }
+            )
 
     df = pd.DataFrame(data)
     fig, ax = plt.subplots(figsize=(10, 5))
@@ -424,11 +437,13 @@ def _fig_training_curves_loss(history: dict[str, list[dict[str, Any]]], output_d
         a = AUG_LABELS.get(parts[1], parts[1]) if len(parts) > 1 else ""
         label = f"{m} ({a})" if a else m
         for ep in epochs:
-            data.append({
-                "Run": label,
-                "Epoch": int(ep.get("epoch", 0)),
-                "train_loss": float(ep.get("train_loss", 0.0)),
-            })
+            data.append(
+                {
+                    "Run": label,
+                    "Epoch": int(ep.get("epoch", 0)),
+                    "train_loss": float(ep.get("train_loss", 0.0)),
+                }
+            )
 
     df = pd.DataFrame(data)
     fig, ax = plt.subplots(figsize=(10, 5))
@@ -448,6 +463,7 @@ def _fig_training_curves_loss(history: dict[str, list[dict[str, Any]]], output_d
 
 # --- Group E: Timing & Efficiency ---
 
+
 def _fig_training_time_comparison(rows: list[dict[str, Any]], output_dir: Path, dpi: int) -> list[Path]:
     """Figure 11: Total training duration in hours per model/augmentation."""
     data = []
@@ -462,7 +478,7 @@ def _fig_training_time_comparison(rows: list[dict[str, Any]], output_dir: Path, 
     if not df.empty and df["Hours"].sum() > 0:
         sns.barplot(data=df, x="Hours", y="Combo", hue="Combo", palette="crest", legend=False, ax=ax)
         for container in ax.containers:
-            ax.bar_label(container, fmt="%.2fh", padding=3, fontsize=9)
+            ax.bar_label(container, fmt="%.2fh", padding=3, fontsize=9)  # type: ignore[arg-type]
     else:
         ax.text(0.5, 0.5, "No training time data available", ha="center", va="center")
 
@@ -488,7 +504,7 @@ def _fig_inference_time_comparison(rows: list[dict[str, Any]], output_dir: Path,
     if not df.empty and df["Latency_ms"].sum() > 0:
         sns.barplot(data=df, x="Latency_ms", y="Combo", hue="Combo", palette="viridis", legend=False, ax=ax)
         for container in ax.containers:
-            ax.bar_label(container, fmt="%.1f ms", padding=3, fontsize=9)
+            ax.bar_label(container, fmt="%.1f ms", padding=3, fontsize=9)  # type: ignore[arg-type]
     else:
         ax.text(0.5, 0.5, "No inference timing data available", ha="center", va="center")
 
@@ -507,9 +523,9 @@ def _fig_speed_accuracy_tradeoff(rows: list[dict[str, Any]], output_dir: Path, d
     fig, ax = plt.subplots(figsize=(9, 5))
     has_data = False
     model_groups: dict[str, list[tuple[float, float, str]]] = {}
-    for i, r in enumerate(rows):
-        m_lbl = MODEL_LABELS.get(r.get("model", ""), r.get("model", "N/A"))
-        a_lbl = AUG_LABELS.get(r.get("augmentation", ""), r.get("augmentation", ""))
+    for _i, r in enumerate(rows):
+        m_lbl = MODEL_LABELS.get(r.get("model", ""), r.get("model", "N/A")) or "N/A"
+        a_lbl = AUG_LABELS.get(r.get("augmentation", ""), r.get("augmentation", "")) or ""
         label = f"{m_lbl} ({a_lbl})" if a_lbl else m_lbl
         x = float(r.get("avg_inference_ms", 0.0))
         y = float(r.get("mAP_50", 0.0))
@@ -530,11 +546,11 @@ def _fig_speed_accuracy_tradeoff(rows: list[dict[str, Any]], output_dir: Path, d
         colors = sns.color_palette("muted", n_colors=len(model_groups))
         texts = []
         for idx, (model_key, points) in enumerate(model_groups.items()):
-            xs, ys, _ = zip(*points)
+            xs, ys, _ = zip(*points, strict=False)
             ax.scatter(xs, ys, s=120, label=model_key, color=colors[idx], zorder=5)
             for x, y, lbl in points:
                 texts.append(ax.text(x, y, lbl, fontsize=8))
-        adjust_text(texts, ax=ax, arrowprops=dict(arrowstyle="-", color="gray", lw=0.5))
+        adjust_text(texts, ax=ax, arrowprops={"arrowstyle": "-", "color": "gray", "lw": 0.5})
 
     ax.set_xlabel("Avg Inference Time per Image (ms)", fontsize=10)
     ax.set_ylabel("mAP@50 Score", fontsize=10)
@@ -551,8 +567,8 @@ def _fig_efficiency_tradeoff(rows: list[dict[str, Any]], output_dir: Path, dpi: 
     fig, ax = plt.subplots(figsize=(7, 4.5))
     has_data = False
     for r in rows:
-        m_lbl = MODEL_LABELS.get(r.get("model", ""), r.get("model", "N/A"))
-        a_lbl = AUG_LABELS.get(r.get("augmentation", ""), r.get("augmentation", ""))
+        m_lbl = MODEL_LABELS.get(r.get("model", ""), r.get("model", "N/A")) or "N/A"
+        a_lbl = AUG_LABELS.get(r.get("augmentation", ""), r.get("augmentation", "")) or ""
         label = f"{m_lbl} ({a_lbl})" if a_lbl else m_lbl
         x = float(r.get("train_total_hours", 0.0))
         y = float(r.get("mAP_50", 0.0))
@@ -616,8 +632,28 @@ def generate_figures(
         all_paths.extend(_fig_precision_recall_f1(rows, resolved_output_dir, config.figure_dpi))
 
         # Group B: Augmentation x Paradigm Matrix
-        all_paths.extend(_fig_aug_paradigm_heatmap(rows, "mAP_50", "Augmentation x Paradigm (mAP@50)", "aug_paradigm_map50_heatmap", "YlGnBu", resolved_output_dir, config.figure_dpi))
-        all_paths.extend(_fig_aug_paradigm_heatmap(rows, "mAP_50_95", "Augmentation x Paradigm (mAP@50:95)", "aug_paradigm_map50_95_heatmap", "YlOrRd", resolved_output_dir, config.figure_dpi))
+        all_paths.extend(
+            _fig_aug_paradigm_heatmap(
+                rows,
+                "mAP_50",
+                "Augmentation x Paradigm (mAP@50)",
+                "aug_paradigm_map50_heatmap",
+                "YlGnBu",
+                resolved_output_dir,
+                config.figure_dpi,
+            )
+        )
+        all_paths.extend(
+            _fig_aug_paradigm_heatmap(
+                rows,
+                "mAP_50_95",
+                "Augmentation x Paradigm (mAP@50:95)",
+                "aug_paradigm_map50_95_heatmap",
+                "YlOrRd",
+                resolved_output_dir,
+                config.figure_dpi,
+            )
+        )
         all_paths.extend(_fig_aug_effect_per_model(rows, resolved_output_dir, config.figure_dpi))
         all_paths.extend(_fig_aug_delta_vs_baseline(rows, resolved_output_dir, config.figure_dpi))
         # Group C: Per-Class Performance

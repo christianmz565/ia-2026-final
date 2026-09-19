@@ -9,14 +9,14 @@ from src.constants import CLASS_NAMES
 
 # One distinct color per class (BGR format for OpenCV)
 _COLORS = [
-    (255, 100, 0),    # Quartzity - orange
-    (0, 200, 255),    # Live_Knot - cyan
-    (0, 150, 0),      # Marrow - green
-    (200, 0, 200),    # resin - purple
-    (0, 0, 255),      # Dead_Knot - red
-    (128, 0, 128),    # knot_with_crack - dark purple
-    (255, 165, 0),    # Knot_missing - dark orange
-    (0, 255, 255),    # Crack - yellow
+    (255, 100, 0),  # Quartzity - orange
+    (0, 200, 255),  # Live_Knot - cyan
+    (0, 150, 0),  # Marrow - green
+    (200, 0, 200),  # resin - purple
+    (0, 0, 255),  # Dead_Knot - red
+    (128, 0, 128),  # knot_with_crack - dark purple
+    (255, 165, 0),  # Knot_missing - dark orange
+    (0, 255, 255),  # Crack - yellow
 ]
 
 # Fallback color for unknown classes

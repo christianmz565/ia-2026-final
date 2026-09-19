@@ -25,7 +25,9 @@ class AlbumentationsBalancedConfig(BaseModel):
 
     horizontal_flip_prob: float = Field(default=0.5, ge=0.0, le=1.0)
     vertical_flip_prob: float = Field(default=0.5, ge=0.0, le=1.0)
-    rotate_90_prob: float = Field(default=0.0, ge=0.0, le=1.0, description="Rotate 90 prob (disabled for fixed plank aspect)")
+    rotate_90_prob: float = Field(
+        default=0.0, ge=0.0, le=1.0, description="Rotate 90 prob (disabled for fixed plank aspect)"
+    )
     shift_scale_rotate_prob: float = Field(default=0.5, ge=0.0, le=1.0)
     brightness_contrast_prob: float = Field(default=0.4, ge=0.0, le=1.0)
     color_jitter_prob: float = Field(default=0.3, ge=0.0, le=1.0)
@@ -52,29 +54,31 @@ class AlbumentationsBalancedAugmentor(AlbumentationsAugmentor):
         ]
         if cfg.rotate_90_prob > 0.0:
             transforms.append(A.RandomRotate90(p=cfg.rotate_90_prob))
-        transforms.extend([
-            A.ShiftScaleRotate(
-                shift_limit=0.05,
-                scale_limit=0.10,
-                rotate_limit=15,
-                border_mode=cv2.BORDER_CONSTANT,
-                value=0,
-                p=cfg.shift_scale_rotate_prob,
-            ),
-            A.RandomBrightnessContrast(
-                brightness_limit=0.2,
-                contrast_limit=0.2,
-                p=cfg.brightness_contrast_prob,
-            ),
-            A.ColorJitter(
-                brightness=0.1,
-                contrast=0.1,
-                saturation=0.1,
-                hue=0.1,
-                p=cfg.color_jitter_prob,
-            ),
-            A.GaussianBlur(blur_limit=(3, 5), p=cfg.blur_prob),
-        ])
+        transforms.extend(
+            [
+                A.ShiftScaleRotate(
+                    shift_limit=0.05,
+                    scale_limit=0.10,
+                    rotate_limit=15,
+                    border_mode=cv2.BORDER_CONSTANT,
+                    value=(0, 0, 0),
+                    p=cfg.shift_scale_rotate_prob,
+                ),
+                A.RandomBrightnessContrast(
+                    brightness_limit=0.2,
+                    contrast_limit=0.2,
+                    p=cfg.brightness_contrast_prob,
+                ),
+                A.ColorJitter(
+                    brightness=0.1,
+                    contrast=0.1,
+                    saturation=0.1,
+                    hue=0.1,
+                    p=cfg.color_jitter_prob,
+                ),
+                A.GaussianBlur(blur_limit=(3, 5), p=cfg.blur_prob),
+            ]
+        )
         bbox_params = A.BboxParams(
             format="yolo",
             label_fields=["class_labels"],
@@ -96,6 +100,8 @@ class AlbumentationsBalancedAugmentor(AlbumentationsAugmentor):
         self._pipeline = self._build_pipeline(cfg)
 
         src_dir = Path(input_dir or (SPLIT_DATASET / "train"))
+        if output_dir is None:
+            raise ValueError("output_dir must be provided")
         target_dir = Path(output_dir)
 
         out_img_dir = target_dir / "train" / "images"
@@ -199,11 +205,11 @@ class AlbumentationsBalancedAugmentor(AlbumentationsAugmentor):
             shutil.copy2(lbl_p, out_lbl_dir / lbl_p.name)
 
         aug_counter = 0
+        unmet_targets: dict[int, int] = {}
         if num_augments > 0 and total_needed_aug_images > 0:
             image_aug_counts: dict[Path, int] = defaultdict(int)
 
             class_aug_targets: dict[int, int] = {}
-            unmet_targets: dict[int, int] = {}
             allocated = 0
             sorted_rare = sorted(rare_class_ids, key=lambda c: needed_aug_images_by_class[c], reverse=True)
             for idx, cid in enumerate(sorted_rare):
@@ -282,4 +288,3 @@ class AlbumentationsBalancedAugmentor(AlbumentationsAugmentor):
 
 
 register_augmentation("albumentations_balanced", AlbumentationsBalancedAugmentor)
-

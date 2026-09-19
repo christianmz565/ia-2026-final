@@ -73,4 +73,3 @@ png_out = PROJECT_ROOT / "paper" / "figures" / "dataset" / "barchart_classes.png
 plt.savefig(svg_out, bbox_inches="tight")
 plt.savefig(png_out, dpi=300, bbox_inches="tight")
 print(f"Saved barchart to {svg_out} and {png_out}")
-

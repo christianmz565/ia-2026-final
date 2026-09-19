@@ -97,7 +97,6 @@ class AugmentConfig(BaseModel):
     boxaug_libcom: BoxAugLibcomConfig = Field(default_factory=BoxAugLibcomConfig)
 
 
-
 class S2Config(BaseModel):
     """Configuration for the s2_augments section."""
 
@@ -183,13 +182,16 @@ class EvalConfig(BaseModel):
     predictions: str = Field(default="", description="Path to predictions file")
     ground_truth: str = Field(default="", description="Path to ground truth annotations")
     output_path: str = Field(default="", description="Path to output results file")
-    checkpoint: str = Field(default="", description="Explicit checkpoint file; empty resolves by priority and fails on ambiguity")
+    checkpoint: str = Field(
+        default="", description="Explicit checkpoint file; empty resolves by priority and fails on ambiguity"
+    )
     device: str = Field(default_factory=_default_device)
     conf_threshold: float = Field(default=DEFAULT_CONF_THRESHOLD)
     max_images: int | None = Field(default=None, description="Max test images for seeded sampled inference")
     sample_seed: int = Field(default=DEFAULT_SEED, description="Seed for max_images sampling")
-    resolution: int | None = Field(default=None, description="Input resolution for RF-DETR eval (defaults to RFDETRConfig.imgsz)")
-
+    resolution: int | None = Field(
+        default=None, description="Input resolution for RF-DETR eval (defaults to RFDETRConfig.imgsz)"
+    )
 
 
 class S4Config(BaseModel):

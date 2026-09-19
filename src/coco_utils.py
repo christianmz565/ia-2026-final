@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
@@ -45,10 +46,7 @@ def build_categories(class_names: list[str] | None = None) -> list[dict[str, Any
         raise ValueError("class_names must not be empty")
     else:
         names = class_names
-    return [
-        {"id": i, "name": name, "supercategory": "object"}
-        for i, name in enumerate(names)
-    ]
+    return [{"id": i, "name": name, "supercategory": "object"} for i, name in enumerate(names)]
 
 
 SUPPORTED_IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png", ".bmp"}
@@ -67,7 +65,7 @@ def _bbox_iou_xywh(a: list[float], b: list[float]) -> float:
 
 def per_class_operating_point_counts(
     coco_gt: COCO,
-    pred_anns: list[dict[str, Any]],
+    pred_anns: Sequence[Any],
     conf_threshold: float = 0.5,
     iou_threshold: float = 0.5,
 ) -> dict[int, dict[str, int]]:
@@ -89,7 +87,7 @@ def per_class_operating_point_counts(
     for ann in coco_gt.loadAnns(coco_gt.getAnnIds()):
         if ann.get("iscrowd", 0):
             continue
-        gt_by_key.setdefault((ann["image_id"], ann["category_id"]), []).append(ann)
+        gt_by_key.setdefault((ann["image_id"], ann["category_id"]), []).append(dict(ann))
     matched: set[tuple[tuple[int, int], int]] = set()
     counts: dict[int, dict[str, int]] = {
         int(cat_id): {"tp": 0, "fp": 0, "fn": 0, "support": 0} for cat_id in coco_gt.getCatIds()
@@ -129,7 +127,7 @@ def per_class_operating_point_counts(
 
 def operating_point_metrics(
     coco_gt: COCO,
-    pred_anns: list[dict[str, Any]],
+    pred_anns: Sequence[Any],
     conf_threshold: float = 0.5,
     iou_threshold: float = 0.5,
 ) -> dict[str, float]:
@@ -150,7 +148,6 @@ def operating_point_metrics(
     recall = tp / (tp + fn) if (tp + fn) > 0 else 1.0
     f1 = round(2 * precision * recall / (precision + recall), 4) if (precision + recall) > 0 else 0.0
     return {"precision": round(precision, 4), "recall": round(recall, 4), "f1": f1}
-
 
 
 def run_coco_eval(

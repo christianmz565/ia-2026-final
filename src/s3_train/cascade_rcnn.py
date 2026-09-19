@@ -44,7 +44,6 @@ from src.utils import configure_torch_backend
 logger = structlog.get_logger(__name__)
 
 
-
 def _ensure_mmdet_setup() -> None:
     import mmcv
 
@@ -53,7 +52,6 @@ def _ensure_mmdet_setup() -> None:
     from mmdet.utils import register_all_modules
 
     register_all_modules()
-
 
 
 class EpochMetricsHook(Hook):
@@ -148,6 +146,7 @@ def _get_cascade_rcnn_default_config() -> Path:
     _ensure_mmdet_setup()
     import mmdet
 
+    assert mmdet.__file__ is not None, "mmdet package has no __file__"
     pkg_path = pathlib.Path(mmdet.__file__).parent
     cfg_file = pkg_path / ".mim" / "configs" / "cascade_rcnn" / "cascade-rcnn_r50_fpn_1x_coco.py"
     if not cfg_file.exists():
@@ -274,7 +273,14 @@ class CascadeRCNNTrainer:
             step_2 = int(round(config.epochs * (22 / 24)))
             cfg.param_scheduler = [
                 {"type": "LinearLR", "start_factor": 0.001, "by_epoch": False, "begin": 0, "end": 500},
-                {"type": "MultiStepLR", "begin": 0, "end": config.epochs, "by_epoch": True, "milestones": [step_1, step_2], "gamma": 0.1},
+                {
+                    "type": "MultiStepLR",
+                    "begin": 0,
+                    "end": config.epochs,
+                    "by_epoch": True,
+                    "milestones": [step_1, step_2],
+                    "gamma": 0.1,
+                },
             ]
 
             cfg.work_dir = str(out_dir)
@@ -295,7 +301,12 @@ class CascadeRCNNTrainer:
                 }
 
             cfg.custom_hooks = [
-                {"type": "EarlyStoppingHook", "monitor": "coco/bbox_mAP", "patience": config.patience, "min_delta": DEFAULT_EARLY_STOP_MIN_DELTA},
+                {
+                    "type": "EarlyStoppingHook",
+                    "monitor": "coco/bbox_mAP",
+                    "patience": config.patience,
+                    "min_delta": DEFAULT_EARLY_STOP_MIN_DELTA,
+                },
             ]
 
             cfg.default_hooks.checkpoint = {
@@ -330,9 +341,7 @@ class CascadeRCNNTrainer:
             # file would silently evaluate a non-best model.
             best_coco = sorted(out_dir.glob("best_coco_bbox_mAP_*.pth"), key=lambda p: p.name)
             if len(best_coco) > 1:
-                raise FileNotFoundError(
-                    f"Ambiguous best checkpoints in {out_dir}: {[p.name for p in best_coco]}"
-                )
+                raise FileNotFoundError(f"Ambiguous best checkpoints in {out_dir}: {[p.name for p in best_coco]}")
             if not best_coco:
                 present = sorted(p.name for p in out_dir.glob("*.pth"))
                 raise FileNotFoundError(
@@ -359,6 +368,7 @@ class CascadeRCNNTrainer:
             force=force,
             fingerprint=config_fingerprint(config),
         )
+
     def export(self, checkpoint: Path, output_dir: Path, format: str = "onnx") -> Path:
         """Export Cascade R-CNN model.
 

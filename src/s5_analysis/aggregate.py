@@ -21,7 +21,7 @@ from src.constants import S3_OUTPUT, S4_OUTPUT, S5_OUTPUT
 logger = structlog.get_logger(__name__)
 
 
-def _load_training_meta(model: str, aug: str) -> dict[str, Any]:
+def _load_training_meta(model: str, aug: str) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     """Load summary_report.json and history.json from s3_train for one combo.
 
     Wall-clock/epoch-count scalars come from the summary report; best-mAP

@@ -46,7 +46,7 @@ def run_pipeline(config: S4Config | None = None) -> None:
         )
         metrics_path = out_dir / "metrics.json"
         gt_path = config.eval.ground_truth or (
-            (config.eval.data_dir or (SPLIT_DATASET / TEST_SPLIT)) / "_annotations.coco.json"
+            Path(config.eval.data_dir or (SPLIT_DATASET / TEST_SPLIT)) / "_annotations.coco.json"
         )
         metrics = compute_metrics(
             predictions=config.eval.predictions or pred_path,
@@ -73,7 +73,9 @@ def run_pipeline(config: S4Config | None = None) -> None:
                     f"Training outputs directory missing for model='{model_name}', augment='{aug_name}' at {model_dir}. Run s3_train first."
                 )
 
-            data_dir = (SPLIT_DATASET / TEST_SPLIT) if aug_name == "baseline" else (AUGMENTED_DIR / aug_name / TEST_SPLIT)
+            data_dir = (
+                (SPLIT_DATASET / TEST_SPLIT) if aug_name == "baseline" else (AUGMENTED_DIR / aug_name / TEST_SPLIT)
+            )
             if not data_dir.exists():
                 raise FileNotFoundError(
                     f"Test dataset split missing for augment='{aug_name}' at {data_dir}. Run s1_prepare/s2_augments first."
@@ -132,4 +134,3 @@ if __name__ == "__main__":
         description="s4_evaluate pipeline",
         skip_fields=["eval"],
     )
-

@@ -179,6 +179,8 @@ class BoxAugStandardAugmentor(Augmentor):
         cfg = config if isinstance(config, BoxAugStandardConfig) else BoxAugStandardConfig()
 
         src_dir = Path(input_dir or (SPLIT_DATASET / "train"))
+        if output_dir is None:
+            raise ValueError("output_dir must be provided")
         target_dir = Path(output_dir)
 
         out_img_dir = target_dir / "train" / "images"

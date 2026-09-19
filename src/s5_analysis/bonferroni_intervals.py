@@ -187,20 +187,20 @@ def write_artifacts(payload: dict[str, Any]) -> tuple[Path, Path]:
         for class_name, class_entry in config["classes"].items():
             for metric in METRICS:
                 cell = class_entry[metric]
-                rows.append({
-                    "model": config["model"],
-                    "augmentation": config["augmentation"],
-                    "class": class_name,
-                    "metric": metric,
-                    "estimate": _rounded(cell["estimate"]),
-                    "lo": _rounded(cell["lo"]),
-                    "hi": _rounded(cell["hi"]),
-                    "n": cell["n"],
-                })
+                rows.append(
+                    {
+                        "model": config["model"],
+                        "augmentation": config["augmentation"],
+                        "class": class_name,
+                        "metric": metric,
+                        "estimate": _rounded(cell["estimate"]),
+                        "lo": _rounded(cell["lo"]),
+                        "hi": _rounded(cell["hi"]),
+                        "n": cell["n"],
+                    }
+                )
     with open(CSV_OUTPUT, "w", newline="") as f:
-        writer = csv.DictWriter(
-            f, fieldnames=["model", "augmentation", "class", "metric", "estimate", "lo", "hi", "n"]
-        )
+        writer = csv.DictWriter(f, fieldnames=["model", "augmentation", "class", "metric", "estimate", "lo", "hi", "n"])
         writer.writeheader()
         writer.writerows(rows)
     logger.info("bonferroni_artifacts_written", json=str(JSON_OUTPUT), csv=str(CSV_OUTPUT), rows=len(rows))

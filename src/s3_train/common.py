@@ -180,4 +180,3 @@ def save_summary_reports(
         logger.info("standardized_best_pt_created", source=str(rel_target), target=str(best_pt))
 
     return summary
-

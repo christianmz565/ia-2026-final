@@ -54,9 +54,7 @@ def convert_split(
         ann_id = 1
         img_id = 0
 
-        img_files = sorted(
-            p for p in images_dir.iterdir() if p.suffix.lower() in SUPPORTED_IMAGE_SUFFIXES
-        )
+        img_files = sorted(p for p in images_dir.iterdir() if p.suffix.lower() in SUPPORTED_IMAGE_SUFFIXES)
 
         unreadable_images = 0
         background_images = 0
@@ -139,6 +137,7 @@ def convert_split(
         loader=lambda p: p,
         fingerprint=config_fingerprint({"data_dir": str(data_dir), "split": split}),
     )
+
 
 def convert_coco_dataset(data_dir: Path | None = None) -> None:
     """Convert all splits from YOLO to COCO JSON.
