@@ -49,10 +49,12 @@
       name: "Yasiel Pérez Vera",
       orcid: "0000-0001-9421-9529",
       affiliations: ("a",),
-    )
+      corresponding: true,
+      email: "yperezv@unsa.edu.pe",
+    ),
   ),
   affiliations: (
-      "a": [Systems Engineering Professional Program, Universidad Nacional de San Agustín, Av. Venezuela s/n corner with Calle Paucarpata, Paucarpata 04001, Arequipa, Peru]
+    "a": [Systems Engineering Professional Program, Universidad Nacional de San Agustín, 04001, Arequipa, Arequipa, Peru],
   ),
   abstract: [
     Automated inspection of surface defects in wood faces challenges arising from severe long-tail class imbalance and high intra-class variability of organic anomalies. This article presents a comparative benchmark evaluating the intersection of three object detection paradigms: one-stage, two-stage, and transformers with four data augmentation strategies: no augmentation, Albumentations with class balancing, BoxAug with noise transformations, and BoxAug with neural harmonization via LibCom. The study is conducted on a dataset of 4,000 images with 8,888 annotations distributed across 8 defect categories, employing a reproducible five-stage pipeline with step caching. Experimental results demonstrate that RF-DETR achieves the highest ranking precision with mAP\@0.5 of 0.717 under per-model calibrated confidence thresholds, while Cascade R-CNN with BoxAug LibCom reaches the best operating-point F1 of 0.798. Augmentation effects are paradigm-specific: BoxAug LibCom improves Cascade R-CNN by +0.033 mAP\@0.5, whereas all three augmentation strategies leave YOLO26 at or below its unaugmented baseline (0.592 to 0.604 versus 0.618). Per-class analysis at AP\@0.5 shows marrow reaching 0.910 while quartzite peaks at 0.550, confirming that visual distinguishability interacts with class frequency. The calibrated-threshold protocol and the paradigm-dependent augmentation response are discussed and future directions are proposed, including extended training budgets and diffusion-based augmentation.
@@ -137,7 +139,6 @@ Shah et al. @Shah2026Review conducted a comprehensive review of automated defect
   caption: [Comparative summary of related works on wood defect detection.],
   scope: "parent",
   kind: table,
-
 ) <fig:tabla-resumen>
 
 // ============================================================
@@ -188,10 +189,15 @@ The annotations provide normalized bounding box coordinates in YOLO format. The 
       columns: 4,
       rows: 2,
       gutter: 4pt,
-      image("figures/dataset/Live_Knot.jpg"), image("figures/dataset/Dead_Knot.jpg"),
-      image("figures/dataset/resin.jpg"), image("figures/dataset/knot_with_crack.jpg"),
-      image("figures/dataset/Crack.jpg"), image("figures/dataset/Marrow.jpg"),
-      image("figures/dataset/Quartzity.jpg"), image("figures/dataset/Knot_missing.jpg"),
+      image("figures/dataset/Live_Knot.jpg"),
+      image("figures/dataset/Dead_Knot.jpg"),
+      image("figures/dataset/resin.jpg"),
+      image("figures/dataset/knot_with_crack.jpg"),
+
+      image("figures/dataset/Crack.jpg"),
+      image("figures/dataset/Marrow.jpg"),
+      image("figures/dataset/Quartzity.jpg"),
+      image("figures/dataset/Knot_missing.jpg"),
     ),
     caption: [Examples of the eight defect classes annotated in the wood dataset @Nomihsa2024KaggleWood.],
     kind: image,
@@ -237,11 +243,22 @@ The differing epoch budgets across paradigms are intentional rather than arbitra
     columns: (1fr, 1.2fr, 1.5fr, 1.4fr),
     align: (left, center, left, left),
     table.header([Model], [Input / Batch], [Optimization], [Budget]),
-    [Cascade R-CNN \ (ResNet-50 + FPN)], [960×384 keep-ratio \ batch 8], [AdamW, lr 1e-4, wd 1e-4; LinearLR warmup + MultiStepLR], [12 epochs (1x) \ patience 8, min-delta 0.005],
-    [YOLO26m \ (anchor-free, dual-head)], [960×384 rect \ batch 16], [lr0 0.01 (Ultralytics default optimizer); AMP FP16], [50 epochs \ patience 50 (effectively off)],
-    [RF-DETR-m \ (NAS transformer)], [960×384 rect. canvas \ batch 8], [lr 1e-4, wd 1e-4; warmup 5; grad. checkpointing], [max 50 (actual 21–23) \ patience 15, min-delta 0.005],
+    [Cascade R-CNN \ (ResNet-50 + FPN)],
+    [960×384 keep-ratio \ batch 8],
+    [AdamW, lr 1e-4, wd 1e-4; LinearLR warmup + MultiStepLR],
+    [12 epochs (1x) \ patience 8, min-delta 0.005],
+
+    [YOLO26m \ (anchor-free, dual-head)],
+    [960×384 rect \ batch 16],
+    [lr0 0.01 (Ultralytics default optimizer); AMP FP16],
+    [50 epochs \ patience 50 (effectively off)],
+
+    [RF-DETR-m \ (NAS transformer)],
+    [960×384 rect. canvas \ batch 8],
+    [lr 1e-4, wd 1e-4; warmup 5; grad. checkpointing],
+    [max 50 (actual 21–23) \ patience 15, min-delta 0.005],
   ),
-  caption: [Training hyperparameters per paradigm. Each configuration follows its framework reference defaults; mAP values are single-run point estimates and per-class uncertainty is reported via simultaneous Wilson intervals (see @sec:results).],
+  caption: [Training hyperparameters per paradigm, each following its framework reference defaults.],
   scope: "parent",
   kind: table,
 ) <fig:tabla-hiperparametros>
@@ -291,17 +308,7 @@ Confidence thresholds are calibrated per model rather than fixed globally. A val
   caption: [Performance metrics on the test set for all 12 benchmark configurations.],
   scope: "parent",
   kind: table,
-
 ) <fig:tabla-principal>
-
-The joint view in @fig:map-overview confirms the RF-DETR, Cascade R-CNN, YOLO26 order under both the loose and strict metrics.
-
-#figure(
-  image("figures/results/map_overview.png", width: 100%),
-  caption: [Overview of mAP\@0.5 and mAP\@0.5:0.95 per model-augmentation configuration, confirming the RF-DETR, Cascade R-CNN, YOLO26 order under both metrics.],
-  kind: image,
-  scope: "parent",
-) <fig:map-overview>
 
 @fig:delta-baseline shows the impact of each augmentation strategy relative to the baseline for each model. Cascade R-CNN benefits from every strategy: Albumentations contributes +0.008, standard BoxAug +0.015, and BoxAug LibCom +0.033 absolute improvement in mAP\@0.5. RF-DETR shows mixed behavior: Albumentations contributes +0.017, but standard BoxAug degrades performance by -0.024 and BoxAug LibCom by -0.013. YOLO26 shows no gain: Albumentations scores -0.019, BoxAug LibCom -0.026, and standard BoxAug -0.014, with the unaugmented baseline remaining its best configuration.
 
@@ -313,7 +320,7 @@ The joint view in @fig:map-overview confirms the RF-DETR, Cascade R-CNN, YOLO26 
 ) <fig:delta-baseline>
 
 
-@fig:heatmap-clase presents the average AP per class at AP\@0.5 for all 12 configurations (@fig:clase-barras shows the same values as bars). The easiest class is marrow, with AP up to 0.910 with RF-DETR, while quartzite is the hardest, with AP between 0.082 and 0.550. No configuration fails completely on any class. Live knots and dead knots show AP values of 0.651 to 0.781 despite being the majority classes, suggesting high intra-class variance.
+@fig:heatmap-clase presents the average AP per class at AP\@0.5 for all 12 configurations. The easiest class is marrow, with AP up to 0.910 with RF-DETR, while quartzite is the hardest, with AP between 0.082 and 0.550. No configuration fails completely on any class. Live knots and dead knots show AP values of 0.651 to 0.781 despite being the majority classes, suggesting high intra-class variance.
 
 #figure(
   image("figures/results/per_class_ap_heatmap.png", width: 100%),
@@ -321,13 +328,6 @@ The joint view in @fig:map-overview confirms the RF-DETR, Cascade R-CNN, YOLO26 
   kind: image,
   scope: "parent",
 ) <fig:heatmap-clase>
-
-#figure(
-  image("figures/results/per_class_ap_bars.png", width: 100%),
-  caption: [Average precision bars per defect class (AP\@0.5) for the 12 configurations.],
-  kind: image,
-  scope: "parent",
-) <fig:clase-barras>
 
 @fig:heatmap-clase-5095 presents the same per-class breakdown under the AP\@0.5:0.95 metric. The class ordering is preserved: marrow remains the easiest class at 0.499 to 0.639 and quartzite the hardest at 0.064 to 0.285. The metric compresses the score range, most visibly on the majority classes, as live and dead knots drop from 0.651 to 0.781 at AP\@0.5 to 0.297 to 0.449, indicating that these high-variance defects are detected but poorly localized. The weakest cell is YOLO26 with BoxAug LibCom on quartzite at 0.064, against 0.255 for its unaugmented baseline, showing that pasted augmentation degrades rare-class localization for the one-stage paradigm. RF-DETR leads six of eight classes under the metric, with its best cells on marrow at 0.639 (BoxAug Std) and Knot\_missing at 0.502 (Albumentations).
 
@@ -361,7 +361,7 @@ The joint view in @fig:map-overview confirms the RF-DETR, Cascade R-CNN, YOLO26 
 
 #figure(
   image("figures/results/per_class_recall_bonferroni.png", width: 100%),
-  caption: [Per-class recall with simultaneous 95% family-wise confidence intervals for the best configuration of each paradigm. Error bars are 99.375% Wilson intervals per class, i.e. simultaneous 95% family-wise coverage over the 8 classes (Bonferroni).],
+  caption: [Per-class recall with Bonferroni-corrected simultaneous 95% family-wise confidence intervals for the best configuration of each paradigm.],
   kind: image,
   scope: "parent",
 ) <fig:recall-bonferroni>
@@ -370,12 +370,12 @@ The joint view in @fig:map-overview confirms the RF-DETR, Cascade R-CNN, YOLO26 
 
 #figure(
   image("figures/results/inference_panel.png", width: 100%),
-  caption: [Ground-truth-annotated representative instances (red boxes) with best AP\@0.5 per class. Quartzite is the hardest class and marrow the easiest; knot-missing is edge-prone with the widest recall intervals.],
+  caption: [Ground-truth-annotated representative instances with best AP\@0.5 per class.],
   kind: image,
   scope: "parent",
 ) <fig:inference-panel>
 
-@fig:velocidad-precision illustrates the trade-off between inference speed and precision. YOLO26 processes each image in 7.5 ms on average across the four configurations, RF-DETR in 12.6 ms, and Cascade R-CNN in 25.7 ms. Cascade R-CNN is 3.4 times slower than YOLO26 while its best mAP\@0.5 of 0.677 trails RF-DETR's best of 0.717. RF-DETR offers the best ranking precision at 12.6 ms, 1.7 times slower than YOLO26, whose best mAP\@0.5 is 0.618. @fig:pr-f1 details the operating-point precision, recall, and F1 behind these trade-offs.
+@fig:velocidad-precision illustrates the trade-off between inference speed and precision. YOLO26 processes each image in 7.5 ms on average across the four configurations, RF-DETR in 12.6 ms, and Cascade R-CNN in 25.7 ms. Cascade R-CNN is 3.4 times slower than YOLO26 while its best mAP\@0.5 of 0.677 trails RF-DETR's best of 0.717. RF-DETR offers the best ranking precision at 12.6 ms, 1.7 times slower than YOLO26, whose best mAP\@0.5 is 0.618.
 
 #figure(
   image("figures/results/speed_accuracy_tradeoff.png", width: 100%),
@@ -383,13 +383,6 @@ The joint view in @fig:map-overview confirms the RF-DETR, Cascade R-CNN, YOLO26 
   kind: image,
   scope: "parent",
 ) <fig:velocidad-precision>
-
-#figure(
-  image("figures/results/precision_recall_f1.png", width: 100%),
-  caption: [Operating-point precision, recall, and F1 per configuration at each model's calibrated threshold.],
-  kind: image,
-  scope: "parent",
-) <fig:pr-f1>
 
 @fig:curvas-convergencia shows the mAP\@0.5 validation convergence curves throughout training epochs (@fig:curvas-loss shows the corresponding training losses). RF-DETR converges earliest, with best epoch between 6 and 11, Cascade R-CNN stabilizes between epoch 9 and 12 with BoxAug LibCom still climbing at epoch 12, and YOLO26 reaches its maximum between epochs 40 and 50, at the edge of its 50-epoch budget. YOLO26 curves show greater oscillation, particularly in the standard BoxAug configuration. This convergence pattern suggests that transformers need fewer iterations to capture relevant features, while one-stage convolutional architectures consume the full budget; the still-rising YOLO26 and Cascade LibCom curves indicate both budgets truncate learning. The oscillation in YOLO26 may indicate sensitivity to training sample variability in each batch.
 
@@ -451,11 +444,6 @@ Expanding the dataset to other wood species with different grain patterns and de
 #heading(numbering: none)[Conflict of Interest Declaration]
 
 The authors declare that they have no known competing financial interests or personal relationships that could have appeared to influence the work reported in this article.
-
-
-#heading(numbering: none)[Funding]
-
-This research did not receive any specific grant from funding agencies in the public, commercial, or not-for-profit sectors.
 
 #heading(numbering: none)[Code Availability]
 
