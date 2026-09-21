@@ -4,7 +4,7 @@
 #            just pipeline --only s3_train --s3_train yolo26.epochs=5
 # Sections:  just train yolo26.epochs=5            (bare flag/values forwarded)
 # Report:    just analysis → just figures → just paper → (just bundle)
-#            just report   (figures + paper + paper-es + bundle in one go)
+#            just report   (figures + paper + bundle in one go)
 # Quality:   just lint | check-format | format | typecheck
 #
 # Note: `just` forwards unknown flags to the recipe as-is, and a literal `--`
@@ -54,19 +54,14 @@ figures:
 paper:
     typst compile paper/paper.typ
 
-# Compile the Spanish manuscript to paper/paper-es.pdf.
-paper-es:
-    typst compile paper/paper-es.typ
-
 # Recompile paper/paper.typ on every change.
 paper-watch:
     typst watch paper/paper.typ
 
-# Refresh figures, compile both manuscripts, and build deliverables.
+# Refresh figures, compile the manuscript, and build deliverables.
 report:
     just figures
     just paper
-    just paper-es
     just bundle
 
 # Sync the uv environment (installs pyproject + dev dependencies).
@@ -96,7 +91,6 @@ bundle:
       paper/elsearticle \
       paper/references.bib \
       paper/paper.typ \
-      paper/paper-es.typ \
       $(find paper/figures -type f \( -name '*.png' -o -name '*.jpg' -o -name '*.svg' \) | sort)
     7z a {{ out }}/code.zip \
       $(git ls-files --cached --others --exclude-standard src/) \
