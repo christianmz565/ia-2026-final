@@ -316,8 +316,8 @@ L 477.857344 7.2
      </g>
     </g>
     <g id="text_12">
-     <!-- Porcentaje (%) -->
-     <g style="fill: #262626" transform="translate(254.76625 266.78) scale(0.1 -0.1)">
+     <!-- Percentage (%) -->
+     <text x="254.76625" y="266.78" font-size="11" text-anchor="middle" font-family="DejaVu Sans, sans-serif" fill="#262626">Percentage (%)</text><g style="display:none" transform="translate(254.76625 266.78) scale(0.1 -0.1)">
       <defs>
        <path id="XITS-Regular-31" d="M 1293 3770 
 C 1293 3942 1331 4000 1517 4000 

@@ -1,0 +1,24 @@
+{
+  "mAP_50": 0.5917168253813713,
+  "mAP_50_95": 0.34944864796175196,
+  "precision": 0.7604,
+  "recall": 0.7399,
+  "f1": 0.75,
+  "per_class_ap": {
+    "Quartzity": 0.0823,
+    "Live_Knot": 0.7025,
+    "Marrow": 0.7791,
+    "resin": 0.6495,
+    "Dead_Knot": 0.7214,
+    "knot_with_crack": 0.6435,
+    "Knot_missing": 0.505,
+    "Crack": 0.6506
+  },
+  "num_images": 400,
+  "num_predictions": 868,
+  "model": "yolo26",
+  "augmentation": "boxaug_libcom",
+  "avg_inference_ms": 6.57,
+  "total_inference_ms": 2626.61,
+  "num_inferred_images": 400
+}

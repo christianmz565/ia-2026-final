@@ -1,0 +1,1821 @@
+{
+  "alpha": 0.05,
+  "k": 8,
+  "confidence_per_interval": 0.9938,
+  "z": 2.7344,
+  "iou_threshold": 0.5,
+  "configs": {
+    "rf_detr/baseline": {
+      "model": "rf_detr",
+      "augmentation": "baseline",
+      "conf_threshold": 0.2,
+      "classes": {
+        "Quartzity": {
+          "tp": 12,
+          "fp": 53,
+          "fn": 3,
+          "support": 15,
+          "precision": {
+            "estimate": 0.1846,
+            "lo": 0.0884,
+            "hi": 0.3459,
+            "n": 65
+          },
+          "recall": {
+            "estimate": 0.8,
+            "lo": 0.4488,
+            "hi": 0.9516,
+            "n": 15
+          }
+        },
+        "Live_Knot": {
+          "tp": 299,
+          "fp": 84,
+          "fn": 96,
+          "support": 395,
+          "precision": {
+            "estimate": 0.7807,
+            "lo": 0.7178,
+            "hi": 0.8328,
+            "n": 383
+          },
+          "recall": {
+            "estimate": 0.757,
+            "lo": 0.6935,
+            "hi": 0.8108,
+            "n": 395
+          }
+        },
+        "Marrow": {
+          "tp": 20,
+          "fp": 8,
+          "fn": 1,
+          "support": 21,
+          "precision": {
+            "estimate": 0.7143,
+            "lo": 0.4569,
+            "hi": 0.8814,
+            "n": 28
+          },
+          "recall": {
+            "estimate": 0.9524,
+            "lo": 0.6723,
+            "hi": 0.9949,
+            "n": 21
+          }
+        },
+        "resin": {
+          "tp": 54,
+          "fp": 37,
+          "fn": 10,
+          "support": 64,
+          "precision": {
+            "estimate": 0.5934,
+            "lo": 0.4508,
+            "hi": 0.7218,
+            "n": 91
+          },
+          "recall": {
+            "estimate": 0.8438,
+            "lo": 0.685,
+            "hi": 0.9306,
+            "n": 64
+          }
+        },
+        "Dead_Knot": {
+          "tp": 229,
+          "fp": 53,
+          "fn": 58,
+          "support": 287,
+          "precision": {
+            "estimate": 0.8121,
+            "lo": 0.7407,
+            "hi": 0.8673,
+            "n": 282
+          },
+          "recall": {
+            "estimate": 0.7979,
+            "lo": 0.7259,
+            "hi": 0.8548,
+            "n": 287
+          }
+        },
+        "knot_with_crack": {
+          "tp": 38,
+          "fp": 57,
+          "fn": 9,
+          "support": 47,
+          "precision": {
+            "estimate": 0.4,
+            "lo": 0.2748,
+            "hi": 0.5398,
+            "n": 95
+          },
+          "recall": {
+            "estimate": 0.8085,
+            "lo": 0.6144,
+            "hi": 0.918,
+            "n": 47
+          }
+        },
+        "Knot_missing": {
+          "tp": 9,
+          "fp": 6,
+          "fn": 3,
+          "support": 12,
+          "precision": {
+            "estimate": 0.6,
+            "lo": 0.2822,
+            "hi": 0.8512,
+            "n": 15
+          },
+          "recall": {
+            "estimate": 0.75,
+            "lo": 0.3691,
+            "hi": 0.939,
+            "n": 12
+          }
+        },
+        "Crack": {
+          "tp": 47,
+          "fp": 56,
+          "fn": 4,
+          "support": 51,
+          "precision": {
+            "estimate": 0.4563,
+            "lo": 0.3297,
+            "hi": 0.5889,
+            "n": 103
+          },
+          "recall": {
+            "estimate": 0.9216,
+            "lo": 0.7575,
+            "hi": 0.9779,
+            "n": 51
+          }
+        }
+      }
+    },
+    "rf_detr/albumentations_balanced": {
+      "model": "rf_detr",
+      "augmentation": "albumentations_balanced",
+      "conf_threshold": 0.2,
+      "classes": {
+        "Quartzity": {
+          "tp": 11,
+          "fp": 28,
+          "fn": 4,
+          "support": 15,
+          "precision": {
+            "estimate": 0.2821,
+            "lo": 0.1333,
+            "hi": 0.501,
+            "n": 39
+          },
+          "recall": {
+            "estimate": 0.7333,
+            "lo": 0.3891,
+            "hi": 0.9223,
+            "n": 15
+          }
+        },
+        "Live_Knot": {
+          "tp": 298,
+          "fp": 82,
+          "fn": 97,
+          "support": 395,
+          "precision": {
+            "estimate": 0.7842,
+            "lo": 0.7213,
+            "hi": 0.8361,
+            "n": 380
+          },
+          "recall": {
+            "estimate": 0.7544,
+            "lo": 0.6908,
+            "hi": 0.8086,
+            "n": 395
+          }
+        },
+        "Marrow": {
+          "tp": 18,
+          "fp": 6,
+          "fn": 3,
+          "support": 21,
+          "precision": {
+            "estimate": 0.75,
+            "lo": 0.4714,
+            "hi": 0.9099,
+            "n": 24
+          },
+          "recall": {
+            "estimate": 0.8571,
+            "lo": 0.561,
+            "hi": 0.9657,
+            "n": 21
+          }
+        },
+        "resin": {
+          "tp": 57,
+          "fp": 42,
+          "fn": 7,
+          "support": 64,
+          "precision": {
+            "estimate": 0.5758,
+            "lo": 0.4394,
+            "hi": 0.7015,
+            "n": 99
+          },
+          "recall": {
+            "estimate": 0.8906,
+            "lo": 0.7409,
+            "hi": 0.9587,
+            "n": 64
+          }
+        },
+        "Dead_Knot": {
+          "tp": 220,
+          "fp": 42,
+          "fn": 67,
+          "support": 287,
+          "precision": {
+            "estimate": 0.8397,
+            "lo": 0.7684,
+            "hi": 0.8921,
+            "n": 262
+          },
+          "recall": {
+            "estimate": 0.7666,
+            "lo": 0.692,
+            "hi": 0.8275,
+            "n": 287
+          }
+        },
+        "knot_with_crack": {
+          "tp": 37,
+          "fp": 60,
+          "fn": 10,
+          "support": 47,
+          "precision": {
+            "estimate": 0.3814,
+            "lo": 0.2597,
+            "hi": 0.5201,
+            "n": 97
+          },
+          "recall": {
+            "estimate": 0.7872,
+            "lo": 0.5912,
+            "hi": 0.9045,
+            "n": 47
+          }
+        },
+        "Knot_missing": {
+          "tp": 10,
+          "fp": 6,
+          "fn": 2,
+          "support": 12,
+          "precision": {
+            "estimate": 0.625,
+            "lo": 0.3091,
+            "hi": 0.8613,
+            "n": 16
+          },
+          "recall": {
+            "estimate": 0.8333,
+            "lo": 0.4414,
+            "hi": 0.9694,
+            "n": 12
+          }
+        },
+        "Crack": {
+          "tp": 47,
+          "fp": 56,
+          "fn": 4,
+          "support": 51,
+          "precision": {
+            "estimate": 0.4563,
+            "lo": 0.3297,
+            "hi": 0.5889,
+            "n": 103
+          },
+          "recall": {
+            "estimate": 0.9216,
+            "lo": 0.7575,
+            "hi": 0.9779,
+            "n": 51
+          }
+        }
+      }
+    },
+    "rf_detr/boxaug_standard": {
+      "model": "rf_detr",
+      "augmentation": "boxaug_standard",
+      "conf_threshold": 0.2,
+      "classes": {
+        "Quartzity": {
+          "tp": 11,
+          "fp": 42,
+          "fn": 4,
+          "support": 15,
+          "precision": {
+            "estimate": 0.2075,
+            "lo": 0.0966,
+            "hi": 0.3908,
+            "n": 53
+          },
+          "recall": {
+            "estimate": 0.7333,
+            "lo": 0.3891,
+            "hi": 0.9223,
+            "n": 15
+          }
+        },
+        "Live_Knot": {
+          "tp": 300,
+          "fp": 85,
+          "fn": 95,
+          "support": 395,
+          "precision": {
+            "estimate": 0.7792,
+            "lo": 0.7164,
+            "hi": 0.8314,
+            "n": 385
+          },
+          "recall": {
+            "estimate": 0.7595,
+            "lo": 0.6962,
+            "hi": 0.8131,
+            "n": 395
+          }
+        },
+        "Marrow": {
+          "tp": 20,
+          "fp": 16,
+          "fn": 1,
+          "support": 21,
+          "precision": {
+            "estimate": 0.5556,
+            "lo": 0.3397,
+            "hi": 0.7523,
+            "n": 36
+          },
+          "recall": {
+            "estimate": 0.9524,
+            "lo": 0.6723,
+            "hi": 0.9949,
+            "n": 21
+          }
+        },
+        "resin": {
+          "tp": 50,
+          "fp": 31,
+          "fn": 14,
+          "support": 64,
+          "precision": {
+            "estimate": 0.6173,
+            "lo": 0.4657,
+            "hi": 0.749,
+            "n": 81
+          },
+          "recall": {
+            "estimate": 0.7812,
+            "lo": 0.6149,
+            "hi": 0.8887,
+            "n": 64
+          }
+        },
+        "Dead_Knot": {
+          "tp": 234,
+          "fp": 55,
+          "fn": 53,
+          "support": 287,
+          "precision": {
+            "estimate": 0.8097,
+            "lo": 0.7391,
+            "hi": 0.8647,
+            "n": 289
+          },
+          "recall": {
+            "estimate": 0.8153,
+            "lo": 0.745,
+            "hi": 0.8697,
+            "n": 287
+          }
+        },
+        "knot_with_crack": {
+          "tp": 37,
+          "fp": 66,
+          "fn": 10,
+          "support": 47,
+          "precision": {
+            "estimate": 0.3592,
+            "lo": 0.2436,
+            "hi": 0.4939,
+            "n": 103
+          },
+          "recall": {
+            "estimate": 0.7872,
+            "lo": 0.5912,
+            "hi": 0.9045,
+            "n": 47
+          }
+        },
+        "Knot_missing": {
+          "tp": 10,
+          "fp": 8,
+          "fn": 2,
+          "support": 12,
+          "precision": {
+            "estimate": 0.5556,
+            "lo": 0.2696,
+            "hi": 0.8089,
+            "n": 18
+          },
+          "recall": {
+            "estimate": 0.8333,
+            "lo": 0.4414,
+            "hi": 0.9694,
+            "n": 12
+          }
+        },
+        "Crack": {
+          "tp": 46,
+          "fp": 61,
+          "fn": 5,
+          "support": 51,
+          "precision": {
+            "estimate": 0.4299,
+            "lo": 0.3079,
+            "hi": 0.5611,
+            "n": 107
+          },
+          "recall": {
+            "estimate": 0.902,
+            "lo": 0.7325,
+            "hi": 0.9687,
+            "n": 51
+          }
+        }
+      }
+    },
+    "rf_detr/boxaug_libcom": {
+      "model": "rf_detr",
+      "augmentation": "boxaug_libcom",
+      "conf_threshold": 0.2,
+      "classes": {
+        "Quartzity": {
+          "tp": 10,
+          "fp": 41,
+          "fn": 5,
+          "support": 15,
+          "precision": {
+            "estimate": 0.1961,
+            "lo": 0.0877,
+            "hi": 0.3821,
+            "n": 51
+          },
+          "recall": {
+            "estimate": 0.6667,
+            "lo": 0.3337,
+            "hi": 0.8887,
+            "n": 15
+          }
+        },
+        "Live_Knot": {
+          "tp": 304,
+          "fp": 77,
+          "fn": 91,
+          "support": 395,
+          "precision": {
+            "estimate": 0.7979,
+            "lo": 0.7362,
+            "hi": 0.8482,
+            "n": 381
+          },
+          "recall": {
+            "estimate": 0.7696,
+            "lo": 0.707,
+            "hi": 0.8222,
+            "n": 395
+          }
+        },
+        "Marrow": {
+          "tp": 20,
+          "fp": 10,
+          "fn": 1,
+          "support": 21,
+          "precision": {
+            "estimate": 0.6667,
+            "lo": 0.4202,
+            "hi": 0.8466,
+            "n": 30
+          },
+          "recall": {
+            "estimate": 0.9524,
+            "lo": 0.6723,
+            "hi": 0.9949,
+            "n": 21
+          }
+        },
+        "resin": {
+          "tp": 54,
+          "fp": 24,
+          "fn": 10,
+          "support": 64,
+          "precision": {
+            "estimate": 0.6923,
+            "lo": 0.538,
+            "hi": 0.813,
+            "n": 78
+          },
+          "recall": {
+            "estimate": 0.8438,
+            "lo": 0.685,
+            "hi": 0.9306,
+            "n": 64
+          }
+        },
+        "Dead_Knot": {
+          "tp": 227,
+          "fp": 45,
+          "fn": 60,
+          "support": 287,
+          "precision": {
+            "estimate": 0.8346,
+            "lo": 0.7642,
+            "hi": 0.887,
+            "n": 272
+          },
+          "recall": {
+            "estimate": 0.7909,
+            "lo": 0.7183,
+            "hi": 0.8488,
+            "n": 287
+          }
+        },
+        "knot_with_crack": {
+          "tp": 38,
+          "fp": 60,
+          "fn": 9,
+          "support": 47,
+          "precision": {
+            "estimate": 0.3878,
+            "lo": 0.2657,
+            "hi": 0.5257,
+            "n": 98
+          },
+          "recall": {
+            "estimate": 0.8085,
+            "lo": 0.6144,
+            "hi": 0.918,
+            "n": 47
+          }
+        },
+        "Knot_missing": {
+          "tp": 10,
+          "fp": 29,
+          "fn": 2,
+          "support": 12,
+          "precision": {
+            "estimate": 0.2564,
+            "lo": 0.1161,
+            "hi": 0.4751,
+            "n": 39
+          },
+          "recall": {
+            "estimate": 0.8333,
+            "lo": 0.4414,
+            "hi": 0.9694,
+            "n": 12
+          }
+        },
+        "Crack": {
+          "tp": 47,
+          "fp": 71,
+          "fn": 4,
+          "support": 51,
+          "precision": {
+            "estimate": 0.3983,
+            "lo": 0.2847,
+            "hi": 0.524,
+            "n": 118
+          },
+          "recall": {
+            "estimate": 0.9216,
+            "lo": 0.7575,
+            "hi": 0.9779,
+            "n": 51
+          }
+        }
+      }
+    },
+    "cascade_rcnn/baseline": {
+      "model": "cascade_rcnn",
+      "augmentation": "baseline",
+      "conf_threshold": 0.5,
+      "classes": {
+        "Quartzity": {
+          "tp": 7,
+          "fp": 18,
+          "fn": 8,
+          "support": 15,
+          "precision": {
+            "estimate": 0.28,
+            "lo": 0.1093,
+            "hi": 0.552,
+            "n": 25
+          },
+          "recall": {
+            "estimate": 0.4667,
+            "lo": 0.1898,
+            "hi": 0.7657,
+            "n": 15
+          }
+        },
+        "Live_Knot": {
+          "tp": 304,
+          "fp": 50,
+          "fn": 91,
+          "support": 395,
+          "precision": {
+            "estimate": 0.8588,
+            "lo": 0.8007,
+            "hi": 0.902,
+            "n": 354
+          },
+          "recall": {
+            "estimate": 0.7696,
+            "lo": 0.707,
+            "hi": 0.8222,
+            "n": 395
+          }
+        },
+        "Marrow": {
+          "tp": 18,
+          "fp": 4,
+          "fn": 3,
+          "support": 21,
+          "precision": {
+            "estimate": 0.8182,
+            "lo": 0.5271,
+            "hi": 0.9478,
+            "n": 22
+          },
+          "recall": {
+            "estimate": 0.8571,
+            "lo": 0.561,
+            "hi": 0.9657,
+            "n": 21
+          }
+        },
+        "resin": {
+          "tp": 48,
+          "fp": 9,
+          "fn": 16,
+          "support": 64,
+          "precision": {
+            "estimate": 0.8421,
+            "lo": 0.6721,
+            "hi": 0.9328,
+            "n": 57
+          },
+          "recall": {
+            "estimate": 0.75,
+            "lo": 0.5814,
+            "hi": 0.8663,
+            "n": 64
+          }
+        },
+        "Dead_Knot": {
+          "tp": 222,
+          "fp": 30,
+          "fn": 65,
+          "support": 287,
+          "precision": {
+            "estimate": 0.881,
+            "lo": 0.8139,
+            "hi": 0.926,
+            "n": 252
+          },
+          "recall": {
+            "estimate": 0.7735,
+            "lo": 0.6995,
+            "hi": 0.8336,
+            "n": 287
+          }
+        },
+        "knot_with_crack": {
+          "tp": 32,
+          "fp": 26,
+          "fn": 15,
+          "support": 47,
+          "precision": {
+            "estimate": 0.5517,
+            "lo": 0.3777,
+            "hi": 0.714,
+            "n": 58
+          },
+          "recall": {
+            "estimate": 0.6809,
+            "lo": 0.4816,
+            "hi": 0.8305,
+            "n": 47
+          }
+        },
+        "Knot_missing": {
+          "tp": 9,
+          "fp": 2,
+          "fn": 3,
+          "support": 12,
+          "precision": {
+            "estimate": 0.8182,
+            "lo": 0.4123,
+            "hi": 0.9665,
+            "n": 11
+          },
+          "recall": {
+            "estimate": 0.75,
+            "lo": 0.3691,
+            "hi": 0.939,
+            "n": 12
+          }
+        },
+        "Crack": {
+          "tp": 42,
+          "fp": 35,
+          "fn": 9,
+          "support": 51,
+          "precision": {
+            "estimate": 0.5455,
+            "lo": 0.3932,
+            "hi": 0.6896,
+            "n": 77
+          },
+          "recall": {
+            "estimate": 0.8235,
+            "lo": 0.6397,
+            "hi": 0.9246,
+            "n": 51
+          }
+        }
+      }
+    },
+    "cascade_rcnn/albumentations_balanced": {
+      "model": "cascade_rcnn",
+      "augmentation": "albumentations_balanced",
+      "conf_threshold": 0.5,
+      "classes": {
+        "Quartzity": {
+          "tp": 6,
+          "fp": 12,
+          "fn": 9,
+          "support": 15,
+          "precision": {
+            "estimate": 0.3333,
+            "lo": 0.1222,
+            "hi": 0.6423,
+            "n": 18
+          },
+          "recall": {
+            "estimate": 0.4,
+            "lo": 0.1488,
+            "hi": 0.7178,
+            "n": 15
+          }
+        },
+        "Live_Knot": {
+          "tp": 319,
+          "fp": 63,
+          "fn": 76,
+          "support": 395,
+          "precision": {
+            "estimate": 0.8351,
+            "lo": 0.7768,
+            "hi": 0.8805,
+            "n": 382
+          },
+          "recall": {
+            "estimate": 0.8076,
+            "lo": 0.7479,
+            "hi": 0.8559,
+            "n": 395
+          }
+        },
+        "Marrow": {
+          "tp": 19,
+          "fp": 5,
+          "fn": 2,
+          "support": 21,
+          "precision": {
+            "estimate": 0.7917,
+            "lo": 0.5127,
+            "hi": 0.9321,
+            "n": 24
+          },
+          "recall": {
+            "estimate": 0.9048,
+            "lo": 0.6143,
+            "hi": 0.9827,
+            "n": 21
+          }
+        },
+        "resin": {
+          "tp": 50,
+          "fp": 10,
+          "fn": 14,
+          "support": 64,
+          "precision": {
+            "estimate": 0.8333,
+            "lo": 0.667,
+            "hi": 0.9258,
+            "n": 60
+          },
+          "recall": {
+            "estimate": 0.7812,
+            "lo": 0.6149,
+            "hi": 0.8887,
+            "n": 64
+          }
+        },
+        "Dead_Knot": {
+          "tp": 223,
+          "fp": 42,
+          "fn": 64,
+          "support": 287,
+          "precision": {
+            "estimate": 0.8415,
+            "lo": 0.7709,
+            "hi": 0.8934,
+            "n": 265
+          },
+          "recall": {
+            "estimate": 0.777,
+            "lo": 0.7033,
+            "hi": 0.8367,
+            "n": 287
+          }
+        },
+        "knot_with_crack": {
+          "tp": 32,
+          "fp": 18,
+          "fn": 15,
+          "support": 47,
+          "precision": {
+            "estimate": 0.64,
+            "lo": 0.4477,
+            "hi": 0.7959,
+            "n": 50
+          },
+          "recall": {
+            "estimate": 0.6809,
+            "lo": 0.4816,
+            "hi": 0.8305,
+            "n": 47
+          }
+        },
+        "Knot_missing": {
+          "tp": 8,
+          "fp": 3,
+          "fn": 4,
+          "support": 12,
+          "precision": {
+            "estimate": 0.7273,
+            "lo": 0.3374,
+            "hi": 0.9332,
+            "n": 11
+          },
+          "recall": {
+            "estimate": 0.6667,
+            "lo": 0.3037,
+            "hi": 0.9017,
+            "n": 12
+          }
+        },
+        "Crack": {
+          "tp": 43,
+          "fp": 34,
+          "fn": 8,
+          "support": 51,
+          "precision": {
+            "estimate": 0.5584,
+            "lo": 0.4054,
+            "hi": 0.7011,
+            "n": 77
+          },
+          "recall": {
+            "estimate": 0.8431,
+            "lo": 0.662,
+            "hi": 0.9365,
+            "n": 51
+          }
+        }
+      }
+    },
+    "cascade_rcnn/boxaug_standard": {
+      "model": "cascade_rcnn",
+      "augmentation": "boxaug_standard",
+      "conf_threshold": 0.5,
+      "classes": {
+        "Quartzity": {
+          "tp": 6,
+          "fp": 18,
+          "fn": 9,
+          "support": 15,
+          "precision": {
+            "estimate": 0.25,
+            "lo": 0.0901,
+            "hi": 0.5286,
+            "n": 24
+          },
+          "recall": {
+            "estimate": 0.4,
+            "lo": 0.1488,
+            "hi": 0.7178,
+            "n": 15
+          }
+        },
+        "Live_Knot": {
+          "tp": 313,
+          "fp": 55,
+          "fn": 82,
+          "support": 395,
+          "precision": {
+            "estimate": 0.8505,
+            "lo": 0.7928,
+            "hi": 0.8944,
+            "n": 368
+          },
+          "recall": {
+            "estimate": 0.7924,
+            "lo": 0.7314,
+            "hi": 0.8425,
+            "n": 395
+          }
+        },
+        "Marrow": {
+          "tp": 19,
+          "fp": 5,
+          "fn": 2,
+          "support": 21,
+          "precision": {
+            "estimate": 0.7917,
+            "lo": 0.5127,
+            "hi": 0.9321,
+            "n": 24
+          },
+          "recall": {
+            "estimate": 0.9048,
+            "lo": 0.6143,
+            "hi": 0.9827,
+            "n": 21
+          }
+        },
+        "resin": {
+          "tp": 50,
+          "fp": 13,
+          "fn": 14,
+          "support": 64,
+          "precision": {
+            "estimate": 0.7937,
+            "lo": 0.6271,
+            "hi": 0.8979,
+            "n": 63
+          },
+          "recall": {
+            "estimate": 0.7812,
+            "lo": 0.6149,
+            "hi": 0.8887,
+            "n": 64
+          }
+        },
+        "Dead_Knot": {
+          "tp": 217,
+          "fp": 29,
+          "fn": 70,
+          "support": 287,
+          "precision": {
+            "estimate": 0.8821,
+            "lo": 0.8143,
+            "hi": 0.9274,
+            "n": 246
+          },
+          "recall": {
+            "estimate": 0.7561,
+            "lo": 0.6809,
+            "hi": 0.8183,
+            "n": 287
+          }
+        },
+        "knot_with_crack": {
+          "tp": 33,
+          "fp": 26,
+          "fn": 14,
+          "support": 47,
+          "precision": {
+            "estimate": 0.5593,
+            "lo": 0.386,
+            "hi": 0.7193,
+            "n": 59
+          },
+          "recall": {
+            "estimate": 0.7021,
+            "lo": 0.5027,
+            "hi": 0.8461,
+            "n": 47
+          }
+        },
+        "Knot_missing": {
+          "tp": 9,
+          "fp": 2,
+          "fn": 3,
+          "support": 12,
+          "precision": {
+            "estimate": 0.8182,
+            "lo": 0.4123,
+            "hi": 0.9665,
+            "n": 11
+          },
+          "recall": {
+            "estimate": 0.75,
+            "lo": 0.3691,
+            "hi": 0.939,
+            "n": 12
+          }
+        },
+        "Crack": {
+          "tp": 43,
+          "fp": 29,
+          "fn": 8,
+          "support": 51,
+          "precision": {
+            "estimate": 0.5972,
+            "lo": 0.4374,
+            "hi": 0.7388,
+            "n": 72
+          },
+          "recall": {
+            "estimate": 0.8431,
+            "lo": 0.662,
+            "hi": 0.9365,
+            "n": 51
+          }
+        }
+      }
+    },
+    "cascade_rcnn/boxaug_libcom": {
+      "model": "cascade_rcnn",
+      "augmentation": "boxaug_libcom",
+      "conf_threshold": 0.5,
+      "classes": {
+        "Quartzity": {
+          "tp": 7,
+          "fp": 21,
+          "fn": 8,
+          "support": 15,
+          "precision": {
+            "estimate": 0.25,
+            "lo": 0.097,
+            "hi": 0.5083,
+            "n": 28
+          },
+          "recall": {
+            "estimate": 0.4667,
+            "lo": 0.1898,
+            "hi": 0.7657,
+            "n": 15
+          }
+        },
+        "Live_Knot": {
+          "tp": 313,
+          "fp": 54,
+          "fn": 82,
+          "support": 395,
+          "precision": {
+            "estimate": 0.8529,
+            "lo": 0.7953,
+            "hi": 0.8964,
+            "n": 367
+          },
+          "recall": {
+            "estimate": 0.7924,
+            "lo": 0.7314,
+            "hi": 0.8425,
+            "n": 395
+          }
+        },
+        "Marrow": {
+          "tp": 18,
+          "fp": 5,
+          "fn": 3,
+          "support": 21,
+          "precision": {
+            "estimate": 0.7826,
+            "lo": 0.4975,
+            "hi": 0.929,
+            "n": 23
+          },
+          "recall": {
+            "estimate": 0.8571,
+            "lo": 0.561,
+            "hi": 0.9657,
+            "n": 21
+          }
+        },
+        "resin": {
+          "tp": 52,
+          "fp": 6,
+          "fn": 12,
+          "support": 64,
+          "precision": {
+            "estimate": 0.8966,
+            "lo": 0.7388,
+            "hi": 0.9637,
+            "n": 58
+          },
+          "recall": {
+            "estimate": 0.8125,
+            "lo": 0.6494,
+            "hi": 0.9102,
+            "n": 64
+          }
+        },
+        "Dead_Knot": {
+          "tp": 219,
+          "fp": 23,
+          "fn": 68,
+          "support": 287,
+          "precision": {
+            "estimate": 0.905,
+            "lo": 0.8406,
+            "hi": 0.945,
+            "n": 242
+          },
+          "recall": {
+            "estimate": 0.7631,
+            "lo": 0.6883,
+            "hi": 0.8245,
+            "n": 287
+          }
+        },
+        "knot_with_crack": {
+          "tp": 36,
+          "fp": 21,
+          "fn": 11,
+          "support": 47,
+          "precision": {
+            "estimate": 0.6316,
+            "lo": 0.4514,
+            "hi": 0.7813,
+            "n": 57
+          },
+          "recall": {
+            "estimate": 0.766,
+            "lo": 0.5684,
+            "hi": 0.8905,
+            "n": 47
+          }
+        },
+        "Knot_missing": {
+          "tp": 9,
+          "fp": 6,
+          "fn": 3,
+          "support": 12,
+          "precision": {
+            "estimate": 0.6,
+            "lo": 0.2822,
+            "hi": 0.8512,
+            "n": 15
+          },
+          "recall": {
+            "estimate": 0.75,
+            "lo": 0.3691,
+            "hi": 0.939,
+            "n": 12
+          }
+        },
+        "Crack": {
+          "tp": 46,
+          "fp": 27,
+          "fn": 5,
+          "support": 51,
+          "precision": {
+            "estimate": 0.6301,
+            "lo": 0.4704,
+            "hi": 0.7657,
+            "n": 73
+          },
+          "recall": {
+            "estimate": 0.902,
+            "lo": 0.7325,
+            "hi": 0.9687,
+            "n": 51
+          }
+        }
+      }
+    },
+    "yolo26/baseline": {
+      "model": "yolo26",
+      "augmentation": "baseline",
+      "conf_threshold": 0.3,
+      "classes": {
+        "Quartzity": {
+          "tp": 6,
+          "fp": 6,
+          "fn": 9,
+          "support": 15,
+          "precision": {
+            "estimate": 0.5,
+            "lo": 0.1902,
+            "hi": 0.8098,
+            "n": 12
+          },
+          "recall": {
+            "estimate": 0.4,
+            "lo": 0.1488,
+            "hi": 0.7178,
+            "n": 15
+          }
+        },
+        "Live_Knot": {
+          "tp": 288,
+          "fp": 74,
+          "fn": 107,
+          "support": 395,
+          "precision": {
+            "estimate": 0.7956,
+            "lo": 0.7319,
+            "hi": 0.8473,
+            "n": 362
+          },
+          "recall": {
+            "estimate": 0.7291,
+            "lo": 0.6641,
+            "hi": 0.7856,
+            "n": 395
+          }
+        },
+        "Marrow": {
+          "tp": 19,
+          "fp": 4,
+          "fn": 2,
+          "support": 21,
+          "precision": {
+            "estimate": 0.8261,
+            "lo": 0.542,
+            "hi": 0.9502,
+            "n": 23
+          },
+          "recall": {
+            "estimate": 0.9048,
+            "lo": 0.6143,
+            "hi": 0.9827,
+            "n": 21
+          }
+        },
+        "resin": {
+          "tp": 45,
+          "fp": 16,
+          "fn": 19,
+          "support": 64,
+          "precision": {
+            "estimate": 0.7377,
+            "lo": 0.5641,
+            "hi": 0.8594,
+            "n": 61
+          },
+          "recall": {
+            "estimate": 0.7031,
+            "lo": 0.5326,
+            "hi": 0.8312,
+            "n": 64
+          }
+        },
+        "Dead_Knot": {
+          "tp": 226,
+          "fp": 43,
+          "fn": 61,
+          "support": 287,
+          "precision": {
+            "estimate": 0.8401,
+            "lo": 0.77,
+            "hi": 0.8919,
+            "n": 269
+          },
+          "recall": {
+            "estimate": 0.7875,
+            "lo": 0.7146,
+            "hi": 0.8458,
+            "n": 287
+          }
+        },
+        "knot_with_crack": {
+          "tp": 33,
+          "fp": 29,
+          "fn": 14,
+          "support": 47,
+          "precision": {
+            "estimate": 0.5323,
+            "lo": 0.3651,
+            "hi": 0.6925,
+            "n": 62
+          },
+          "recall": {
+            "estimate": 0.7021,
+            "lo": 0.5027,
+            "hi": 0.8461,
+            "n": 47
+          }
+        },
+        "Knot_missing": {
+          "tp": 5,
+          "fp": 1,
+          "fn": 7,
+          "support": 12,
+          "precision": {
+            "estimate": 0.8333,
+            "lo": 0.3149,
+            "hi": 0.9819,
+            "n": 6
+          },
+          "recall": {
+            "estimate": 0.4167,
+            "lo": 0.1415,
+            "hi": 0.7558,
+            "n": 12
+          }
+        },
+        "Crack": {
+          "tp": 36,
+          "fp": 25,
+          "fn": 15,
+          "support": 51,
+          "precision": {
+            "estimate": 0.5902,
+            "lo": 0.4175,
+            "hi": 0.7431,
+            "n": 61
+          },
+          "recall": {
+            "estimate": 0.7059,
+            "lo": 0.5145,
+            "hi": 0.8446,
+            "n": 51
+          }
+        }
+      }
+    },
+    "yolo26/albumentations_balanced": {
+      "model": "yolo26",
+      "augmentation": "albumentations_balanced",
+      "conf_threshold": 0.3,
+      "classes": {
+        "Quartzity": {
+          "tp": 5,
+          "fp": 6,
+          "fn": 10,
+          "support": 15,
+          "precision": {
+            "estimate": 0.4545,
+            "lo": 0.1557,
+            "hi": 0.7902,
+            "n": 11
+          },
+          "recall": {
+            "estimate": 0.3333,
+            "lo": 0.1113,
+            "hi": 0.6663,
+            "n": 15
+          }
+        },
+        "Live_Knot": {
+          "tp": 288,
+          "fp": 84,
+          "fn": 107,
+          "support": 395,
+          "precision": {
+            "estimate": 0.7742,
+            "lo": 0.7099,
+            "hi": 0.8277,
+            "n": 372
+          },
+          "recall": {
+            "estimate": 0.7291,
+            "lo": 0.6641,
+            "hi": 0.7856,
+            "n": 395
+          }
+        },
+        "Marrow": {
+          "tp": 17,
+          "fp": 5,
+          "fn": 4,
+          "support": 21,
+          "precision": {
+            "estimate": 0.7727,
+            "lo": 0.4814,
+            "hi": 0.9257,
+            "n": 22
+          },
+          "recall": {
+            "estimate": 0.8095,
+            "lo": 0.5113,
+            "hi": 0.9453,
+            "n": 21
+          }
+        },
+        "resin": {
+          "tp": 51,
+          "fp": 18,
+          "fn": 13,
+          "support": 64,
+          "precision": {
+            "estimate": 0.7391,
+            "lo": 0.5765,
+            "hi": 0.855,
+            "n": 69
+          },
+          "recall": {
+            "estimate": 0.7969,
+            "lo": 0.632,
+            "hi": 0.8996,
+            "n": 64
+          }
+        },
+        "Dead_Knot": {
+          "tp": 227,
+          "fp": 48,
+          "fn": 60,
+          "support": 287,
+          "precision": {
+            "estimate": 0.8255,
+            "lo": 0.7545,
+            "hi": 0.8792,
+            "n": 275
+          },
+          "recall": {
+            "estimate": 0.7909,
+            "lo": 0.7183,
+            "hi": 0.8488,
+            "n": 287
+          }
+        },
+        "knot_with_crack": {
+          "tp": 36,
+          "fp": 37,
+          "fn": 11,
+          "support": 47,
+          "precision": {
+            "estimate": 0.4932,
+            "lo": 0.3414,
+            "hi": 0.6462,
+            "n": 73
+          },
+          "recall": {
+            "estimate": 0.766,
+            "lo": 0.5684,
+            "hi": 0.8905,
+            "n": 47
+          }
+        },
+        "Knot_missing": {
+          "tp": 5,
+          "fp": 1,
+          "fn": 7,
+          "support": 12,
+          "precision": {
+            "estimate": 0.8333,
+            "lo": 0.3149,
+            "hi": 0.9819,
+            "n": 6
+          },
+          "recall": {
+            "estimate": 0.4167,
+            "lo": 0.1415,
+            "hi": 0.7558,
+            "n": 12
+          }
+        },
+        "Crack": {
+          "tp": 38,
+          "fp": 33,
+          "fn": 13,
+          "support": 51,
+          "precision": {
+            "estimate": 0.5352,
+            "lo": 0.3779,
+            "hi": 0.6858,
+            "n": 71
+          },
+          "recall": {
+            "estimate": 0.7451,
+            "lo": 0.5548,
+            "hi": 0.8727,
+            "n": 51
+          }
+        }
+      }
+    },
+    "yolo26/boxaug_standard": {
+      "model": "yolo26",
+      "augmentation": "boxaug_standard",
+      "conf_threshold": 0.3,
+      "classes": {
+        "Quartzity": {
+          "tp": 5,
+          "fp": 6,
+          "fn": 10,
+          "support": 15,
+          "precision": {
+            "estimate": 0.4545,
+            "lo": 0.1557,
+            "hi": 0.7902,
+            "n": 11
+          },
+          "recall": {
+            "estimate": 0.3333,
+            "lo": 0.1113,
+            "hi": 0.6663,
+            "n": 15
+          }
+        },
+        "Live_Knot": {
+          "tp": 290,
+          "fp": 72,
+          "fn": 105,
+          "support": 395,
+          "precision": {
+            "estimate": 0.8011,
+            "lo": 0.7379,
+            "hi": 0.8521,
+            "n": 362
+          },
+          "recall": {
+            "estimate": 0.7342,
+            "lo": 0.6695,
+            "hi": 0.7902,
+            "n": 395
+          }
+        },
+        "Marrow": {
+          "tp": 20,
+          "fp": 7,
+          "fn": 1,
+          "support": 21,
+          "precision": {
+            "estimate": 0.7407,
+            "lo": 0.4779,
+            "hi": 0.8992,
+            "n": 27
+          },
+          "recall": {
+            "estimate": 0.9524,
+            "lo": 0.6723,
+            "hi": 0.9949,
+            "n": 21
+          }
+        },
+        "resin": {
+          "tp": 50,
+          "fp": 13,
+          "fn": 14,
+          "support": 64,
+          "precision": {
+            "estimate": 0.7937,
+            "lo": 0.6271,
+            "hi": 0.8979,
+            "n": 63
+          },
+          "recall": {
+            "estimate": 0.7812,
+            "lo": 0.6149,
+            "hi": 0.8887,
+            "n": 64
+          }
+        },
+        "Dead_Knot": {
+          "tp": 238,
+          "fp": 59,
+          "fn": 49,
+          "support": 287,
+          "precision": {
+            "estimate": 0.8013,
+            "lo": 0.731,
+            "hi": 0.8569,
+            "n": 297
+          },
+          "recall": {
+            "estimate": 0.8293,
+            "lo": 0.7604,
+            "hi": 0.8814,
+            "n": 287
+          }
+        },
+        "knot_with_crack": {
+          "tp": 37,
+          "fp": 40,
+          "fn": 10,
+          "support": 47,
+          "precision": {
+            "estimate": 0.4805,
+            "lo": 0.3336,
+            "hi": 0.6309,
+            "n": 77
+          },
+          "recall": {
+            "estimate": 0.7872,
+            "lo": 0.5912,
+            "hi": 0.9045,
+            "n": 47
+          }
+        },
+        "Knot_missing": {
+          "tp": 5,
+          "fp": 1,
+          "fn": 7,
+          "support": 12,
+          "precision": {
+            "estimate": 0.8333,
+            "lo": 0.3149,
+            "hi": 0.9819,
+            "n": 6
+          },
+          "recall": {
+            "estimate": 0.4167,
+            "lo": 0.1415,
+            "hi": 0.7558,
+            "n": 12
+          }
+        },
+        "Crack": {
+          "tp": 37,
+          "fp": 25,
+          "fn": 14,
+          "support": 51,
+          "precision": {
+            "estimate": 0.5968,
+            "lo": 0.4251,
+            "hi": 0.7476,
+            "n": 62
+          },
+          "recall": {
+            "estimate": 0.7255,
+            "lo": 0.5345,
+            "hi": 0.8588,
+            "n": 51
+          }
+        }
+      }
+    },
+    "yolo26/boxaug_libcom": {
+      "model": "yolo26",
+      "augmentation": "boxaug_libcom",
+      "conf_threshold": 0.3,
+      "classes": {
+        "Quartzity": {
+          "tp": 4,
+          "fp": 11,
+          "fn": 11,
+          "support": 15,
+          "precision": {
+            "estimate": 0.2667,
+            "lo": 0.0777,
+            "hi": 0.6109,
+            "n": 15
+          },
+          "recall": {
+            "estimate": 0.2667,
+            "lo": 0.0777,
+            "hi": 0.6109,
+            "n": 15
+          }
+        },
+        "Live_Knot": {
+          "tp": 300,
+          "fp": 90,
+          "fn": 95,
+          "support": 395,
+          "precision": {
+            "estimate": 0.7692,
+            "lo": 0.7062,
+            "hi": 0.8222,
+            "n": 390
+          },
+          "recall": {
+            "estimate": 0.7595,
+            "lo": 0.6962,
+            "hi": 0.8131,
+            "n": 395
+          }
+        },
+        "Marrow": {
+          "tp": 17,
+          "fp": 3,
+          "fn": 4,
+          "support": 21,
+          "precision": {
+            "estimate": 0.85,
+            "lo": 0.5456,
+            "hi": 0.964,
+            "n": 20
+          },
+          "recall": {
+            "estimate": 0.8095,
+            "lo": 0.5113,
+            "hi": 0.9453,
+            "n": 21
+          }
+        },
+        "resin": {
+          "tp": 43,
+          "fp": 15,
+          "fn": 21,
+          "support": 64,
+          "precision": {
+            "estimate": 0.7414,
+            "lo": 0.5633,
+            "hi": 0.8643,
+            "n": 58
+          },
+          "recall": {
+            "estimate": 0.6719,
+            "lo": 0.501,
+            "hi": 0.8068,
+            "n": 64
+          }
+        },
+        "Dead_Knot": {
+          "tp": 215,
+          "fp": 36,
+          "fn": 72,
+          "support": 287,
+          "precision": {
+            "estimate": 0.8566,
+            "lo": 0.7858,
+            "hi": 0.9068,
+            "n": 251
+          },
+          "recall": {
+            "estimate": 0.7491,
+            "lo": 0.6734,
+            "hi": 0.8122,
+            "n": 287
+          }
+        },
+        "knot_with_crack": {
+          "tp": 35,
+          "fp": 31,
+          "fn": 12,
+          "support": 47,
+          "precision": {
+            "estimate": 0.5303,
+            "lo": 0.368,
+            "hi": 0.6865,
+            "n": 66
+          },
+          "recall": {
+            "estimate": 0.7447,
+            "lo": 0.5461,
+            "hi": 0.8761,
+            "n": 47
+          }
+        },
+        "Knot_missing": {
+          "tp": 6,
+          "fp": 0,
+          "fn": 6,
+          "support": 12,
+          "precision": {
+            "estimate": 1.0,
+            "lo": 0.4452,
+            "hi": 1.0,
+            "n": 6
+          },
+          "recall": {
+            "estimate": 0.5,
+            "lo": 0.1902,
+            "hi": 0.8098,
+            "n": 12
+          }
+        },
+        "Crack": {
+          "tp": 40,
+          "fp": 22,
+          "fn": 11,
+          "support": 51,
+          "precision": {
+            "estimate": 0.6452,
+            "lo": 0.4718,
+            "hi": 0.7873,
+            "n": 62
+          },
+          "recall": {
+            "estimate": 0.7843,
+            "lo": 0.5965,
+            "hi": 0.8995,
+            "n": 51
+          }
+        }
+      }
+    }
+  }
+}

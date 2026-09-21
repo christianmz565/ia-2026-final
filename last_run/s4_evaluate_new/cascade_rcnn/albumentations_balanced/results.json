@@ -1,0 +1,24 @@
+{
+  "mAP_50": 0.6517993865806653,
+  "mAP_50_95": 0.3795366943852079,
+  "precision": 0.7892,
+  "recall": 0.7848,
+  "f1": 0.787,
+  "per_class_ap": {
+    "Quartzity": 0.2093,
+    "Live_Knot": 0.7483,
+    "Marrow": 0.8535,
+    "resin": 0.7715,
+    "Dead_Knot": 0.7489,
+    "knot_with_crack": 0.5744,
+    "Knot_missing": 0.6207,
+    "Crack": 0.6878
+  },
+  "num_images": 400,
+  "num_predictions": 887,
+  "model": "cascade_rcnn",
+  "augmentation": "albumentations_balanced",
+  "avg_inference_ms": 24.52,
+  "total_inference_ms": 9809.54,
+  "num_inferred_images": 400
+}

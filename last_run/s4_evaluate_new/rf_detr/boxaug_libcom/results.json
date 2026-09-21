@@ -1,0 +1,24 @@
+{
+  "mAP_50": 0.6864351457120408,
+  "mAP_50_95": 0.40639550651543965,
+  "precision": 0.6654,
+  "recall": 0.796,
+  "f1": 0.7249,
+  "per_class_ap": {
+    "Quartzity": 0.2997,
+    "Live_Knot": 0.7011,
+    "Marrow": 0.8708,
+    "resin": 0.7949,
+    "Dead_Knot": 0.7515,
+    "knot_with_crack": 0.6651,
+    "Knot_missing": 0.7017,
+    "Crack": 0.7066
+  },
+  "num_images": 400,
+  "num_predictions": 1067,
+  "model": "rf_detr",
+  "augmentation": "boxaug_libcom",
+  "avg_inference_ms": 11.59,
+  "total_inference_ms": 4634.65,
+  "num_inferred_images": 400
+}

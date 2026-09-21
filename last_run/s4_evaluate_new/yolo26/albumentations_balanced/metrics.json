@@ -1,0 +1,19 @@
+{
+  "mAP_50": 0.5984528637306153,
+  "mAP_50_95": 0.35501219172174514,
+  "precision": 0.7419,
+  "recall": 0.7478,
+  "f1": 0.7448,
+  "per_class_ap": {
+    "Quartzity": 0.2064,
+    "Live_Knot": 0.6534,
+    "Marrow": 0.7597,
+    "resin": 0.7509,
+    "Dead_Knot": 0.7621,
+    "knot_with_crack": 0.6384,
+    "Knot_missing": 0.4158,
+    "Crack": 0.6008
+  },
+  "num_images": 400,
+  "num_predictions": 899
+}

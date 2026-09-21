@@ -1,0 +1,7 @@
+{
+  "predictions_path": "/home/velmork/dev/ia-2026-teo/partials/s4_evaluate/yolo26/boxaug_libcom/predictions.json",
+  "total_inference_ms": 2626.61,
+  "avg_inference_ms": 6.57,
+  "num_inferred_images": 400,
+  "num_detections": 868
+}

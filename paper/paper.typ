@@ -164,7 +164,7 @@ Performance quantification of object detectors integrates spatial precision and 
 
 == Tools and Technologies <sec:tools>
 
-The experiment pipeline development runs on the Python programming language version 3.12. The main deep learning framework corresponds to PyTorch version 2.7.0 with GPU acceleration via CUDA 12.8 libraries. Supplementary computer vision operations employ torchvision version 0.22.0. The Cascade R-CNN architecture is implemented through the MMDetection library version 3.2.0, supported by MMCV version 2.2.0 and MMEngine version 0.10.7. The YOLO26 detector and RT-DETR detector run using the Ultralytics framework version 8.2.0. The RF-DETR architecture is compiled from the official RF-DETR engine version 1.3.0.
+The experiment pipeline development runs on the Python programming language version 3.12. The main deep learning framework corresponds to PyTorch version 2.7.0 with GPU acceleration via CUDA 12.8 libraries. Supplementary computer vision operations employ torchvision version 0.22.0. The Cascade R-CNN architecture is implemented through the MMDetection library version 3.2.0, supported by MMCV version 2.2.0 and MMEngine version 0.10.7. The YOLO26 detector runs using the Ultralytics framework version 8.2.0. The RF-DETR architecture is compiled from the official RF-DETR engine version 1.3.0.
 
 Synthetic data processing and photometric augmentations use Albumentations version 1.4.0. Composition and object insertion primitives employ the LibCom library version 0.2.0 integrated in the development environment. Strict pipeline configuration management is programmed via Pydantic version 2.6.1. Accelerated metadata table manipulation uses Polars version 1.43.0 and OpenCV version 5.0.0. The virtual environment and dependency resolution are managed through the uv package manager version 0.6+. All models were trained and evaluated on an NVIDIA RTX 5070 Ti GPU, which establishes the reference point for inference time and computational performance measurements reported in this study.
 
@@ -173,15 +173,16 @@ Synthetic data processing and photometric augmentations use Albumentations versi
 The study uses the filtered and annotated version in YOLO format available on Kaggle @Nomihsa2024KaggleWood, derived from the original Large-scale Image Dataset of Wood Surface Defects published by Kodytek et al. @Kodytek2022Dataset. The original dataset was acquired in a real industrial environment during sawmill production using a JAI SW-4000TL-PMCL line scan camera at a line frequency of 66 kHz @Kodytek2022Dataset. The filtered version used in this work @Nomihsa2024KaggleWood has been preprocessed to exclusively include images containing defects, and its annotations have been converted to the standard YOLO format for direct evaluation of object detection models. The filtered dataset contains a total of 4,000 JPG images with a fixed spatial resolution of 2800 by 1024 pixels @Nomihsa2024KaggleWood. The set stores 8,888 annotated bounding boxes distributed across 8 surface defect categories, averaging 2.22 defects per image. @fig:piechart-clases illustrates the percentage frequency distribution for each defect class.
 
 #figure(
-  image("figures/dataset/barchart_classes.svg", width: 95%),
+  image("figures/dataset/barchart_classes.svg", width: 100%),
   caption: [Defect class distribution in the filtered dataset @Nomihsa2024KaggleWood.],
   kind: image,
+  scope: "parent",
 ) <fig:piechart-clases>
 
 The annotations provide normalized bounding box coordinates in YOLO format. The class distribution reflects real industrial production conditions @Kodytek2022Dataset. Majority categories correspond to live knots with 3,949 annotations (44.4%) and dead knots with 2,865 annotations (32.2%), combining 76.6% of the set. Intermediate categories include resin with 642 annotations (7.2%), cracks with 509 annotations (5.7%), and knots with cracks with 463 annotations (5.2%). Minority categories comprise marrow with 204 annotations (2.3%), quartzite with 144 annotations (1.6%), and missing knots with 112 annotations (1.3%). The calculated imbalance ratio reaches an approximate value of 35.3. @fig:defectos-ejemplo shows representative examples of the eight annotated defect categories in the dataset.
 
 #[
-  #set image(width: 95%)
+  #set image(width: 100%)
   #figure(
     grid(
       columns: 4,
@@ -227,7 +228,23 @@ Cascade R-CNN represents the two-stage paradigm. It has a convolutional architec
 
 YOLO26 represents the one-stage paradigm. It has an anchor-free convolutional architecture with dual-head design that eliminates the NMS stage @jocher2026ultralyticsyolo26unifiedrealtime. It is configured with the yolo26m variant, rectangular training resolution of 960 by 384 pixels, batch size of 16 and initial learning rate of 0.01. Training runs the full budget of 50 epochs with early-stopping patience of 50 and saves checkpoints every 5 epochs.
 
-RF-DETR represents the transformer-based paradigm. It has an architecture with neural architecture search @robinson2026rfdetrneuralarchitecturesearch. The rfdetr-m variant is used with a rectangular training canvas preserving the wide-plank aspect ratio, batch size of 8, learning rate of 0.0001 and weight decay of 1e-4. Training includes warmup of 5 epochs, early stopping with patience of 15 and minimum improvement of 0.005 per official guidance, and gradient checkpointing to reduce memory consumption. The maximum number of epochs is 50.
+RF-DETR represents the transformer-based paradigm. It has an architecture with neural architecture search @robinson2026rfdetrneuralarchitecturesearch. The rfdetr-m variant is used with a rectangular training canvas preserving the wide-plank aspect ratio, batch size of 8, learning rate of 0.0001 and weight decay of 1e-4. Training includes warmup of 5 epochs, early stopping with patience of 15 and minimum improvement of 0.005 per official guidance, and gradient checkpointing to reduce memory consumption. The maximum number of epochs is 50; early stopping halts training at 21 to 23 epochs in practice, with best validation epochs between 6 and 11.
+
+The differing epoch budgets across paradigms are intentional rather than arbitrary. Cascade R-CNN follows the standard MMDetection 1x schedule of 12 epochs @cai2018cascade @mmdetection, YOLO26 runs the full 50-epoch budget prescribed by the Ultralytics defaults @jocher2026ultralyticsyolo26unifiedrealtime, and RF-DETR follows the official guidance of up to 50 epochs with early stopping @robinson2026rfdetrneuralarchitecturesearch. Wall-clock budgets end up comparable across paradigms (0.38 to 0.80 hours per configuration, see @fig:tiempo-entrenamiento) because per-epoch cost differs, so epoch counts cannot be compared directly. All three paradigms share the same 960 by 384 rectangular training canvas preserving the wide-plank aspect ratio, so input-size handling cannot favor any paradigm. @fig:tabla-hiperparametros summarizes the training hyperparameters; each choice follows the reference configuration of its framework rather than ad-hoc tuning, keeping the comparison attributable to paradigm and augmentation effects.
+
+#figure(
+  table(
+    columns: (1fr, 1.2fr, 1.5fr, 1.4fr),
+    align: (left, center, left, left),
+    table.header([Model], [Input / Batch], [Optimization], [Budget]),
+    [Cascade R-CNN \ (ResNet-50 + FPN)], [960×384 keep-ratio \ batch 8], [AdamW, lr 1e-4, wd 1e-4; LinearLR warmup + MultiStepLR], [12 epochs (1x) \ patience 8, min-delta 0.005],
+    [YOLO26m \ (anchor-free, dual-head)], [960×384 rect \ batch 16], [lr0 0.01 (Ultralytics default optimizer); AMP FP16], [50 epochs \ patience 50 (effectively off)],
+    [RF-DETR-m \ (NAS transformer)], [960×384 rect. canvas \ batch 8], [lr 1e-4, wd 1e-4; warmup 5; grad. checkpointing], [max 50 (actual 21–23) \ patience 15, min-delta 0.005],
+  ),
+  caption: [Training hyperparameters per paradigm. Each configuration follows its framework reference defaults; mAP values are single-run point estimates and per-class uncertainty is reported via simultaneous Wilson intervals (see @sec:results).],
+  scope: "parent",
+  kind: table,
+) <fig:tabla-hiperparametros>
 
 Confidence thresholds are calibrated per model rather than fixed globally. A validation-split inference pass at 0.05 followed by a max-F1 sweep sets the operating point: 0.20 for RF-DETR (F1 0.695) and 0.30 for YOLO26 (F1 0.748), while Cascade R-CNN stays at 0.50. Test inference and metrics for all RF-DETR and YOLO26 configurations run at these thresholds. Calibration is required because rectangular training deflates RF-DETR output scores while preserving ranking quality: the same checkpoints score far lower at a fixed 0.50 cutoff through lost recall, not worse localization. Precision, recall, and F1 are therefore reported at each model's own operating point, while the mAP columns remain the ranking-based comparison.
 
@@ -237,15 +254,17 @@ Confidence thresholds are calibrated per model rather than fixed globally. A val
 @fig:matrix-map50 presents the mAP\@0.5 performance matrix for the 12 model-augmentation strategy combinations. RF-DETR leads all four arms with values between 0.676 and 0.717, followed by Cascade R-CNN between 0.644 and 0.677, while YOLO26 is the tightest group between 0.592 and 0.618 with its unaugmented baseline on top. The strict-metric view in @fig:matrix-map5095 preserves the order. Augmentation sensitivity is paradigm-specific rather than uniform: it helps Cascade, is mixed for RF-DETR, and is neutral to negative for YOLO26.
 
 #figure(
-  image("figures/results/aug_paradigm_map50_heatmap.png", width: 95%),
+  image("figures/results/aug_paradigm_map50_heatmap.png", width: 100%),
   caption: [mAP\@0.5 performance matrix intersecting three detection paradigms with four augmentation strategies.],
   kind: image,
+  scope: "parent",
 ) <fig:matrix-map50>
 
 #figure(
-  image("figures/results/aug_paradigm_map50_95_heatmap.png", width: 95%),
+  image("figures/results/aug_paradigm_map50_95_heatmap.png", width: 100%),
   caption: [mAP\@0.5:0.95 performance matrix for the same 12 configurations.],
   kind: image,
+  scope: "parent",
 ) <fig:matrix-map5095>
 
 
@@ -275,29 +294,48 @@ Confidence thresholds are calibrated per model rather than fixed globally. A val
 
 ) <fig:tabla-principal>
 
+The joint view in @fig:map-overview confirms the RF-DETR, Cascade R-CNN, YOLO26 order under both the loose and strict metrics.
+
+#figure(
+  image("figures/results/map_overview.png", width: 100%),
+  caption: [Overview of mAP\@0.5 and mAP\@0.5:0.95 per model-augmentation configuration, confirming the RF-DETR, Cascade R-CNN, YOLO26 order under both metrics.],
+  kind: image,
+  scope: "parent",
+) <fig:map-overview>
+
 @fig:delta-baseline shows the impact of each augmentation strategy relative to the baseline for each model. Cascade R-CNN benefits from every strategy: Albumentations contributes +0.008, standard BoxAug +0.015, and BoxAug LibCom +0.033 absolute improvement in mAP\@0.5. RF-DETR shows mixed behavior: Albumentations contributes +0.017, but standard BoxAug degrades performance by -0.024 and BoxAug LibCom by -0.013. YOLO26 shows no gain: Albumentations scores -0.019, BoxAug LibCom -0.026, and standard BoxAug -0.014, with the unaugmented baseline remaining its best configuration.
 
 #figure(
-  image("figures/results/aug_delta_vs_baseline.png", width: 95%),
+  image("figures/results/aug_delta_vs_baseline.png", width: 100%),
   caption: [Impact of augmentation strategies relative to baseline (Δ mAP\@0.5).],
   kind: image,
+  scope: "parent",
 ) <fig:delta-baseline>
 
 
-@fig:heatmap-clase presents the average AP per class at AP\@0.5 for all 12 configurations. The easiest class is marrow, with AP up to 0.910 with RF-DETR, while quartzite is the hardest, with AP between 0.082 and 0.550. No configuration fails completely on any class. Live knots and dead knots show AP values of 0.651 to 0.781 despite being the majority classes, suggesting high intra-class variance.
+@fig:heatmap-clase presents the average AP per class at AP\@0.5 for all 12 configurations (@fig:clase-barras shows the same values as bars). The easiest class is marrow, with AP up to 0.910 with RF-DETR, while quartzite is the hardest, with AP between 0.082 and 0.550. No configuration fails completely on any class. Live knots and dead knots show AP values of 0.651 to 0.781 despite being the majority classes, suggesting high intra-class variance.
 
 #figure(
-  image("figures/results/per_class_ap_heatmap.png", width: 95%),
+  image("figures/results/per_class_ap_heatmap.png", width: 100%),
   caption: [Heatmap of average precision per defect class (AP\@0.5).],
   kind: image,
+  scope: "parent",
 ) <fig:heatmap-clase>
+
+#figure(
+  image("figures/results/per_class_ap_bars.png", width: 100%),
+  caption: [Average precision bars per defect class (AP\@0.5) for the 12 configurations.],
+  kind: image,
+  scope: "parent",
+) <fig:clase-barras>
 
 @fig:heatmap-clase-5095 presents the same per-class breakdown under the AP\@0.5:0.95 metric. The class ordering is preserved: marrow remains the easiest class at 0.499 to 0.639 and quartzite the hardest at 0.064 to 0.285. The metric compresses the score range, most visibly on the majority classes, as live and dead knots drop from 0.651 to 0.781 at AP\@0.5 to 0.297 to 0.449, indicating that these high-variance defects are detected but poorly localized. The weakest cell is YOLO26 with BoxAug LibCom on quartzite at 0.064, against 0.255 for its unaugmented baseline, showing that pasted augmentation degrades rare-class localization for the one-stage paradigm. RF-DETR leads six of eight classes under the metric, with its best cells on marrow at 0.639 (BoxAug Std) and Knot\_missing at 0.502 (Albumentations).
 
 #figure(
-  image("figures/results/per_class_ap50_95_heatmap.png", width: 95%),
+  image("figures/results/per_class_ap50_95_heatmap.png", width: 100%),
   caption: [Heatmap of average precision per defect class (AP\@0.5:0.95).],
   kind: image,
+  scope: "parent",
 ) <fig:heatmap-clase-5095>
 
 @fig:tabla-bonferroni and @fig:recall-bonferroni report per-class recall with simultaneous 95% CIs for the best configuration of each paradigm. Abundant classes give narrow intervals (Live\_Knot, n = 395: recall 0.729-0.792 with widths 0.111-0.122), while rare classes span tens of points (Quartzity, n = 15: 0.400-0.733 with widths 0.533-0.576; Knot\_missing, n = 12: widths up to 0.614), so rank orders among rare classes are not statistically distinguishable: the Quartzity gap between RF-DETR (0.733) and YOLO26 (0.400) overlaps across all three intervals. Precision shows the same pattern, with Cascade R-CNN keeping the narrowest majority-class intervals (Live\_Knot 0.853 \[0.795, 0.896\], Dead\_Knot 0.905 \[0.841, 0.945\]) while RF-DETR's Quartzity precision spans 0.133-0.501.
@@ -322,40 +360,61 @@ Confidence thresholds are calibrated per model rather than fixed globally. A val
 ) <fig:tabla-bonferroni>
 
 #figure(
-  image("figures/results/per_class_recall_bonferroni.png", width: 95%),
+  image("figures/results/per_class_recall_bonferroni.png", width: 100%),
   caption: [Per-class recall with simultaneous 95% family-wise confidence intervals for the best configuration of each paradigm. Error bars are 99.375% Wilson intervals per class, i.e. simultaneous 95% family-wise coverage over the 8 classes (Bonferroni).],
   kind: image,
+  scope: "parent",
 ) <fig:recall-bonferroni>
 
-@fig:velocidad-precision illustrates the trade-off between inference speed and precision. YOLO26 processes each image in 7.5 ms on average across the four configurations, RF-DETR in 12.6 ms, and Cascade R-CNN in 25.7 ms. Cascade R-CNN is 3.4 times slower than YOLO26 while its best mAP\@0.5 of 0.677 trails RF-DETR's best of 0.717. RF-DETR offers the best ranking precision at 12.6 ms, 1.7 times slower than YOLO26, whose best mAP\@0.5 is 0.618.
+@fig:inference-panel shows ground-truth-annotated representative instances (red boxes) for the eight defect classes together with the best AP\@0.5 across the 12 configurations. The panel visualizes the difficulty spectrum behind the numbers: the distinctive central-line pattern of marrow (0.91) contrasts with the low contrast of quartzite against wood grain (0.55, hardest class), while knot-missing instances cluster at plank edges where operating-point recall intervals are widest (n = 12, widths up to 0.614). Characteristic failure modes follow from the operating-point counts: quartzite false positives arise from grain confusion (RF-DETR quartzite precision spans 0.133–0.501), and cross-class knot confusions surface as paired false positives and false negatives rather than off-diagonal entries (see @sec:proposed).
 
 #figure(
-  image("figures/results/speed_accuracy_tradeoff.png", width: 95%),
+  image("figures/results/inference_panel.png", width: 100%),
+  caption: [Ground-truth-annotated representative instances (red boxes) with best AP\@0.5 per class. Quartzite is the hardest class and marrow the easiest; knot-missing is edge-prone with the widest recall intervals.],
+  kind: image,
+  scope: "parent",
+) <fig:inference-panel>
+
+@fig:velocidad-precision illustrates the trade-off between inference speed and precision. YOLO26 processes each image in 7.5 ms on average across the four configurations, RF-DETR in 12.6 ms, and Cascade R-CNN in 25.7 ms. Cascade R-CNN is 3.4 times slower than YOLO26 while its best mAP\@0.5 of 0.677 trails RF-DETR's best of 0.717. RF-DETR offers the best ranking precision at 12.6 ms, 1.7 times slower than YOLO26, whose best mAP\@0.5 is 0.618. @fig:pr-f1 details the operating-point precision, recall, and F1 behind these trade-offs.
+
+#figure(
+  image("figures/results/speed_accuracy_tradeoff.png", width: 100%),
   caption: [Trade-off between inference speed (ms/image) and precision (mAP\@0.5).],
   kind: image,
+  scope: "parent",
 ) <fig:velocidad-precision>
+
+#figure(
+  image("figures/results/precision_recall_f1.png", width: 100%),
+  caption: [Operating-point precision, recall, and F1 per configuration at each model's calibrated threshold.],
+  kind: image,
+  scope: "parent",
+) <fig:pr-f1>
 
 @fig:curvas-convergencia shows the mAP\@0.5 validation convergence curves throughout training epochs (@fig:curvas-loss shows the corresponding training losses). RF-DETR converges earliest, with best epoch between 6 and 11, Cascade R-CNN stabilizes between epoch 9 and 12 with BoxAug LibCom still climbing at epoch 12, and YOLO26 reaches its maximum between epochs 40 and 50, at the edge of its 50-epoch budget. YOLO26 curves show greater oscillation, particularly in the standard BoxAug configuration. This convergence pattern suggests that transformers need fewer iterations to capture relevant features, while one-stage convolutional architectures consume the full budget; the still-rising YOLO26 and Cascade LibCom curves indicate both budgets truncate learning. The oscillation in YOLO26 may indicate sensitivity to training sample variability in each batch.
 
 #figure(
-  image("figures/results/training_curves_map.png", width: 95%),
+  image("figures/results/training_curves_map.png", width: 100%),
   caption: [mAP\@0.5 validation convergence curves during training.],
   kind: image,
+  scope: "parent",
 ) <fig:curvas-convergencia>
 
 
 #figure(
-  image("figures/results/training_curves_loss.png", width: 95%),
+  image("figures/results/training_curves_loss.png", width: 100%),
   caption: [Training loss progression over epochs for all 12 configurations.],
   kind: image,
+  scope: "parent",
 ) <fig:curvas-loss>
 
 @fig:tiempo-entrenamiento compares total training time per configuration. YOLO26 trains the full 50 epochs in 0.40 to 0.80 hours, Cascade R-CNN completes 12 epochs in 0.38 to 0.78 hours, and RF-DETR trains 21 to 23 epochs in 0.44 to 0.80 hours. Wall-clock budgets are therefore comparable across paradigms even though epoch counts differ, and per-epoch cost rather than early stopping dominates the differences.
 
 #figure(
-  image("figures/results/training_time_comparison.png", width: 95%),
+  image("figures/results/training_time_comparison.png", width: 100%),
   caption: [Comparison of total training time per configuration.],
   kind: image,
+  scope: "parent",
 ) <fig:tiempo-entrenamiento>
 
 = Discussion <sec:discussion>
@@ -364,7 +423,7 @@ The results obtained in this benchmark reveal patterns that warrant detailed ana
 
 YOLO26 shows no augmentation dividend, the unaugmented baseline at mAP\@0.5 of 0.618 beats all three augmented arms, which score 0.592 to 0.604. This contradicts the common expectation that one-stage detectors are the primary beneficiaries of training data volume @hussain2023yolo, at least under rectangular training with a full 50-epoch budget. A plausible mechanism is that YOLO26's anchor-free dense predictions already saturate on the majority distribution, so pasted minority instances add noise rather than signal at this budget. The greater oscillation observed in YOLO26 convergence curves, particularly in the standard BoxAug configuration, may be attributed to variability introduced by synthetic samples in a model that lacks Cascade R-CNN's multi-stage refinement mechanism. This result suggests that object augmentation techniques require larger budgets or cleaner synthesis to help one-stage detectors in severe imbalance scenarios.
 
-RF-DETR shows mixed behavior: Albumentations improves performance by +0.017, but standard BoxAug degrades it by -0.024 and BoxAug LibCom by -0.013. This result is particularly relevant for the research community in transformers for industrial vision @hutten2022vision. Patch-level noise transformations introduce artifacts that bidirectional global self-attention mechanisms interpret as relevant patterns, generating confusion during training. Unlike convolutional models that process local information through sliding filters, transformers capture long-range spatial dependencies that can amplify the influence of local artifacts @zhao2023detrs. The deflated-score phenomenon, where the same checkpoints collapse at a fixed 0.50 cutoff while ranking quality is preserved, further shows that threshold-then-mAP evaluation is brittle to calibration shifts. This result suggests that object augmentation strategies require careful adaptation when applied to self-attention-based architectures, and that operating points must be tuned per model rather than fixed globally.
+RF-DETR shows mixed behavior: Albumentations improves performance by +0.017, but standard BoxAug degrades it by -0.024 and BoxAug LibCom by -0.013. This result is particularly relevant for the research community in transformers for industrial vision @hutten2022vision. Patch-level noise transformations introduce artifacts that bidirectional global self-attention mechanisms interpret as relevant patterns, generating confusion during training. Unlike convolutional models that process local information through sliding filters, transformers capture long-range spatial dependencies that can amplify the influence of local artifacts @zhao2023detrs. The mechanism is structural. Standard BoxAug pastes patches with pixel-level noise and morphological perturbations @LEE2022104138, producing sharp edge gradients and high-frequency textures that do not occur in natural wood grain. During tokenization these discontinuities become outlier tokens; because every self-attention head computes Query-Key affinities over the full token set, a single anomalous patch can attract attention mass from distant, defect-free regions and propagate spurious correlations across layers. Convolutional detectors attenuate this effect through locality: sliding filters confine the artifact's receptive field, and Cascade R-CNN's staged IoU heads can still reject the proposal. Transformers have no such locality bottleneck, so the same artifact is broadcast globally. Neural harmonization via LibCom @niu2021making attenuates edge gradients through pixel-level color equalization @Guerreiro_2023_CVPR, which explains why BoxAug LibCom degrades RF-DETR less (−0.013) than the standard variant (−0.024): the pasted tokens remain distributionally closer to natural grain. The deflated-score phenomenon, where the same checkpoints collapse at a fixed 0.50 cutoff while ranking quality is preserved, further shows that threshold-then-mAP evaluation is brittle to calibration shifts. This result suggests that object augmentation strategies require careful adaptation when applied to self-attention-based architectures, and that operating points must be tuned per model rather than fixed globally.
 
 Per-class analysis reveals counterintuitive results that challenge the assumption that class frequency directly determines detection difficulty. Quartzite, with only 144 annotations (1.6% of the dataset), obtains the worst performance with AP\@0.5 between 0.082 and 0.550, which is expected given its low visual contrast against wood grain. However, marrow, with only 204 annotations, obtains the highest AP of up to 0.910. This disparity indicates that defect visual distinguishability is a determining factor that interacts with class frequency. Defects with distinctive visual patterns, such as marrow with its characteristic central line appearance, are more susceptible to automatic detection regardless of their representation in the dataset @Chen2023Recognition.
 
@@ -376,16 +435,18 @@ In terms of computational efficiency, the speed-precision trade-off manifests di
 
 This study presented a comparative benchmark of three object detection paradigms with four data augmentation strategies for surface defect recognition in wood, evaluating 12 configurations on a dataset with severe imbalance of 1 to 35.3. The main results demonstrate that RF-DETR achieves the highest ranking precision with mAP\@0.5 of 0.717 under per-model calibrated thresholds, Cascade R-CNN gains the most from augmentation with BoxAug LibCom contributing +0.033 and the best operating-point F1 of 0.798, and YOLO26 shows no augmentation dividend with its unaugmented baseline of 0.618 leading the family. Per-class analysis at AP\@0.5 reveals that detection difficulty depends on both frequency and visual distinguishability of the defect, and the AP\@0.5:0.95 view confirms this ordering while exposing weaker localization on the high-variance knot classes. Fixed confidence cutoffs mismeasure rect-trained models, so operating-point calibration is part of the method rather than an afterthought.
 
+For deployment, the three paradigms occupy distinct operating points: YOLO26 at 7.5 ms per image suits high-throughput lines approaching 9.6 m/s where latency dominates; RF-DETR at 12.6 ms offers the best ranking precision for balanced speed–accuracy requirements; and Cascade R-CNN at 25.7 ms maximizes operating-point precision (0.811) where false positives are costly. These claims are bounded by the study's limits: single-run mAP point estimates without training variance, truncated epoch budgets that make the YOLO26 and Cascade LibCom scores lower bounds rather than converged values, and evaluation on a single species and industrial setup. The calibrated-threshold protocol, the paradigm-dependent augmentation response, and the released reproducible pipeline provide the baseline against which extended budgets, repeated runs with confidence intervals, and diffusion-based augmentation should be measured.
+
 = Limitations and Future Work <sec:future>
 
-The fixed per-family epoch budgets truncate learning where curves still rise: YOLO26 best epochs fall between 40 and 50 of a 50-epoch budget, and Cascade R-CNN with BoxAug LibCom is still climbing at epoch 12 of 12, so reported scores are lower bounds for those configurations rather than converged values. Extending YOLO26 beyond 50 epochs and Cascade R-CNN to its 2x schedule would test whether the ranking holds at convergence. The most immediate modeling direction corresponds to diffusion-based augmentation. The cut-and-paste methods evaluated, such as BoxAug, are limited by the number of rare instances available for cropping from the original dataset. With only 144 quartzite annotations, the object bank is too small to generate diverse augmentation. Conditional diffusion models such as Stable Diffusion with ControlNet can generate synthetic instances of rare classes without relying on existing crops, offering a potentially more effective alternative for severe imbalance @capogrosso2024diffusion.
+The fixed per-family epoch budgets truncate learning where curves still rise: YOLO26 best epochs fall between 40 and 50 of a 50-epoch budget, and Cascade R-CNN with BoxAug LibCom is still climbing at epoch 12 of 12, so reported scores are lower bounds for those configurations rather than converged values. Extending YOLO26 beyond 50 epochs and Cascade R-CNN to its 2x schedule would test whether the ranking holds at convergence. All mAP values reported are single-run point estimates; a three-seed repeat protocol (seeds 42–44, mean ± std) is the natural next step for training-variance intervals around mAP. The most immediate modeling direction corresponds to diffusion-based augmentation. The cut-and-paste methods evaluated, such as BoxAug, are limited by the number of rare instances available for cropping from the original dataset. With only 144 quartzite annotations, the object bank is too small to generate diverse augmentation. Conditional diffusion models such as Stable Diffusion with ControlNet can generate synthetic instances of rare classes without relying on existing crops, offering a potentially more effective alternative for severe imbalance @capogrosso2024diffusion.
 
 The per-class AP heatmaps above remain point estimates (the Bonferroni-binomial construction does not apply to AP, a ranking metric), and cross-class confusion is folded into per-class false positives and false negatives rather than shown as an off-diagonal matrix.
 
 Expanding the dataset to other wood species with different grain patterns and defects is essential to validate generalization beyond the current species and industrial environment. In parallel, model quantization to INT8 and FP16 could reduce inference times for deployment on production lines with hardware constraints, while evaluating transformer architectures such as DINO and Grounding DINO could determine whether global self-attention mechanisms improve detection of low-contrast defects. The combination of multiple research directions, including class weighting, diffusion-based augmentation, and model optimization, could lead to more robust and efficient inspection systems for the wood industry. These future directions seek to address the limitations identified in the present benchmark and bring automated detection systems closer to the operational requirements of wood processing plants. The development of reproducible experimental pipelines, such as the one employed in this study, will facilitate comparative evaluation of new techniques emerging from these research directions.
 
-#heading(numbering: none)[Author Contribution Statement]
-Chambilla Perca R.M. declares roles in Software and Writing. Jara Mamani M.A. declares roles in Data Curation, Resources, and Methodology. Mestas Zegarra C.R. declares roles in Project Administration, Conceptualization, and Writing. Noa Camino Y.J. declares roles in Acquisition and Investigation. Sequeiros Condori L.G. declares roles in Conceptualization, Investigation, and Software.
+#heading(numbering: none)[CRediT Authorship Contribution Statement]
+*Ricardo Mauricio Chambilla Perca:* Software, Writing – original draft. *Mariel Alison Jara Mamani:* Data Curation, Resources, Methodology. *Christian Raul Mestas Zegarra:* Project Administration, Conceptualization, Writing – review and editing. *Yenaro Joel Noa Camino:* Investigation, Resources. *Luis Gustavo Sequeiros Condori:* Conceptualization, Investigation, Software. *Yasiel Pérez Vera:* Supervision, Writing – review and editing.
 
 #heading(numbering: none)[Conflict of Interest Declaration]
 
@@ -395,10 +456,6 @@ The authors declare that they have no known competing financial interests or per
 #heading(numbering: none)[Funding]
 
 This research did not receive any specific grant from funding agencies in the public, commercial, or not-for-profit sectors.
-
-#heading(numbering: none)[Acknowledgments]
-
-Not applicable
 
 #heading(numbering: none)[Code Availability]
 

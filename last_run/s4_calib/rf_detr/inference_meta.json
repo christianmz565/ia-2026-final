@@ -1,0 +1,7 @@
+{
+  "predictions_path": "/home/velmork/dev/ia-2026-teo/partials/s4_calib/rf_detr/pred_val.json",
+  "total_inference_ms": 6903.73,
+  "avg_inference_ms": 17.26,
+  "num_inferred_images": 400,
+  "num_detections": 4182
+}
