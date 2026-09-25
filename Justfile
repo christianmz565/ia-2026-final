@@ -58,6 +58,10 @@ paper:
 paper-watch:
     typst watch paper/paper.typ
 
+# Compile the LaTeX manuscript to paper/latex/paper.pdf.
+paper-latex:
+    latexmk -pdf -cd -interaction=nonstopmode paper/latex/paper.tex
+
 # Refresh figures, compile the manuscript, and build deliverables.
 report:
     just figures

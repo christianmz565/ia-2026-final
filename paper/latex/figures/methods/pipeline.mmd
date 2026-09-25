@@ -1,0 +1,33 @@
+flowchart LR
+    %% Data Input
+    Data["Nomihsa2024<br/><i>(4k imgs, 8 classes)</i>"] --> S1
+
+    %% Pipeline Core (S1 - S4)
+    subgraph Core["Pipeline execution (src/)"]
+        S1["<b>S1. Prepare</b><br/>Preprocess & Split<br/>COCO Conversion"] --> S2["<b>S2. Augments</b><br/>• Baseline<br/>•Albumentations<br/>• BoxAug Standard<br/>• BoxAug Libcom"]
+
+        S2 --> S3["<b>S3. Multi-Paradigm Train</b><br/>• RF-DETR <i>(Transformer)</i><br/>• Cascade R-CNN <i>(Two-Stage)</i><br/>• YOLO26 <i>(One-Stage)</i>"]
+
+        S3 --> S4["<b>S4. Evaluate</b><br/>Inference & Threshold<br/>Calibration <i>(12 Configs)</i>"]
+    end
+
+    %% Code Overlays
+    PCode[/"Processing Code"\] -.-> S1
+    ACode[/"Analytic Code"\] -.-> S2 & S3 & S4
+    VCode[/"Presentation Code"\] -.-> S5
+
+    %% Output
+    S4 --> S5["<b>S5. Analysis</b><br/>Metrics & Seaborn Figures"]
+
+    %% Styling IEEE Style
+    style Core fill:#f0f4f8,stroke:#0288d1,stroke-width:1.5px,stroke-dasharray: 4 4
+    style S1 fill:#ffffff,stroke:#333,stroke-width:1px
+    style S2 fill:#ffffff,stroke:#333,stroke-width:1px
+    style S3 fill:#ffffff,stroke:#0288d1,stroke-width:2px
+    style S4 fill:#ffffff,stroke:#333,stroke-width:1px
+    style S5 fill:#e8f5e9,stroke:#2e7d32,stroke-width:1.5px
+    style Data fill:#ffffff,stroke:#333,stroke-width:1.5px
+
+    style PCode fill:#fbf7ff,stroke:#c4b5fd,stroke-width:1.2px
+    style ACode fill:#fbf7ff,stroke:#c4b5fd,stroke-width:1.2px
+    style VCode fill:#fbf7ff,stroke:#c4b5fd,stroke-width:1.2px

@@ -69,6 +69,19 @@
               fontconfig
               bun
               uv
+              just
+              (texlive.withPackages (
+                ps: with ps; [
+                  scheme-medium
+                  elsarticle
+                  latexmk
+                  orcidlink
+                  booktabs
+                  microtype
+                  xurl
+                  placeins
+                ]
+              ))
             ])
             fonts
             (with unstable; [
