@@ -80,6 +80,10 @@
                   microtype
                   xurl
                   placeins
+                  soul
+                  ulem
+                  changes
+                  latexdiff
                 ]
               ))
             ])
