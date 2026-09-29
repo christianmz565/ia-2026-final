@@ -34,17 +34,16 @@ rectangle "<b>Preprocessing</b>" as PreprocessingFrame #line:1E293B;line.dotted;
     rectangle "Black Border Cropping\n<i>(Otsu Threshold & Morph. Closing)</i>" as P1 #FFFFFF
     rectangle "Resolution Downscaling\n<i>(0.5x Area Interpolation)</i>" as P2 #FFFFFF
     rectangle "Coordinate Transform & Size Gate\n<i>(Preserve thin defects: min 2px / 12px²)</i>" as P3 #FFFFFF
-    rectangle "Majority Plank Balancing\n<i>(Drop 35% majority-only planks)</i>" as P4 #FFFFFF
-    rectangle "COCO Format Conversion\n<i>(_annotations.coco.json generation)</i>" as P5 #FFFFFF
 
     P1 -[#1E293B]-> P2
     P2 -[#1E293B]-> P3
-    P3 -[#1E293B]-> P4
-    P4 -[#1E293B]-> P5
 }
 
 ' Primary Step: Data Splitting
 rectangle "**Data Splitting**\nIterative Stratification\n<i>(80% Train / 10% Val / 10% Test)</i>" as DataSplitting #E0F2FE
+
+' Primary Step: Majority Plank Balancing
+rectangle "**Majority Plank Balancing**\n<i>(Drop 35% majority-only planks)</i>" as MajorityBalancing #E0F2FE
 
 ' Primary Step: Data Augmentation
 rectangle "**Data Augmentation**\nMinority Defect Synthesis\n<i>(Target minority ratio: 33%)</i>" as DataAugmentation #E0F2FE
@@ -60,11 +59,14 @@ rectangle "**Analysis**\nPerformance Matrices & Figures\n<i>(Bonferroni CIs & St
 
 ' Connections: Data Loading -> Preprocessing -> Data Splitting
 DataLoading -[#1E293B]-> P1
-P5 -[#1E293B]-> DataSplitting
+P3 -[#1E293B]-> DataSplitting
 
-' 3 lines out of Data Splitting:
-' 1. Line to Data Augmentation labeled 80%
-DataSplitting -[#1E293B]-> DataAugmentation : <b>80%</b>
+' Lines out of Data Splitting:
+' 1. Line to Majority Plank Balancing labeled 80%
+DataSplitting -[#1E293B]-> MajorityBalancing : <b>80%</b>
+
+' Line from Majority Plank Balancing to Data Augmentation
+MajorityBalancing -[#1E293B]-> DataAugmentation
 
 ' 2. Line directly to Training labeled 10%
 DataSplitting -[#1E293B]-> Training : <b>10%</b>
