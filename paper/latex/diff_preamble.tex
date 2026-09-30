@@ -1,12 +1,8 @@
-% ============================================================
-% Latexdiff custom preamble for Yellow Marker Highlighting
-% ============================================================
 \RequirePackage{color,soul}
 \RequirePackage[normalem]{ulem}
 
 \sethlcolor{yellow}
 
-% Register standard citation and cross-reference commands for soul
 \soulregister\cite7
 \soulregister\citet7
 \soulregister\citep7
@@ -18,7 +14,6 @@
 \soulregister\autoref7
 \soulregister\url7
 
-% Toggle switch: set to false to suppress markup and render clean text
 \newif\ifshowdiffs
 \showdiffstrue
 
@@ -41,7 +36,6 @@
 \providecommand{\DIFdelbeginFL}{}
 \providecommand{\DIFdelendFL}{}
 
-% Protect PDF bookmarks and outlines
 \makeatletter
 \AtBeginDocument{%
   \pdfstringdefDisableCommands{%

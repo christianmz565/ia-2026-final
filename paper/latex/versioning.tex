@@ -1,22 +1,11 @@
-%% ============================================================
-%% Versioning and Revision Markup Configuration
-%% ============================================================
-%% Toggle yellow marker highlights on/off:
-%% Set \showdiffsfalse to highlight additions/revisions in yellow marker.
-%% Set \showdiffsfalse to compile a clean final manuscript.
-%% ============================================================
-
 \newif\ifshowdiffs
 \showdiffsfalse
 
 \ifshowdiffs
   \RequirePackage{color,soul}
   \RequirePackage[normalem]{ulem}
-
-  % Highlight color (standard yellow marker)
   \sethlcolor{yellow}
 
-  % Register LaTeX citation and reference macros so \hl won't break on them
   \soulregister\cite7
   \soulregister\citet7
   \soulregister\citep7
@@ -28,20 +17,17 @@
   \soulregister\autoref7
   \soulregister\url7
 
-  % Revision markup commands
   \DeclareRobustCommand{\revised}[1]{{\protect\hl{#1}}}
   \DeclareRobustCommand{\added}[1]{{\protect\hl{#1}}}
   \DeclareRobustCommand{\deleted}[1]{{\color{red}\sout{#1}}}
   \DeclareRobustCommand{\replaced}[2]{{\color{red}\sout{#2}}{\protect\hl{#1}}}
 \else
-  % Clean output: show revised/added text normally, hide deleted text
   \DeclareRobustCommand{\revised}[1]{#1}
   \DeclareRobustCommand{\added}[1]{#1}
   \DeclareRobustCommand{\deleted}[1]{}
   \DeclareRobustCommand{\replaced}[2]{#1}
 \fi
 
-% Protect PDF bookmarks and table of contents when hyperref is active
 \AtBeginDocument{%
   \pdfstringdefDisableCommands{%
     \def\revised#1{#1}%
