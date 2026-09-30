@@ -94,9 +94,19 @@ def aggregate_results(
             raise FileNotFoundError(f"No results.json files found under {resolved_input}")
         logger.info("aggregating_results", count=len(result_files), directory=str(resolved_input))
 
+        # Per-class AP@50:95 sidecar (sibling of the aggregated output). Older
+        # s4 payloads predate the `per_class_ap_50_95` key; fill from here
+        # instead of fabricating zeros.
+        sidecar_path = resolved_output.parent / "per_class_ap50_95.json"
+        sidecar: dict[str, Any] = {}
+        if sidecar_path.exists():
+            try:
+                sidecar = json.loads(sidecar_path.read_text())
+            except Exception as err:
+                logger.warning("sidecar_unreadable", path=str(sidecar_path), error=str(err))
+
         rows: list[dict[str, Any]] = []
         history: dict[str, list[dict[str, Any]]] = {}
-
         for rf in result_files:
             with open(rf) as f:
                 data = json.load(f)
@@ -121,6 +131,14 @@ def aggregate_results(
             # Join training metadata from s3_train
             train_meta, epoch_history = _load_training_meta(model, aug)
             data.update(train_meta)
+
+            if not data.get("per_class_ap_50_95"):
+                strict = sidecar.get(f"{model}/{aug}")
+                if strict:
+                    data["per_class_ap_50_95"] = strict
+                    logger.info("sidecar_strict_filled", model=model, aug=aug)
+                else:
+                    logger.warning("sidecar_strict_missing", model=model, aug=aug)
 
             if epoch_history:
                 history[f"{model}/{aug}"] = epoch_history

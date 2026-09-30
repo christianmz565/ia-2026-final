@@ -1,6 +1,7 @@
 import json
 import os
 import subprocess
+import sys
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -8,7 +9,12 @@ import pandas as pd
 import seaborn as sns
 from matplotlib import font_manager
 
-PROJECT_ROOT = Path(__file__).resolve().parents[3]
+PROJECT_ROOT = Path(__file__).resolve().parents[4]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+from src.constants import display_name  # noqa: E402
+
 STATS_FILE = Path(os.environ.get("STATS_JSON", PROJECT_ROOT / "partials" / "s1_prepare" / "explore_stats.json"))
 
 sns.set_theme(style="whitegrid")
@@ -26,18 +32,18 @@ if STATS_FILE.exists():
     class_counts = stats.get("class_counts", {})
     total = sum(class_counts.values())
     sorted_items = sorted(class_counts.items(), key=lambda x: x[1], reverse=True)
-    classes = [k for k, _ in sorted_items]
+    classes = [display_name(k) for k, _ in sorted_items]
     percentages = [round((v / total) * 100, 1) for _, v in sorted_items]
 else:
     classes = [
-        "Live_Knot",
-        "Dead_Knot",
-        "resin",
-        "knot_with_crack",
-        "Crack",
-        "Marrow",
-        "Quartzity",
-        "Knot_missing",
+        display_name("Live_Knot"),
+        display_name("Dead_Knot"),
+        display_name("resin"),
+        display_name("knot_with_crack"),
+        display_name("Crack"),
+        display_name("Marrow"),
+        display_name("Quartzity"),
+        display_name("Knot_missing"),
     ]
     percentages = [44.7, 32.5, 7.3, 5.8, 4.7, 2.3, 1.5, 1.2]
 
@@ -58,17 +64,15 @@ sns.barplot(
 for container in ax.containers:
     ax.bar_label(container, fmt="%.1f%%", padding=5, fontsize=9)
 
-ax.set_xlabel("Porcentaje (%)", fontsize=10)
+ax.set_xlabel("Percentage (%)", fontsize=10)
 ax.set_ylabel("")
 ax.set_xlim(0, 50)
-ax.set_xticks(range(0, 51, 5))
-
 sns.despine(left=True, bottom=True)
 
 plt.tight_layout()
 
-svg_out = PROJECT_ROOT / "paper" / "figures" / "dataset" / "barchart_classes.svg"
-png_out = PROJECT_ROOT / "paper" / "figures" / "dataset" / "barchart_classes.png"
+svg_out = PROJECT_ROOT / "paper" / "latex" / "figures" / "dataset" / "barchart_classes.svg"
+png_out = PROJECT_ROOT / "paper" / "latex" / "figures" / "dataset" / "barchart_classes.png"
 
 plt.savefig(svg_out, bbox_inches="tight")
 plt.savefig(png_out, dpi=300, bbox_inches="tight")

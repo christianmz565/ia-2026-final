@@ -21,7 +21,7 @@ import structlog
 
 from src.caching import config_fingerprint, run_cached_step
 from src.config import AnalysisConfig
-from src.constants import CLASS_NAMES, S5_OUTPUT
+from src.constants import CLASS_DISPLAY_NAMES, CLASS_NAMES, S5_OUTPUT
 
 logger = structlog.get_logger(__name__)
 
@@ -248,7 +248,7 @@ def _fig_per_class_ap_heatmap(rows: list[dict[str, Any]], output_dir: Path, dpi:
         if per_class:
             class_map[label] = {cls: float(val) for cls, val in per_class.items()}
 
-    df = pd.DataFrame(class_map).T
+    df = pd.DataFrame(class_map).T.rename(columns=CLASS_DISPLAY_NAMES)
     fig, ax = plt.subplots(figsize=(10, 5.5))
     if not df.empty:
         sns.heatmap(df, annot=True, fmt=".3f", cmap="YlGnBu", cbar=True, ax=ax, linewidths=0.5, annot_kws={"size": 8})
@@ -275,7 +275,7 @@ def _fig_per_class_ap50_95_heatmap(rows: list[dict[str, Any]], output_dir: Path,
         if per_class:
             class_map[label] = {cls: float(val) for cls, val in per_class.items()}
 
-    df = pd.DataFrame(class_map).T
+    df = pd.DataFrame(class_map).T.rename(columns=CLASS_DISPLAY_NAMES)
     fig, ax = plt.subplots(figsize=(10, 5.5))
     if not df.empty:
         sns.heatmap(df, annot=True, fmt=".3f", cmap="YlOrRd", cbar=True, ax=ax, linewidths=0.5, annot_kws={"size": 8})
@@ -299,7 +299,7 @@ def _fig_per_class_ap_bars(rows: list[dict[str, Any]], output_dir: Path, dpi: in
         a_lbl = AUG_LABELS.get(r.get("augmentation", ""), r.get("augmentation", ""))
         label = f"{m_lbl} ({a_lbl})" if a_lbl else m_lbl
         for cls, val in r.get("per_class_ap", {}).items():
-            data.append({"Model": label, "Class": cls, "AP": float(val)})
+            data.append({"Model": label, "Class": CLASS_DISPLAY_NAMES.get(cls, cls), "AP": float(val)})
 
     df = pd.DataFrame(data)
     fig, ax = plt.subplots(figsize=(10, 7))
@@ -381,7 +381,7 @@ def _fig_per_class_recall_bonferroni(output_dir: Path, dpi: int) -> list[Path]:
 
     ax.set_ylim(0, 1.0)
     ax.set_xticks(list(x))
-    ax.set_xticklabels(CLASS_NAMES, rotation=30, ha="right", fontsize=9)
+    ax.set_xticklabels([CLASS_DISPLAY_NAMES.get(c, c) for c in CLASS_NAMES], rotation=30, ha="right", fontsize=9)
     ax.set_ylabel("Recall (IoU>=0.5 operating point)", fontsize=10)
     ax.set_xlabel("Defect Class", fontsize=10)
     ax.set_title("Per-Class Recall with Simultaneous 95% CIs (Bonferroni, 8 classes)", fontsize=12)

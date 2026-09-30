@@ -36,6 +36,25 @@ NUM_CLASSES = len(CLASS_NAMES)
 CLASS_TO_ID: dict[str, int] = {name: idx for idx, name in enumerate(CLASS_NAMES)}
 ID_TO_CLASS: dict[int, str] = {idx: name for name, idx in CLASS_TO_ID.items()}
 
+# Paper-facing display labels. Raw CLASS_NAMES ids stay load-bearing
+# (YOLO data.yaml, COCO categories, label files); only figure rendering
+# and prose-facing text use these.
+CLASS_DISPLAY_NAMES: dict[str, str] = {
+    "Quartzity": "Quartzite",
+    "Live_Knot": "Live Knot",
+    "Marrow": "Marrow",
+    "resin": "Resin",
+    "Dead_Knot": "Dead Knot",
+    "knot_with_crack": "Knot with Crack",
+    "Knot_missing": "Missing Knot",
+    "Crack": "Crack",
+}
+
+
+def display_name(raw: str) -> str:
+    """Paper-facing label for a dataset class id (falls back to raw id)."""
+    return CLASS_DISPLAY_NAMES.get(raw, raw)
+
 TRAIN_SPLIT = "train"
 VALID_SPLIT = "valid"
 TEST_SPLIT = "test"
