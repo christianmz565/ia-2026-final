@@ -1,0 +1,139 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2360 370" width="2360" height="370">
+<!-- Styling -->
+<defs>
+  <marker id="arrow" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+    <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#1E293B"/>
+  </marker>
+  <marker id="arrow-dotted" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+    <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#475569"/>
+  </marker>
+  <filter id="shadow" x="-3%" y="-5%" width="106%" height="114%">
+    <feDropShadow dx="0" dy="1.5" stdDeviation="2" flood-color="#000000" flood-opacity="0.07"/>
+  </filter>
+</defs>
+<style>
+  text { font-family: "DejaVu Sans", "Helvetica Neue", Arial, sans-serif; }
+  .title { font-weight: bold; font-size: 11.8px; fill: #0F172A; text-anchor: middle; }
+  .subtitle { font-size: 10px; fill: #334155; text-anchor: middle; }
+  .italic { font-style: italic; font-size: 9.0px; fill: #334155; text-anchor: middle; }
+  .note-title { font-weight: bold; font-size: 10.5px; fill: #713F12; text-anchor: start; }
+  .note-text { font-size: 9.3px; fill: #713F12; text-anchor: start; }
+  .note-italic { font-style: italic; font-size: 8.6px; fill: #854D0E; }
+  .edge-label { font-size: 8.8px; fill: #1E293B; text-anchor: middle; font-weight: 500; }
+  .edge-label-bold { font-weight: bold; font-size: 10.2px; fill: #0F172A; text-anchor: middle; }
+</style>
+
+<rect width="100%" height="100%" fill="#FFFFFF"/>
+
+<!-- Primary Step: Data Loading -->
+<rect x="20" y="146.0" width="165" height="78" rx="7" fill="#E0F2FE" stroke="#1E293B" stroke-width="1.6" filter="url(#shadow)"/>
+<text x="102.5" y="170.0" class="title">Data Loading</text>
+<text x="102.5" y="190.0" class="subtitle">Nomihsa2024 Timber Dataset</text>
+<text x="102.5" y="208.0" class="italic">(4,000 images, 8 defect classes)</text>
+<!-- Group of Operations: Preprocessing (box with dotted borders) -->
+<rect x="215" y="123" width="576" height="124" rx="8" fill="#FAFAFA" stroke="#1E293B" stroke-width="1.5" stroke-dasharray="4 4"/>
+<text x="503.0" y="140" class="title" style="font-size: 11px;">Preprocessing</text>
+<rect x="229" y="156" width="156" height="68" rx="6" fill="#FFFFFF" stroke="#1E293B" stroke-width="1.3" filter="url(#shadow)"/>
+<text x="307.0" y="183" class="title" style="font-size: 10px;">Black Border Cropping</text>
+<text x="307.0" y="203" class="italic" style="font-size: 8.6px;">(Otsu Threshold &amp; Morph. Closing)</text>
+<rect x="403" y="156" width="146" height="68" rx="6" fill="#FFFFFF" stroke="#1E293B" stroke-width="1.3" filter="url(#shadow)"/>
+<text x="476.0" y="183" class="title" style="font-size: 10px;">Resolution Downscaling</text>
+<text x="476.0" y="203" class="italic" style="font-size: 8.8px;">(0.5x Area Interpolation)</text>
+<rect x="567" y="156" width="208" height="68" rx="6" fill="#FFFFFF" stroke="#1E293B" stroke-width="1.3" filter="url(#shadow)"/>
+<text x="671.0" y="180" class="title" style="font-size: 9.4px;">Coordinate Transform &amp; Size Gate</text>
+<text x="671.0" y="198" class="italic" style="font-size: 8.8px;">(Preserve thin defects:</text>
+<text x="671.0" y="212" class="italic" style="font-size: 8.8px;">min 2px / 12px²)</text>
+<!-- Primary Step: Data Splitting -->
+<rect x="820" y="146.0" width="170" height="78" rx="7" fill="#E0F2FE" stroke="#1E293B" stroke-width="1.6" filter="url(#shadow)"/>
+<text x="905.0" y="170.0" class="title">Data Splitting</text>
+<text x="905.0" y="190.0" class="subtitle">Iterative Stratification</text>
+<text x="905.0" y="208.0" class="italic" style="font-size: 8.8px;">(80% Train / 10% Val / 10% Test)</text>
+<!-- Primary Step: Majority Plank Balancing -->
+<rect x="1045" y="24" width="175" height="70" rx="7" fill="#E0F2FE" stroke="#1E293B" stroke-width="1.6" filter="url(#shadow)"/>
+<text x="1132.5" y="52" class="title" style="font-size: 10.5px;">Majority Plank Balancing</text>
+<text x="1132.5" y="73" class="italic" style="font-size: 8.8px;">(Drop 35% majority-only planks)</text>
+<!-- Primary Step: Data Augmentation -->
+<rect x="1245" y="24" width="175" height="70" rx="7" fill="#E0F2FE" stroke="#1E293B" stroke-width="1.6" filter="url(#shadow)"/>
+<text x="1332.5" y="48" class="title">Data Augmentation</text>
+<text x="1332.5" y="66" class="subtitle">Minority Defect Synthesis</text>
+<text x="1332.5" y="82" class="italic" style="font-size: 8.8px;">(Target minority ratio: 33%)</text>
+<!-- Primary Step: Training -->
+<rect x="1680" y="143" width="185" height="84" rx="7" fill="#E0F2FE" stroke="#1E293B" stroke-width="1.6" filter="url(#shadow)"/>
+<text x="1772.5" y="167" class="title">Training</text>
+<text x="1772.5" y="188" class="subtitle">Multi-Paradigm Model Training</text>
+<text x="1772.5" y="208" class="italic" style="font-size: 8.8px;">(Effective-Number Class Weighting)</text>
+<!-- Primary Step: Validation -->
+<rect x="1940" y="146.0" width="160" height="78" rx="7" fill="#E0F2FE" stroke="#1E293B" stroke-width="1.6" filter="url(#shadow)"/>
+<text x="2020.0" y="170.0" class="title">Validation</text>
+<text x="2020.0" y="190.0" class="subtitle">Operating-Point Evaluation</text>
+<text x="2020.0" y="208.0" class="italic">(Confidence Calibration)</text>
+<!-- Primary Step: Analysis -->
+<rect x="2145" y="146.0" width="160" height="78" rx="7" fill="#DCFCE7" stroke="#1E293B" stroke-width="1.6" filter="url(#shadow)"/>
+<text x="2225.0" y="168.0" class="title">Analysis</text>
+<text x="2225.0" y="186.0" class="subtitle" style="font-size: 9.2px;">Performance Matrices &amp; Figures</text>
+<text x="2225.0" y="202.0" class="italic" style="font-size: 8.4px;">(Bonferroni CIs &amp;</text>
+<text x="2225.0" y="214.0" class="italic" style="font-size: 8.4px;">Statistical Tests)</text>
+<path d="M 1640 28 A 5 5 0 0 1 1645 20 L 1897 20 L 1905 28 L 1905 89 A 5 5 0 0 1 1900 94 L 1645 94 A 5 5 0 0 1 1640 89 Z" fill="#FEF9C3" stroke="#CA8A04" stroke-width="1.1" filter="url(#shadow)"/>
+<path d="M 1897 20 L 1897 28 L 1905 28 Z" fill="#FDE047" stroke="#CA8A04" stroke-width="1.1"/>
+<text x="1648" y="36" class="note-title">Models Used:</text>
+<text x="1648" y="53" class="note-text">• <tspan font-weight="bold">Cascade R-CNN</tspan> <tspan class="note-italic">(Two-Stage, ResNet-50 + FPN)</tspan></text>
+<text x="1648" y="70" class="note-text">• <tspan font-weight="bold">YOLO26m</tspan> <tspan class="note-italic">(One-Stage, Anchor-Free Dual-Head)</tspan></text>
+<text x="1648" y="87" class="note-text">• <tspan font-weight="bold">RF-DETR-m</tspan> <tspan class="note-italic">(Transformer, NAS)</tspan></text>
+<!-- note right of Validation -->
+<path d="M 1925 28 A 5 5 0 0 1 1930 20 L 2107 20 L 2115 28 L 2115 89 A 5 5 0 0 1 2110 94 L 1930 94 A 5 5 0 0 1 1925 89 Z" fill="#FEF9C3" stroke="#CA8A04" stroke-width="1.1" filter="url(#shadow)"/>
+<path d="M 2107 20 L 2107 28 L 2115 28 Z" fill="#FDE047" stroke="#CA8A04" stroke-width="1.1"/>
+<text x="1933" y="36" class="note-title">Models Evaluated:</text>
+<text x="1933" y="53" class="note-text">• <tspan font-weight="bold">RF-DETR-m</tspan> <tspan class="note-italic">(conf = 0.20)</tspan></text>
+<text x="1933" y="70" class="note-text">• <tspan font-weight="bold">YOLO26m</tspan> <tspan class="note-italic">(conf = 0.30)</tspan></text>
+<text x="1933" y="87" class="note-text">• <tspan font-weight="bold">Cascade R-CNN</tspan> <tspan class="note-italic">(conf = 0.50)</tspan></text>
+<!-- note bottom of Analysis -->
+<path d="M 2123 268 A 5 5 0 0 1 2128 260 L 2320 260 L 2328 268 L 2328 337 A 5 5 0 0 1 2323 342 L 2128 342 A 5 5 0 0 1 2123 337 Z" fill="#FEF9C3" stroke="#CA8A04" stroke-width="1.1" filter="url(#shadow)"/>
+<path d="M 2320 260 L 2320 268 L 2328 268 Z" fill="#FDE047" stroke="#CA8A04" stroke-width="1.1"/>
+<text x="2131" y="276" class="note-title">Metrics Used:</text>
+<text x="2131" y="292" class="note-text">• mAP@0.5 &amp; mAP@0.5:0.95</text>
+<text x="2131" y="307" class="note-text">• Precision, Recall, F1-Score</text>
+<text x="2131" y="322" class="note-text">• Per-Class AP@0.5 (Wilson CIs)</text>
+<text x="2131" y="337" class="note-text">• Calibration Threshold Sweep</text>
+<!-- Connections: Data Loading -> Preprocessing -> Data Splitting -->
+<path d="M 185 185 L 229 185" stroke="#1E293B" stroke-width="1.8" fill="none" marker-end="url(#arrow)"/>
+<path d="M 385 185 L 403 185" stroke="#1E293B" stroke-width="1.8" fill="none" marker-end="url(#arrow)"/>
+<path d="M 549 185 L 567 185" stroke="#1E293B" stroke-width="1.8" fill="none" marker-end="url(#arrow)"/>
+<path d="M 775 185 L 820 185" stroke="#1E293B" stroke-width="1.8" fill="none" marker-end="url(#arrow)"/>
+<!-- Lines out of Data Splitting: -->
+<!-- 1. Line to Majority Plank Balancing labeled 80% -->
+<path d="M 990 164.0 C 1012 164.0, 1023 59.0, 1045 59.0" stroke="#1E293B" stroke-width="1.8" fill="none" marker-end="url(#arrow)"/>
+<rect x="1003" y="96" width="30" height="17" rx="4" fill="#FFFFFF" stroke="#1E293B" stroke-width="0.9"/>
+<text x="1018" y="108" class="edge-label-bold">80%</text>
+<!-- Line from Majority Plank Balancing to Data Augmentation -->
+<path d="M 1220 59.0 L 1245 59.0" stroke="#1E293B" stroke-width="1.8" fill="none" marker-end="url(#arrow)"/>
+<!-- 2. Line directly to Training labeled 10% -->
+<path d="M 990 206.0 C 1015 206.0, 1015 255, 1040 255 L 1715 255 C 1730 255, 1730 239, 1730 227" stroke="#1E293B" stroke-width="1.8" fill="none" marker-end="url(#arrow)"/>
+<rect x="1350" y="246" width="30" height="17" rx="4" fill="#FFFFFF" stroke="#1E293B" stroke-width="0.9"/>
+<text x="1365" y="258" class="edge-label-bold">10%</text>
+<!-- 3. Line directly to Validation -->
+<path d="M 990 218.0 C 1020 218.0, 1020 300, 1050 300 L 2000.0 300 C 2020.0 300, 2020.0 244.0, 2020.0 224.0" stroke="#1E293B" stroke-width="1.8" fill="none" marker-end="url(#arrow)"/>
+<rect x="1450" y="292" width="30" height="17" rx="4" fill="#FFFFFF" stroke="#1E293B" stroke-width="0.9"/>
+<text x="1465" y="304" class="edge-label-bold">10%</text>
+<!-- 4 dotted lines from Data Augmentation to Training (base + each technique) -->
+<path d="M 1420 36 C 1490 36, 1610 155, 1680 155" stroke="#475569" stroke-width="1.3" stroke-dasharray="3 3" fill="none" marker-end="url(#arrow-dotted)"/>
+<rect x="1482.8" y="42" width="134.39999999999998" height="14" rx="3" fill="#FFFFFF" fill-opacity="0.96" stroke="#CBD5E1" stroke-width="0.7"/>
+<text x="1550" y="52" class="edge-label">Base (Baseline / No Aug)</text>
+<path d="M 1420 50 C 1490 50, 1610 168, 1680 168" stroke="#475569" stroke-width="1.3" stroke-dasharray="3 3" fill="none" marker-end="url(#arrow-dotted)"/>
+<rect x="1472.6" y="70" width="154.79999999999998" height="14" rx="3" fill="#FFFFFF" fill-opacity="0.96" stroke="#CBD5E1" stroke-width="0.7"/>
+<text x="1550" y="80" class="edge-label">Albumentations (Photometric)</text>
+<path d="M 1420 64 C 1490 64, 1610 181, 1680 181" stroke="#475569" stroke-width="1.3" stroke-dasharray="3 3" fill="none" marker-end="url(#arrow-dotted)"/>
+<rect x="1459.85" y="98" width="180.29999999999998" height="14" rx="3" fill="#FFFFFF" fill-opacity="0.96" stroke="#CBD5E1" stroke-width="0.7"/>
+<text x="1550" y="108" class="edge-label">BoxAug Standard (Cut &amp; Paste)</text>
+<path d="M 1420 78 C 1490 78, 1610 194, 1680 194" stroke="#475569" stroke-width="1.3" stroke-dasharray="3 3" fill="none" marker-end="url(#arrow-dotted)"/>
+<rect x="1452.2" y="126" width="195.6" height="14" rx="3" fill="#FFFFFF" fill-opacity="0.96" stroke="#CBD5E1" stroke-width="0.7"/>
+<text x="1550" y="136" class="edge-label">BoxAug LibCom (Neural Harmonization)</text>
+<!-- Normal line joining Data Augmentation and Training, with models UML comment -->
+<path d="M 1420 90 C 1475 125, 1620 215, 1680 215" stroke="#1E293B" stroke-width="1.8" fill="none" marker-end="url(#arrow)"/>
+<path d="M 1772.5 94 L 1772.5 143" stroke="#CA8A04" stroke-width="1.1" stroke-dasharray="2 2" fill="none"/>
+<path d="M 2020.0 94 L 2020.0 146.0" stroke="#CA8A04" stroke-width="1.1" stroke-dasharray="2 2" fill="none"/>
+<path d="M 2225.0 224.0 L 2225.0 260" stroke="#CA8A04" stroke-width="1.1" stroke-dasharray="2 2" fill="none"/>
+<!-- Line from Training to Validation with metrics note and models note -->
+<path d="M 1865 185 L 1940 185" stroke="#1E293B" stroke-width="1.8" fill="none" marker-end="url(#arrow)"/>
+<!-- Line from Validation to Analysis -->
+<path d="M 2100 185 L 2145 185" stroke="#1E293B" stroke-width="1.8" fill="none" marker-end="url(#arrow)"/>
+</svg>

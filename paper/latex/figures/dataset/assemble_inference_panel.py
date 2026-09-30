@@ -47,13 +47,7 @@ def _load_font(size: int) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
     try:
         import matplotlib
 
-        dejavu = (
-            Path(matplotlib.__file__).resolve().parent
-            / "mpl-data"
-            / "fonts"
-            / "ttf"
-            / "DejaVuSans-Bold.ttf"
-        )
+        dejavu = Path(matplotlib.__file__).resolve().parent / "mpl-data" / "fonts" / "ttf" / "DejaVuSans-Bold.ttf"
         if dejavu.exists():
             return ImageFont.truetype(str(dejavu), size)
     except Exception as e:

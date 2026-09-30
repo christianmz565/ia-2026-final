@@ -89,15 +89,8 @@ note on link
   • <b>RF-DETR-m</b> <i>(Transformer, NAS)</i>
 end note
 
-' Line from Training to Validation with metrics note and models note
+' Line from Training to Validation with models note
 Training -[#1E293B]-> Validation
-note on link
-  <b>Metrics Used:</b>
-  • mAP@0.5 & mAP@0.5:0.95
-  • Precision, Recall, F1-Score
-  • Per-Class AP@0.5 (Wilson CIs)
-  • Calibration Threshold Sweep
-end note
 
 note right of Validation
   <b>Models Evaluated:</b>
@@ -106,7 +99,14 @@ note right of Validation
   • <b>Cascade R-CNN</b> <i>(conf = 0.50)</i>
 end note
 
-' Line from Validation to Analysis
+' Line from Validation to Analysis with metrics note
 Validation -[#1E293B]-> Analysis
+note bottom of Analysis
+  <b>Metrics Used:</b>
+  • mAP@0.5 & mAP@0.5:0.95
+  • Precision, Recall, F1-Score
+  • Per-Class AP@0.5 (Wilson CIs)
+  • Calibration Threshold Sweep
+end note
 
 @enduml
