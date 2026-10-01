@@ -24,8 +24,6 @@
   \def\corref#1{}%
 }
 
-\input{versioning.tex}
-
 \setcounter{topnumber}{5}
 \setcounter{bottomnumber}{5}
 \setcounter{totalnumber}{10}
@@ -191,7 +189,7 @@ The study uses the filtered and annotated version in YOLO format available on Ka
 
 \begin{figure*}[t]
 \centering
-\includegraphics[width=\textwidth]{figures/dataset/barchart_classes.png}
+\includegraphics[width=\textwidth]{barchart_classes.png}
 \caption{Defect class distribution in the filtered dataset \citep{Nomihsa2024KaggleWood}: Live Knot, Dead Knot, Resin, Crack, Knot with Crack, Marrow, Quartzite, and Missing Knot.}
 \label{fig:piechart-clases}
 \end{figure*}
@@ -200,14 +198,14 @@ The annotations provide normalized bounding box coordinates in YOLO format. The 
 
 \begin{figure*}[t]
 \centering
-\includegraphics[width=0.24\textwidth]{figures/dataset/Live_Knot.jpg}\hfill
-\includegraphics[width=0.24\textwidth]{figures/dataset/Dead_Knot.jpg}\hfill
-\includegraphics[width=0.24\textwidth]{figures/dataset/resin.jpg}\hfill
-\includegraphics[width=0.24\textwidth]{figures/dataset/knot_with_crack.jpg}\\[4pt]
-\includegraphics[width=0.24\textwidth]{figures/dataset/Crack.jpg}\hfill
-\includegraphics[width=0.24\textwidth]{figures/dataset/Marrow.jpg}\hfill
-\includegraphics[width=0.24\textwidth]{figures/dataset/Quartzity.jpg}\hfill
-\includegraphics[width=0.24\textwidth]{figures/dataset/Knot_missing.jpg}
+\includegraphics[width=0.24\textwidth]{Live_Knot.jpg}\hfill
+\includegraphics[width=0.24\textwidth]{Dead_Knot.jpg}\hfill
+\includegraphics[width=0.24\textwidth]{resin.jpg}\hfill
+\includegraphics[width=0.24\textwidth]{knot_with_crack.jpg}\\[4pt]
+\includegraphics[width=0.24\textwidth]{Crack.jpg}\hfill
+\includegraphics[width=0.24\textwidth]{Marrow.jpg}\hfill
+\includegraphics[width=0.24\textwidth]{Quartzity.jpg}\hfill
+\includegraphics[width=0.24\textwidth]{Knot_missing.jpg}
 \caption{Examples of the eight defect classes annotated in the wood dataset \citep{Nomihsa2024KaggleWood}: Live Knot, Dead Knot, Resin, Knot with Crack, Crack, Marrow, Quartzite, and Missing Knot (left to right, top to bottom).}
 \label{fig:defectos-ejemplo}
 \end{figure*}
@@ -219,7 +217,7 @@ The proposed method implements a five-stage experiment pipeline designed to ensu
 
 \begin{figure*}[t]
 \centering
-\includegraphics[width=\textwidth]{figures/methods/pipeline.png}
+\includegraphics[width=\textwidth]{pipeline.png}
 \caption{Overview of the proposed five-stage experimental pipeline for timber defect detection benchmarking.}
 \label{fig:pipeline}
 \end{figure*}
@@ -294,14 +292,14 @@ Figure~\ref{fig:matrix-map50} presents the mAP@0.5 performance matrix for the 12
 
 \begin{figure*}[t]
 \centering
-\includegraphics[width=0.65\textwidth]{figures/results/aug_paradigm_map50_heatmap.png}
+\includegraphics[width=0.65\textwidth]{aug_paradigm_map50_heatmap.png}
 \caption{mAP@0.5 performance matrix intersecting three detection paradigms with four augmentation strategies.}
 \label{fig:matrix-map50}
 \end{figure*}
 
 \begin{figure*}[t]
 \centering
-\includegraphics[width=0.65\textwidth]{figures/results/aug_paradigm_map50_95_heatmap.png}
+\includegraphics[width=0.65\textwidth]{aug_paradigm_map50_95_heatmap.png}
 \caption{mAP@0.5:0.95 performance matrix for the same 12 configurations.}
 \label{fig:matrix-map5095}
 \end{figure*}
@@ -338,7 +336,7 @@ Figure~\ref{fig:delta-baseline} shows the impact of each augmentation strategy r
 
 \begin{figure*}[t]
 \centering
-\includegraphics[width=\textwidth]{figures/results/aug_delta_vs_baseline.png}
+\includegraphics[width=\textwidth]{aug_delta_vs_baseline.png}
 \caption{Impact of augmentation strategies relative to baseline ($\Delta$ mAP@0.5).}
 \label{fig:delta-baseline}
 \end{figure*}
@@ -347,7 +345,7 @@ Figure~\ref{fig:heatmap-clase} presents the average AP per class at AP@0.5 for a
 
 \begin{figure*}[t]
 \centering
-\includegraphics[width=\textwidth]{figures/results/per_class_ap_heatmap.png}
+\includegraphics[width=\textwidth]{per_class_ap_heatmap.png}
 \caption{Heatmap of average precision per defect class (AP@0.5).}
 \label{fig:heatmap-clase}
 \end{figure*}
@@ -356,7 +354,7 @@ Figure~\ref{fig:heatmap-clase-5095} presents the same per-class breakdown under 
 
 \begin{figure*}[t]
 \centering
-\includegraphics[width=\textwidth]{figures/results/per_class_ap50_95_heatmap.png}
+\includegraphics[width=\textwidth]{per_class_ap50_95_heatmap.png}
 \caption{Heatmap of average precision per defect class (AP@0.5:0.95).}
 \label{fig:heatmap-clase-5095}
 \end{figure*}
@@ -385,7 +383,7 @@ Crack & 0.922 [0.758, 0.978] & 0.902 [0.733, 0.969] & 0.706 [0.515, 0.845] & 51 
 
 \begin{figure*}[t]
 \centering
-\includegraphics[width=\textwidth]{figures/results/per_class_recall_bonferroni.png}
+\includegraphics[width=\textwidth]{per_class_recall_bonferroni.png}
 \caption{Per-class recall with Bonferroni-corrected simultaneous 95\% family-wise confidence intervals for the best configuration of each paradigm.}
 \label{fig:recall-bonferroni}
 \end{figure*}
@@ -394,7 +392,7 @@ Figure~\ref{fig:inference-panel} shows ground-truth-annotated representative ins
 
 \begin{figure*}[t]
 \centering
-\includegraphics[width=\textwidth]{figures/results/inference_panel.png}
+\includegraphics[width=\textwidth]{inference_panel.png}
 \caption{Ground-truth-annotated representative instances with best AP@0.5 per class.}
 \label{fig:inference-panel}
 \end{figure*}
@@ -403,7 +401,7 @@ Figure~\ref{fig:velocidad-precision} illustrates the trade-off between inference
 
 \begin{figure*}[t]
 \centering
-\includegraphics[width=\textwidth]{figures/results/speed_accuracy_tradeoff.png}
+\includegraphics[width=\textwidth]{speed_accuracy_tradeoff.png}
 \caption{Trade-off between inference speed (ms/image) and precision (mAP@0.5).}
 \label{fig:velocidad-precision}
 \end{figure*}
@@ -412,14 +410,14 @@ Figure~\ref{fig:curvas-convergencia} shows the mAP@0.5 validation convergence cu
 
 \begin{figure*}[t]
 \centering
-\includegraphics[width=\textwidth]{figures/results/training_curves_map.png}
+\includegraphics[width=\textwidth]{training_curves_map.png}
 \caption{mAP@0.5 validation convergence curves during training.}
 \label{fig:curvas-convergencia}
 \end{figure*}
 
 \begin{figure*}[t]
 \centering
-\includegraphics[width=\textwidth]{figures/results/training_curves_loss.png}
+\includegraphics[width=\textwidth]{training_curves_loss.png}
 \caption{Training loss progression over epochs for all 12 configurations.}
 \label{fig:curvas-loss}
 \end{figure*}
@@ -428,7 +426,7 @@ Figure~\ref{fig:tiempo-entrenamiento} compares total training time per configura
 
 \begin{figure*}[t]
 \centering
-\includegraphics[width=\textwidth]{figures/results/training_time_comparison.png}
+\includegraphics[width=\textwidth]{training_time_comparison.png}
 \caption{Comparison of total training time per configuration.}
 \label{fig:tiempo-entrenamiento}
 \end{figure*}

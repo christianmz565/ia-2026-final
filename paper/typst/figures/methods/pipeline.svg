@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1140" width="1000" height="1140">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1020" width="1000" height="1020">
 <!-- Styling -->
 <defs>
   <marker id="arrow" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
@@ -101,7 +101,7 @@
 <text x="275" y="458" class="edge-label-bold">10%</text>
 
 <!-- 3. 10% to Validation (Holdout test evaluation split) -->
-<path d="M 630 310 C 780 310, 955 340, 955 400 L 955 775 C 955 805, 680 805, 630 805" stroke="#1E293B" stroke-width="1.8" fill="none" marker-end="url(#arrow)"/>
+<path d="M 630 310 C 780 310, 955 340, 955 400 L 955 715 C 955 775, 780 805, 630 805" stroke="#1E293B" stroke-width="1.8" fill="none" marker-end="url(#arrow)"/>
 <rect x="938" y="420" width="34" height="18" rx="4" fill="#FFFFFF" stroke="#1E293B" stroke-width="0.9"/>
 <text x="955" y="433" class="edge-label-bold">10%</text>
 
@@ -207,20 +207,20 @@
 <text x="490" y="958" class="italic" style="font-size: 8.8px;">(Bonferroni CIs &amp;</text>
 <text x="490" y="970" class="italic" style="font-size: 8.8px;">Statistical Tests)</text>
 
-<!-- Connection: Analysis -> Metrics Note -->
-<path d="M 490 977 L 490 1010" stroke="#0D9488" stroke-width="1.2" stroke-dasharray="2 2" fill="none"/>
+<!-- Anchor line from Analysis to Metrics Note (To the right) -->
+<path d="M 630 936 L 660 936" stroke="#0D9488" stroke-width="1.2" stroke-dasharray="2 2" fill="none"/>
 
 <!-- ========================================== -->
-<!-- NOTE: Metrics Used (Bottom of Analysis - Distinct Teal Color) -->
+<!-- NOTE: Metrics Used (Beside/Right of Analysis - Distinct Teal Color) -->
 <!-- ========================================== -->
 <g filter="url(#shadow)">
-  <path d="M 350 1016 A 6 6 0 0 1 356 1010 L 622 1010 L 630 1018 L 630 1104 A 6 6 0 0 1 624 1110 L 356 1110 A 6 6 0 0 1 350 1104 Z" fill="#CCFBF1" stroke="#0D9488" stroke-width="1.2"/>
-  <path d="M 622 1010 L 622 1018 L 630 1018 Z" fill="#99F6E4" stroke="#0D9488" stroke-width="1.2"/>
+  <path d="M 660 892 A 6 6 0 0 1 666 886 L 914 886 L 922 894 L 922 980 A 6 6 0 0 1 916 986 L 666 986 A 6 6 0 0 1 660 980 Z" fill="#CCFBF1" stroke="#0D9488" stroke-width="1.2"/>
+  <path d="M 914 886 L 914 894 L 922 894 Z" fill="#99F6E4" stroke="#0D9488" stroke-width="1.2"/>
 </g>
-<text x="365" y="1028" class="note-metrics-title">Metrics Used:</text>
-<text x="365" y="1046" class="note-metrics-text">• mAP@0.5 &amp; mAP@0.5:0.95</text>
-<text x="365" y="1063" class="note-metrics-text">• Precision, Recall, F1-Score</text>
-<text x="365" y="1080" class="note-metrics-text">• Per-Class AP@0.5 (Wilson CIs)</text>
-<text x="365" y="1097" class="note-metrics-text">• Calibration Threshold Sweep</text>
+<text x="670" y="905" class="note-metrics-title">Metrics Used:</text>
+<text x="670" y="924" class="note-metrics-text">• mAP@0.5 &amp; mAP@0.5:0.95</text>
+<text x="670" y="941" class="note-metrics-text">• Precision, Recall, F1-Score</text>
+<text x="670" y="958" class="note-metrics-text">• Per-Class AP@0.5 (Wilson CIs)</text>
+<text x="670" y="975" class="note-metrics-text">• Calibration Threshold Sweep</text>
 
 </svg>
