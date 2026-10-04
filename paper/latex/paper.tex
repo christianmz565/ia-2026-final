@@ -19,11 +19,6 @@
     citecolor=blue,
 }
 
-\pdfstringdefDisableCommands{%
-  \def\orcidlink#1{}%
-  \def\corref#1{}%
-}
-
 \setcounter{topnumber}{5}
 \setcounter{bottomnumber}{5}
 \setcounter{totalnumber}{10}
@@ -35,7 +30,7 @@
 \renewcommand{\dbltopfraction}{0.99}
 \renewcommand{\dblfloatpagefraction}{0.7}
 
-\journal{SoftwareX}
+\journal{Journal of Intelligent Manufacturing}
 
 \begin{document}
 
@@ -43,23 +38,19 @@
 
 \title{Wood Surface Defect Detection Under Severe Long-Tail Imbalance: A Comparative Benchmark of Cascade R-CNN, YOLO26, and RF-DETR}
 
-\iffalse
-\author[1]{Ricardo Mauricio Chambilla Perca\orcidlink{0009-0002-4863-0637}}
-\ead{rchambillap@unsa.edu.pe}
-
-\author[1]{Mariel Alison Jara Mamani\orcidlink{0009-0000-9069-5800}}
-\ead{mjarama@unsa.edu.pe}
-
-\author[1]{Christian Raul Mestas Zegarra\orcidlink{0009-0001-4338-6551}}
+\author[1]{Christian Raul Mestas Zegarra\corref{cor1}\orcidlink{0009-0001-4338-6551}}
 \ead{cmestasz@unsa.edu.pe}
-
-\author[1]{Yenaro Joel Noa Camino\orcidlink{0009-0002-8326-5436}}
-\ead{ynoa@unsa.edu.pe}
 
 \author[1]{Luis Gustavo Sequeiros Condori\orcidlink{0009-0005-5750-3551}}
 \ead{lsequeiros@unsa.edu.pe}
 
-\author[1]{Yasiel P\'erez Vera\corref{cor1}\orcidlink{0000-0001-9421-9529}}
+\author[1]{Yenaro Joel Noa Camino\orcidlink{0009-0002-8326-5436}}
+\ead{ynoa@unsa.edu.pe}
+
+\author[1]{Mariel Alison Jara Mamani\orcidlink{0009-0000-9069-5800}}
+\ead{mjarama@unsa.edu.pe}
+
+\author[1]{Yasiel P\'erez Vera\orcidlink{0000-0001-9421-9529}}
 \ead{yperezv@unsa.edu.pe}
 
 \cortext[cor1]{Corresponding author}
@@ -68,7 +59,6 @@
             city={Arequipa},
             state={Arequipa},
             country={Peru}}
-\fi
 
 \begin{abstract}
 Automated inspection of surface defects in wood faces challenges arising from severe long-tail class imbalance and high intra-class variability of organic anomalies. This article presents a comparative benchmark evaluating the intersection of three object detection paradigms: one-stage, two-stage, and transformers, with four data augmentation strategies: no augmentation, Albumentations with class balancing, BoxAug with noise transformations, and BoxAug with neural harmonization via LibCom. The study uses a dataset of 4,000 images with 8,888 annotations across 8 defect categories and employs a reproducible five-stage pipeline with step caching. Experimental results demonstrate that RF-DETR achieves the highest ranking precision with mAP@0.5 of 0.717 under per-model calibrated confidence thresholds. At the same time, Cascade R-CNN with BoxAug LibCom reaches the best operating-point F1 of 0.798. Augmentation effects are paradigm-specific: BoxAug LibCom improves Cascade R-CNN by +0.033 mAP@0.5, whereas all three augmentation strategies leave YOLO26 at or below its unaugmented baseline (0.592 to 0.604 versus 0.618). Per-class analysis at AP@0.5 shows marrow reaching 0.910 while quartzite peaks at 0.550, confirming that visual distinguishability interacts with class frequency. The calibrated-threshold protocol and the paradigm-dependent augmentation response are discussed, and future directions are proposed, including extended training budgets and diffusion-based augmentation.
