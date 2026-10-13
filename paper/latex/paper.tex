@@ -34,17 +34,17 @@
 
 \title[Wood Surface Defect Detection Under Severe Long-Tail Imbalance]{Wood Surface Defect Detection Under Severe Long-Tail Imbalance: A Comparative Benchmark of Cascade R-CNN, YOLO26, and RF-DETR}
 
-\author*[1]{\fnm{Christian Raul} \sur{Mestas Zegarra}\orcidlink{0009-0001-4338-6551}}\email{cmestasz@unsa.edu.pe}
+\author*[]{\fnm{Christian Raul} \sur{Mestas Zegarra}*\,\orcidlink{0009-0001-4338-6551}}\email{cmestasz@unsa.edu.pe}
 
-\author[1]{\fnm{Luis Gustavo} \sur{Sequeiros Condori}\orcidlink{0009-0005-5750-3551}}\email{lsequeiros@unsa.edu.pe}
+\author[]{\fnm{Luis Gustavo} \sur{Sequeiros Condori}\,\orcidlink{0009-0005-5750-3551}}\email{lsequeiros@unsa.edu.pe}
 
-\author[1]{\fnm{Yenaro Joel} \sur{Noa Camino}\orcidlink{0009-0002-8326-5436}}\email{ynoa@unsa.edu.pe}
+\author[]{\fnm{Yenaro Joel} \sur{Noa Camino}\,\orcidlink{0009-0002-8326-5436}}\email{ynoa@unsa.edu.pe}
 
-\author[1]{\fnm{Mariel Alison} \sur{Jara Mamani}\orcidlink{0009-0000-9069-5800}}\email{mjarama@unsa.edu.pe}
+\author[]{\fnm{Mariel Alison} \sur{Jara Mamani}\,\orcidlink{0009-0000-9069-5800}}\email{mjarama@unsa.edu.pe}
 
-\author[1]{\fnm{Yasiel} \sur{P\'erez Vera}\orcidlink{0000-0001-9421-9529}}\email{yperezv@unsa.edu.pe}
+\author[]{\fnm{Yasiel} \sur{P\'erez Vera}\,\orcidlink{0000-0001-9421-9529}}\email{yperezv@unsa.edu.pe}
 
-\affil*[1]{\orgdiv{Systems Engineering Professional Program}, \orgname{Universidad Nacional de San Agust\'in}, \orgaddress{\city{Arequipa}, \postcode{04001}, \state{Arequipa}, \country{Peru}}}
+\affil[]{\orgdiv{Systems Engineering Professional Program}, \orgname{Universidad Nacional de San Agust\'in}, \orgaddress{\city{Arequipa}, \postcode{04001}, \state{Arequipa}, \country{Peru}}}
 
 \abstract{Automated inspection of surface defects in wood faces challenges arising from severe long-tail class imbalance and high intra-class variability of organic anomalies. This article presents a comparative benchmark evaluating three object-detection paradigms, one-stage, two-stage, and transformers, and four data augmentation strategies: no augmentation, Albumentations with class balancing, BoxAug with noise transformations, and BoxAug with neural harmonization via LibCom. The study uses a dataset of 4,000 images with 8,888 annotations across 8 defect categories and employs a reproducible five-stage pipeline with step caching. Experimental results demonstrate that RF-DETR achieves the highest ranking precision with mAP@0.5 of 0.717 under per-model calibrated confidence thresholds. At the same time, Cascade R-CNN with BoxAug LibCom reaches the best operating-point F1 of 0.798. Augmentation effects are paradigm-specific: BoxAug LibCom improves Cascade R-CNN by +0.033 mAP@0.5, whereas all three augmentation strategies leave YOLO26 at or below its unaugmented baseline (0.592 to 0.604 versus 0.618). Per-class analysis at AP@0.5 shows marrow reaching 0.910 while quartzite peaks at 0.550, confirming that visual distinguishability interacts with class frequency. The calibrated-threshold protocol and the paradigm-dependent augmentation response are discussed, and future directions are proposed, including extended training budgets and diffusion-based augmentation.}
 
@@ -473,13 +473,13 @@ Expanding the dataset to other wood species with different grain patterns and de
 
 \noindent\textbf{Consent for publication:} Not applicable.
 
-\noindent\textbf{Data availability:} The data used in this study are publicly available on Kaggle: \url{https://www.kaggle.com/datasets/nomihsa965/large-scale-image-dataset-of-wood-surface-defects}, licensed under the CC BY 4.0 license.
+\noindent\textbf{Data availability:} The dataset analyzed in this study is publicly available in the Kaggle repository under the title ``Large-Scale Image Dataset of Wood Surface Defects'' at \url{https://www.kaggle.com/datasets/nomihsa965/large-scale-image-dataset-of-wood-surface-defects} (licensed under CC BY 4.0), derived from the benchmark dataset published by \citet{Kodytek2022Dataset} (DOI: \url{https://doi.org/10.12688/f1000research.52903.2}).
 
 \noindent\textbf{Materials availability:} Not applicable.
 
 \noindent\textbf{Code availability:} Custom analysis scripts and source code generated during this study are publicly available at the GitHub repository: \url{https://github.com/christianmz565/ia-2026-final}, licensed under the AGPL-3.0 license.
 
-\noindent\textbf{Author contribution:} \textbf{R.M.C.P.:} Software, Writing -- original draft. \textbf{M.A.J.M.:} Data Curation, Resources, Methodology. \textbf{C.R.M.Z.:} Project Administration, Conceptualization, Writing -- review and editing. \textbf{Y.J.N.C.:} Investigation, Resources. \textbf{L.G.S.C.:} Conceptualization, Investigation, Software. \textbf{Y.P.V.:} Conceptualization, Methodology, Supervision, Writing -- review and editing.
+\noindent\textbf{Author Contributions:} C.R.M.Z., L.G.S.C., and Y.P.V. conceived and designed the study. M.A.J.M. and Y.P.V. developed the methodology. L.G.S.C. developed the software. M.A.J.M. curated the dataset. Y.J.N.C. and M.A.J.M. acquired the resources. Y.J.N.C. and L.G.S.C. conducted the investigation. C.R.M.Z. administered the project and wrote the main manuscript text. Y.P.V. supervised the research. C.R.M.Z. and Y.P.V. reviewed and edited the manuscript. All authors reviewed and approved the final manuscript.
 
 \noindent\textbf{Use of generative AI:} During the preparation of this manuscript, the authors used generative artificial intelligence tools solely for language editing, clarity improvement, and assistance with manuscript organization. The authors independently reviewed and verified all scientific decisions, methodological procedures, statistical analyses, interpretation of results, and final content, and remain fully responsible for the manuscript.
 

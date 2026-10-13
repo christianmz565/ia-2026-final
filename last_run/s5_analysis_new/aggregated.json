@@ -40,6 +40,16 @@
         "knot_with_crack": 0.467,
         "Knot_missing": 0.299,
         "Crack": 0.288
+      },
+      "per_class_ap_50_95": {
+        "Quartzity": 0.1644,
+        "Live_Knot": 0.3518,
+        "Marrow": 0.6185,
+        "resin": 0.4001,
+        "Dead_Knot": 0.4235,
+        "knot_with_crack": 0.3805,
+        "Knot_missing": 0.3567,
+        "Crack": 0.3407
       }
     },
     {
@@ -82,6 +92,16 @@
         "knot_with_crack": 0.445,
         "Knot_missing": 0.252,
         "Crack": 0.301
+      },
+      "per_class_ap_50_95": {
+        "Quartzity": 0.1632,
+        "Live_Knot": 0.3459,
+        "Marrow": 0.5945,
+        "resin": 0.3799,
+        "Dead_Knot": 0.4368,
+        "knot_with_crack": 0.4214,
+        "Knot_missing": 0.4345,
+        "Crack": 0.3092
       }
     },
     {
@@ -124,6 +144,16 @@
         "knot_with_crack": 0.437,
         "Knot_missing": 0.246,
         "Crack": 0.281
+      },
+      "per_class_ap_50_95": {
+        "Quartzity": 0.1782,
+        "Live_Knot": 0.3569,
+        "Marrow": 0.6016,
+        "resin": 0.3888,
+        "Dead_Knot": 0.428,
+        "knot_with_crack": 0.4724,
+        "Knot_missing": 0.4224,
+        "Crack": 0.362
       }
     },
     {
@@ -166,6 +196,16 @@
         "knot_with_crack": 0.432,
         "Knot_missing": 0.265,
         "Crack": 0.286
+      },
+      "per_class_ap_50_95": {
+        "Quartzity": 0.1677,
+        "Live_Knot": 0.359,
+        "Marrow": 0.6059,
+        "resin": 0.4052,
+        "Dead_Knot": 0.4193,
+        "knot_with_crack": 0.4186,
+        "Knot_missing": 0.3858,
+        "Crack": 0.3517
       }
     },
     {
@@ -208,6 +248,16 @@
         "knot_with_crack": 0.4086,
         "Knot_missing": 0.338,
         "Crack": 0.3546
+      },
+      "per_class_ap_50_95": {
+        "Quartzity": 0.2852,
+        "Live_Knot": 0.3224,
+        "Marrow": 0.584,
+        "resin": 0.4527,
+        "Dead_Knot": 0.4291,
+        "knot_with_crack": 0.4434,
+        "Knot_missing": 0.5016,
+        "Crack": 0.3818
       }
     },
     {
@@ -250,6 +300,16 @@
         "knot_with_crack": 0.4345,
         "Knot_missing": 0.3939,
         "Crack": 0.3426
+      },
+      "per_class_ap_50_95": {
+        "Quartzity": 0.2225,
+        "Live_Knot": 0.3384,
+        "Marrow": 0.6285,
+        "resin": 0.4334,
+        "Dead_Knot": 0.4355,
+        "knot_with_crack": 0.4722,
+        "Knot_missing": 0.4249,
+        "Crack": 0.403
       }
     },
     {
@@ -292,6 +352,16 @@
         "knot_with_crack": 0.4155,
         "Knot_missing": 0.3142,
         "Crack": 0.2984
+      },
+      "per_class_ap_50_95": {
+        "Quartzity": 0.1627,
+        "Live_Knot": 0.3396,
+        "Marrow": 0.6371,
+        "resin": 0.4155,
+        "Dead_Knot": 0.4198,
+        "knot_with_crack": 0.4728,
+        "Knot_missing": 0.4493,
+        "Crack": 0.3544
       }
     },
     {
@@ -334,6 +404,16 @@
         "knot_with_crack": 0.3898,
         "Knot_missing": 0.3724,
         "Crack": 0.3183
+      },
+      "per_class_ap_50_95": {
+        "Quartzity": 0.1913,
+        "Live_Knot": 0.3271,
+        "Marrow": 0.6387,
+        "resin": 0.4,
+        "Dead_Knot": 0.4349,
+        "knot_with_crack": 0.4265,
+        "Knot_missing": 0.4592,
+        "Crack": 0.3628
       }
     },
     {
@@ -376,6 +456,16 @@
         "knot_with_crack": 0.4025,
         "Knot_missing": 0.3351,
         "Crack": 0.2829
+      },
+      "per_class_ap_50_95": {
+        "Quartzity": 0.1394,
+        "Live_Knot": 0.2967,
+        "Marrow": 0.5716,
+        "resin": 0.3785,
+        "Dead_Knot": 0.4401,
+        "knot_with_crack": 0.4513,
+        "Knot_missing": 0.2762,
+        "Crack": 0.2862
       }
     },
     {
@@ -418,6 +508,16 @@
         "knot_with_crack": 0.4755,
         "Knot_missing": 0.3486,
         "Crack": 0.2588
+      },
+      "per_class_ap_50_95": {
+        "Quartzity": 0.2545,
+        "Live_Knot": 0.3063,
+        "Marrow": 0.5679,
+        "resin": 0.374,
+        "Dead_Knot": 0.4402,
+        "knot_with_crack": 0.4373,
+        "Knot_missing": 0.2403,
+        "Crack": 0.2817
       }
     },
     {
@@ -460,6 +560,16 @@
         "knot_with_crack": 0.4201,
         "Knot_missing": 0.3461,
         "Crack": 0.2927
+      },
+      "per_class_ap_50_95": {
+        "Quartzity": 0.0644,
+        "Live_Knot": 0.3247,
+        "Marrow": 0.4993,
+        "resin": 0.3384,
+        "Dead_Knot": 0.4157,
+        "knot_with_crack": 0.4631,
+        "Knot_missing": 0.3626,
+        "Crack": 0.3274
       }
     },
     {
@@ -502,6 +612,16 @@
         "knot_with_crack": 0.4591,
         "Knot_missing": 0.3264,
         "Crack": 0.3014
+      },
+      "per_class_ap_50_95": {
+        "Quartzity": 0.1159,
+        "Live_Knot": 0.3085,
+        "Marrow": 0.5456,
+        "resin": 0.4003,
+        "Dead_Knot": 0.449,
+        "knot_with_crack": 0.4134,
+        "Knot_missing": 0.301,
+        "Crack": 0.3304
       }
     }
   ],

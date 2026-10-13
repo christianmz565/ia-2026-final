@@ -28,6 +28,18 @@ figures:
     mkdir -p paper/figures/results
     find partials/s5_analysis/figures -maxdepth 1 -type f \( -name '*.png' -o -name '*.svg' \) -exec cp {} paper/figures/results/ \;
 
+figures-export DPI="600":
+    uv run python paper/figures_exported/export_figures.py --dpi {{ DPI }}
+
+tables-export DPI="600":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    for t in paper/tables_exported/*.typ; do
+      stem=$(basename "$t" .typ)
+      typst compile --ppi {{ DPI }} "$t" "paper/tables_exported/$stem.png"
+      magick "paper/tables_exported/$stem.png" -density {{ DPI }} -units PixelsPerInch "paper/tables_exported/$stem.png"
+    done
+
 paper:
     typst compile paper/paper.typ
 

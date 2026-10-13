@@ -696,7 +696,9 @@ if __name__ == "__main__":
         config_model=AnalysisConfig,
         run_fn=lambda cfg: generate_figures(
             json.loads(Path(cfg.input).read_text()) if cfg.input else {},
+            output_dir=Path(cfg.output_dir) if cfg.output_dir else None,
             config=cfg,
+            force=True,
         ),
         description="Generate comparison figures",
         required_fields=["input"],

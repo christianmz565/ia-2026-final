@@ -55,6 +55,7 @@ def display_name(raw: str) -> str:
     """Paper-facing label for a dataset class id (falls back to raw id)."""
     return CLASS_DISPLAY_NAMES.get(raw, raw)
 
+
 TRAIN_SPLIT = "train"
 VALID_SPLIT = "valid"
 TEST_SPLIT = "test"
