@@ -1,78 +1,74 @@
-\documentclass[final,5p,times,authoryear]{elsarticle}
+\documentclass[pdflatex,sn-mathphys-num,iicol]{sn-jnl}
 
-\usepackage{amssymb}
-\usepackage{amsmath}
-\usepackage{booktabs}
-\usepackage{graphicx}
+\usepackage{graphicx}%
+\usepackage{multirow}%
+\usepackage{amsmath,amssymb,amsfonts}%
+\usepackage{amsthm}%
+\usepackage{mathrsfs}%
+\usepackage[title]{appendix}%
+\usepackage{xcolor}%
+\usepackage{textcomp}%
+\usepackage{manyfoot}%
+\usepackage{booktabs}%
+\usepackage{algorithm}%
+\usepackage{algorithmicx}%
+\usepackage{algpseudocode}%
+\usepackage{listings}%
+
 \usepackage{microtype}
+\let\orcidlogo\relax
 \usepackage{orcidlink}
 \usepackage{xurl}
 \usepackage{placeins}
 \usepackage{array}
-\usepackage{hyperref}
 
-\hypersetup{
-    colorlinks=true,
-    linkcolor=blue,
-    filecolor=magenta,
-    urlcolor=cyan,
-    citecolor=blue,
+\raggedbottom
+
+\newenvironment{highlights}{%
+  \section*{Highlights}%
+  \begin{itemize}%
+}{%
+  \end{itemize}%
 }
-
-\setcounter{topnumber}{5}
-\setcounter{bottomnumber}{5}
-\setcounter{totalnumber}{10}
-\setcounter{dbltopnumber}{5}
-\renewcommand{\topfraction}{0.99}
-\renewcommand{\bottomfraction}{0.99}
-\renewcommand{\textfraction}{0.01}
-\renewcommand{\floatpagefraction}{0.7}
-\renewcommand{\dbltopfraction}{0.99}
-\renewcommand{\dblfloatpagefraction}{0.7}
-
-\journal{Journal of Intelligent Manufacturing}
 
 \begin{document}
 
-\begin{frontmatter}
+\title[Wood Surface Defect Detection Under Severe Long-Tail Imbalance]{Wood Surface Defect Detection Under Severe Long-Tail Imbalance: A Comparative Benchmark of Cascade R-CNN, YOLO26, and RF-DETR}
 
-\title{Wood Surface Defect Detection Under Severe Long-Tail Imbalance: A Comparative Benchmark of Cascade R-CNN, YOLO26, and RF-DETR}
+\author*[1]{\fnm{Christian Raul} \sur{Mestas Zegarra}\orcidlink{0009-0001-4338-6551}}\email{cmestasz@unsa.edu.pe}
 
-\author[1]{Christian Raul Mestas Zegarra\corref{cor1}\orcidlink{0009-0001-4338-6551}}
-\ead{cmestasz@unsa.edu.pe}
+\author[1]{\fnm{Luis Gustavo} \sur{Sequeiros Condori}\orcidlink{0009-0005-5750-3551}}\email{lsequeiros@unsa.edu.pe}
 
-\author[1]{Luis Gustavo Sequeiros Condori\orcidlink{0009-0005-5750-3551}}
-\ead{lsequeiros@unsa.edu.pe}
+\author[1]{\fnm{Yenaro Joel} \sur{Noa Camino}\orcidlink{0009-0002-8326-5436}}\email{ynoa@unsa.edu.pe}
 
-\author[1]{Yenaro Joel Noa Camino\orcidlink{0009-0002-8326-5436}}
-\ead{ynoa@unsa.edu.pe}
+\author[1]{\fnm{Mariel Alison} \sur{Jara Mamani}\orcidlink{0009-0000-9069-5800}}\email{mjarama@unsa.edu.pe}
 
-\author[1]{Mariel Alison Jara Mamani\orcidlink{0009-0000-9069-5800}}
-\ead{mjarama@unsa.edu.pe}
+\author[1]{\fnm{Yasiel} \sur{P\'erez Vera}\orcidlink{0000-0001-9421-9529}}\email{yperezv@unsa.edu.pe}
 
-\author[1]{Yasiel P\'erez Vera\orcidlink{0000-0001-9421-9529}}
-\ead{yperezv@unsa.edu.pe}
+\affil*[1]{\orgdiv{Systems Engineering Professional Program}, \orgname{Universidad Nacional de San Agust\'in}, \orgaddress{\city{Arequipa}, \postcode{04001}, \state{Arequipa}, \country{Peru}}}
 
-\cortext[cor1]{Corresponding author}
-\affiliation[1]{organization={Systems Engineering Professional Program, Universidad Nacional de San Agust\'in},
-            postcode={04001},
-            city={Arequipa},
-            state={Arequipa},
-            country={Peru}}
+\abstract{Automated inspection of surface defects in wood faces challenges arising from severe long-tail class imbalance and high intra-class variability of organic anomalies. This article presents a comparative benchmark evaluating three object-detection paradigms, one-stage, two-stage, and transformers, and four data augmentation strategies: no augmentation, Albumentations with class balancing, BoxAug with noise transformations, and BoxAug with neural harmonization via LibCom. The study uses a dataset of 4,000 images with 8,888 annotations across 8 defect categories and employs a reproducible five-stage pipeline with step caching. Experimental results demonstrate that RF-DETR achieves the highest ranking precision with mAP@0.5 of 0.717 under per-model calibrated confidence thresholds. At the same time, Cascade R-CNN with BoxAug LibCom reaches the best operating-point F1 of 0.798. Augmentation effects are paradigm-specific: BoxAug LibCom improves Cascade R-CNN by +0.033 mAP@0.5, whereas all three augmentation strategies leave YOLO26 at or below its unaugmented baseline (0.592 to 0.604 versus 0.618). Per-class analysis at AP@0.5 shows marrow reaching 0.910 while quartzite peaks at 0.550, confirming that visual distinguishability interacts with class frequency. The calibrated-threshold protocol and the paradigm-dependent augmentation response are discussed, and future directions are proposed, including extended training budgets and diffusion-based augmentation.}
 
-\begin{abstract}
-Automated inspection of surface defects in wood faces challenges arising from severe long-tail class imbalance and high intra-class variability of organic anomalies. This article presents a comparative benchmark evaluating the intersection of three object detection paradigms: one-stage, two-stage, and transformers, with four data augmentation strategies: no augmentation, Albumentations with class balancing, BoxAug with noise transformations, and BoxAug with neural harmonization via LibCom. The study uses a dataset of 4,000 images with 8,888 annotations across 8 defect categories and employs a reproducible five-stage pipeline with step caching. Experimental results demonstrate that RF-DETR achieves the highest ranking precision with mAP@0.5 of 0.717 under per-model calibrated confidence thresholds. At the same time, Cascade R-CNN with BoxAug LibCom reaches the best operating-point F1 of 0.798. Augmentation effects are paradigm-specific: BoxAug LibCom improves Cascade R-CNN by +0.033 mAP@0.5, whereas all three augmentation strategies leave YOLO26 at or below its unaugmented baseline (0.592 to 0.604 versus 0.618). Per-class analysis at AP@0.5 shows marrow reaching 0.910 while quartzite peaks at 0.550, confirming that visual distinguishability interacts with class frequency. The calibrated-threshold protocol and the paradigm-dependent augmentation response are discussed, and future directions are proposed, including extended training budgets and diffusion-based augmentation.
-\end{abstract}
+\keywords{defect detection, computer vision, deep learning, wood processing, comparative benchmark}
 
-\begin{keyword}
-defect detection \sep computer vision \sep deep learning \sep wood processing \sep comparative benchmark
-\end{keyword}
+\maketitle
 
-\end{frontmatter}
+\iffalse
+\onecolumn
+\section*{Graphical Abstract}
+\begin{center}
+  \includegraphics[width=\textwidth,height=0.8\textheight,keepaspectratio]{grabs}
+\end{center}
 
-%% ============================================================
-%% 1. INTRODUCTION
-%% ============================================================
+\begin{highlights}
+  \item Deep learning object detectors were evaluated for multi-class wood defect detection.
+  \item Eight surface defect classes, including live, dead, and cracked knots, were classified.
+  \item Systematic data augmentation paradigms significantly enhanced mAP@0.5 and mAP@0.5:0.95.
+  \item Per-class recall and performance differences were statistically validated using Bonferroni correction.
+  \item Speed--accuracy trade-off analysis identified Pareto-optimal models for real-time sawmill inspection.
+\end{highlights}
+\twocolumn
+\fi
 
 \section{Introduction}
 \label{sec:intro}
@@ -81,11 +77,11 @@ Modern industrial manufacturing depends on automated quality control systems to 
 
 Automated recognition of surface defects in wood presents specific technical challenges that distinguish it from other object detection applications \citep{Shah2026Review}. Surface anomalies encompass live knots, dead knots, drying cracks, resin pockets, fungal stains, and mechanical damage \citep{Chen2023Recognition}. The high intra-class variance of defects, where the same anomaly type can look very different, is a major obstacle \citep{Kodytek2022Dataset}. The low contrast between certain defects and healthy wood grain hinders precise segmentation of anomalous regions \citep{minaee2022survey}. Variable lighting conditions in sawmill environments, combined with production line speeds up to 9.6~m/s, impose strict requirements on detection-algorithm inference times \citep{Kodytek2022Dataset}. Additionally, industrial datasets suffer from severe long-tail class imbalance, where rare defects such as marrow or missing knots are underrepresented compared to the high prevalence of standard knots \citep{Kodytek2022Dataset}. These factors converge into a research problem that requires specialized algorithmic solutions with high spatial localization and low latency \citep{prunella2023deep}.
 
-Historically, wood defect inspection relied on trained personnel who visually examined surfaces for imperfections \citep{Kryl2020Inspection}. This manual approach presents significant limitations in terms of speed, consistency, and scalability \citep{Kryl2020Inspection}. Operator visual fatigue, subjectivity in evaluation, and inability to process large volumes of material in real time are recurring problems that affect process reliability \citep{Kryl2020Inspection}. Previous studies have demonstrated that manual inspection rarely exceeds 70\% accuracy in high-speed industrial environments \citep{Kodytek2022Dataset}. To address these limitations, the state of the art has evolved from systems based on optoelectronic sensors and classical computer vision \citep{ren2022state}. Classical approaches used image processing techniques such as gray-level co-occurrence matrices, local binary patterns, and oriented gradient descriptors (HOG) \citep{dalal2005hog}, combined with support vector machine (SVM) classifiers \citep{sugiarto2017wood,nurthohari2019wood}. The Viola-Jones framework \citep{viola2001rapid} represented a pioneering advance in real-time object detection using Haar-like features \citep{lienhart2002extended} and AdaBoost cascade classifiers \citep{arxiv2022tracking}. Image matching evolved from handcrafted descriptors (SIFT, SURF, HOG) to deep hierarchical representations \citep{ma2021image}. However, while these classical methods offer interpretability, they are severely limited in handling the high natural variability and low contrast of organic surface defects in wood \citep{prunella2023deep}.
+Historically, wood defect inspection relied on trained personnel who visually examined surfaces for imperfections \citep{Kryl2020Inspection}. This manual approach presents significant limitations in terms of speed, consistency, and scalability \citep{Kryl2020Inspection}. Operator visual fatigue, subjectivity in evaluation, and inability to process large volumes of material in real time are recurring problems that affect process reliability \citep{Kryl2020Inspection}. Previous studies have demonstrated that manual inspection rarely exceeds 70\% accuracy in high-speed industrial environments \citep{Kodytek2022Dataset}. To address these limitations, the state of the art has evolved from systems based on optoelectronic sensors and classical computer vision \citep{ren2022state}. Classical approaches used image processing techniques such as gray-level co-occurrence matrices, local binary patterns, and oriented gradient descriptors (HOG) \citep{dalal2005hog}, combined with support vector machine (SVM) classifiers \citep{sugiarto2017wood,nurthohari2019wood}. The Viola-Jones framework \citep{viola2001rapid} represented a pioneering advance in real-time object detection using Haar-like features \citep{lienhart2002extended} and AdaBoost cascade classifiers \citep{ranftl2017tracking}. Image matching evolved from handcrafted descriptors (SIFT, SURF, HOG) to deep hierarchical representations \citep{ma2021image}. However, while these classical methods offer interpretability, they are severely limited in handling the high natural variability and low contrast of organic surface defects in wood \citep{prunella2023deep}.
 
-The transition to deep convolutional neural networks (CNNs) has enabled automatic extraction of hierarchical features that capture complex spatial patterns \citep{alzubaidi2021review}. The contemporary technological ecosystem offers frameworks for developing high-performance deep detectors \citep{jiao2019survey}. Deep convolution-based architectures evolved through two-stage region detectors such as Faster R-CNN \citep{ren2016faster} and Mask R-CNN \citep{he2017mask}, as well as anchor-based one-stage detectors such as Single Shot MultiBox Detector (SSD) \citep{liu2016ssd} and Feature Pyramid Networks (FPN) \citep{lin2017fpn}. Anchor-free models include FCOS \citep{tian2019fcos}. The YOLO family drove real-time detection from its early versions YOLOv1 \citep{redmon2016yolo}, YOLOv2 \citep{redmon2017yolo9000}, YOLOv3 \citep{redmon2018yolov3}, YOLOv4 \citep{bochkovskiy2020yolov4}, to comprehensive revisions of the YOLO paradigm from YOLOv1 to YOLOv8 \citep{hussain2023yolo}. More recently, Vision Transformer (ViT)-based models introduced global self-attention mechanisms that capture long-range spatial dependencies in industrial visual inspection \citep{hutten2022vision}.
+The transition to deep convolutional neural networks (CNNs) has enabled automatic extraction of hierarchical features that capture complex spatial patterns \citep{alzubaidi2021review}. The contemporary technological ecosystem offers frameworks for developing high-performance deep detectors \citep{jiao2019survey}. Deep convolution-based architectures evolved through two-stage region detectors such as Faster R-CNN \citep{ren2016faster} and Mask R-CNN \citep{he2017mask}, as well as anchor-based one-stage detectors such as Single Shot MultiBox Detector (SSD) \citep{liu2016ssd} and Feature Pyramid Networks (FPN) \citep{lin2017fpn}. Anchor-free models include FCOS \citep{tian2019fcos}. The YOLO family drove real-time detection from its early versions YOLOv1 \citep{redmon2016yolo}, YOLOv2 \citep{redmon2017yolo9000}, Scaled-YOLOv4 \citep{wang2021scaledyolov4}, to comprehensive revisions of the YOLO paradigm from YOLOv1 to YOLOv8 \citep{terven2023yolo,hussain2023yolo}. More recently, Vision Transformer (ViT)-based models introduced global self-attention mechanisms that capture long-range spatial dependencies in industrial visual inspection \citep{hutten2022vision}.
 
-Compared with classical descriptors and legacy detectors, the current state of the art demands rigorous evaluation of cutting-edge deep learning paradigms combined with synthetic data balancing techniques. Advanced convolutional architectures such as Cascade R-CNN \citep{cai2018cascade} provide multi-stage bounding box refinement, while YOLO26 \citep{jocher2026ultralyticsyolo26unifiedrealtime} incorporates a dual-head design for end-to-end real-time inference without an NMS stage, along with the MuSGD optimizer \citep{jocher2026ultralyticsyolo26unifiedrealtime}. In the transformer domain, RF-DETR \citep{robinson2026rfdetrneuralarchitecturesearch} establishes the precision and latency frontier through neural architecture search \citep{robinson2026rfdetrneuralarchitecturesearch}. In parallel, object augmentation techniques (BoxAug \citep{LEE2022104138}, Simple Copy-Paste \citep{ghiasi2021simple}) integrated with deep composition frameworks and neural harmonization (LibCom \citep{niu2021making}, PCT-Net \citep{Guerreiro_2023_CVPR}, Latent Bridge Matching \citep{chadebec2025lbmlatentbridgematching}) enable mitigating class imbalance without introducing visual artifacts. The main objective of this article is to provide a 3-by-4 matrix evaluation that intersects these three deep paradigms with four data augmentation strategies in surface defect recognition in wood.
+Compared with classical descriptors and legacy detectors, the current state of the art demands rigorous evaluation of cutting-edge deep learning paradigms combined with synthetic data balancing techniques. Advanced convolutional architectures such as Cascade R-CNN \citep{cai2018cascade} provide multi-stage bounding box refinement, while real-time one-stage paradigms such as YOLOv10 \citep{wang2024yolov10} establish end-to-end NMS-free dual-head detection. In the transformer domain, RF-DETR \citep{robinson2026rfdetrneuralarchitecturesearch} establishes the precision and latency frontier through neural architecture search \citep{robinson2026rfdetrneuralarchitecturesearch}. In parallel, object augmentation techniques (BoxAug \citep{LEE2022104138}, Simple Copy-Paste \citep{ghiasi2021simple}) integrated with deep composition frameworks and neural harmonization (BargainNet \citep{cong2021bargainnet}, PCT-Net \citep{Guerreiro_2023_CVPR}, Latent Bridge Matching \citep{chadebec2025lbmlatentbridgematching}) enable mitigating class imbalance without introducing visual artifacts. The main objective of this article is to provide a 3-by-4 matrix evaluation that intersects these three deep paradigms with four data augmentation strategies in surface defect recognition in wood.
 
 The remainder of the article is organized as follows. Section~\ref{sec:related} presents related work on wood defect detection using deep learning techniques. Section~\ref{sec:methods} describes the materials and methods used, including theoretical foundations, tools and technologies employed, dataset characteristics, and the proposed development method. Section~\ref{sec:results} details the obtained results, including performance metrics and comparative analysis. Section~\ref{sec:discussion} interprets the main findings, compares them with existing literature, and analyzes interactions between architectures and augmentation strategies. Section~\ref{sec:conclusions} summarizes the study contributions. Finally, Section~\ref{sec:future} presents future work and possible research extensions.
 
@@ -119,10 +115,10 @@ The remainder of the article is organized as follows. Section~\ref{sec:related} 
 \citet{Shah2026Review} conducted a comprehensive review of automated defect detection in wood surface inspection, comparing one-stage models (YOLO and variants) and two-stage models (Faster R-CNN), and investigating emerging zero-shot learning approaches. The objective was to provide a state-of-the-art overview of wood defect detection. The contribution was the systematic comparison of one-stage and two-stage models, along with the introduction of zero-shot approaches based on vision-language models such as CLIP. The methodology reviewed recent literature, analyzed public datasets, and compared performance metrics. Results showed that YOLO models are preferred for real-time applications, while Faster R-CNN offers higher precision at the cost of speed. The review did not include transformer-based models as representatives of the new generation of detectors. Table~\ref{tab:tabla-resumen} summarizes the reviewed works. None of the existing studies evaluate the cross-matrix between the three detection paradigms and advanced object augmentation techniques with neural harmonization under severe class imbalance.
 
 \begin{table*}[t]
-\caption{Comparative summary of related works on wood defect detection.}
+\caption{Comparative summary of related works on wood defect detection}
 \label{tab:tabla-resumen}
 \centering
-\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}llll@{}}
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}p{0.20\textwidth}p{0.24\textwidth}p{0.20\textwidth}p{0.24\textwidth}@{}}
 \toprule
 Author & Approach & Main Metric & Deficiency \\
 \midrule
@@ -137,7 +133,7 @@ Author & Approach & Main Metric & Deficiency \\
 \citet{wolszczak2024bluestain} & Neural network & Binary classif. & Single class only \\
 \citet{chen2022edgeglued} & Filters + InceptionResNet & 0.92 F1 & Complex pipeline \\
 \citet{Shah2026Review} & General review & Qualitative comparison & No empirical matrix benchmark \\
-\bottomrule
+\botrule
 \end{tabular*}
 \end{table*}
 
@@ -155,11 +151,11 @@ Surface defect formation in wood responds to physiological tree factors and mech
 
 Data collection in industrial environments produces annotated sets with severe class imbalance \citep{zhang2021deep}. In a long-tail distribution, a reduced fraction of categories accounts for the majority of observations \citep{zhang2021deep}. The imbalance ratio measures the relationship between the majority-class and minority-class frequencies. In datasets with a ratio exceeding 30, standard loss functions become dominated by gradients from dominant categories \citep{cui2019classbalanced}. The neural network suppresses predictions of rare categories by assigning them deficient confidence scores \citep{tan2020equalization}. This phenomenon causes a collapse in the model's discriminative capability for infrequent but structurally dangerous anomalies \citep{wang2021seesaw}.
 
-Object-level data augmentation modifies the annotated-class frequency distribution directly \citep{LEE2022104138}, and augmentation-based oversampling is a recommended remedy for class imbalance \citep{shorten2019augmentation}. Unlike global affine transformations, BoxAug isolates cropped patches from tail categories and applies stochastic scale, rotation, and flip transformations \citep{LEE2022104138}. This follows the Simple Copy-Paste procedure, which pastes random object subsets across images and is data-efficient for rare categories \citep{ghiasi2021simple}. Albumentations cover pixel-level and geometric diversity transforms (flip, rotation, scale, crop, contrast, brightness, blur) with bounding-box support for detection \citep{buslaev2020albumentations}. Direct pasting creates boundary and illumination discontinuities; the LibCom framework taxonomizes blending and harmonization operators that close the synthetic-to-real distribution gap \citep{niu2021making}, and the PCT-Net model estimates pixel-wise color transforms to equalize regional luminance at full resolution \citep{Guerreiro_2023_CVPR}. Data-level treatments are complemented by loss-level re-weighting by effective sample number \citep{cui2019classbalanced}.
+Object-level data augmentation modifies the annotated-class frequency distribution directly \citep{LEE2022104138}, and augmentation-based oversampling is a recommended remedy for class imbalance \citep{shorten2019augmentation}. Unlike global affine transformations, BoxAug isolates cropped patches from tail categories and applies stochastic scale, rotation, and flip transformations \citep{LEE2022104138}. This follows the Simple Copy-Paste procedure, which pastes random object subsets across images and is data-efficient for rare categories \citep{ghiasi2021simple}. Albumentations cover pixel-level and geometric diversity transforms (flip, rotation, scale, crop, contrast, brightness, blur) with bounding-box support for detection \citep{buslaev2020albumentations}. Direct pasting creates boundary and illumination discontinuities; neural composition and image harmonization frameworks close the synthetic-to-real distribution gap \citep{cong2021bargainnet}, and the PCT-Net model estimates pixel-wise color transforms to equalize regional luminance at full resolution \citep{Guerreiro_2023_CVPR}. Data-level treatments are complemented by loss-level re-weighting by effective sample number \citep{cui2019classbalanced}.
 
 Cascade R-CNN represents the two-stage convolutional architecture oriented toward high spatial precision \citep{cai2018cascade}. The first stage employs a Region Proposal Network to select candidates over convolutional feature maps. The second stage executes a sequence of detection heads trained with progressively stricter Intersection over Union thresholds. This cascaded design gradually refines bounding box coordinates and minimizes false positives in high-defect-density scenarios \citep{cai2018cascade}. The computational cost of multi-stage refinement leads to longer inference times than one-stage detectors. Still, the localization precision gain justifies its application in scenarios where false positive rate is critical \citep{cai2018cascade}.
 
-YOLO26 represents the one-stage convolutional architecture designed for real-time inference \citep{jocher2026ultralyticsyolo26unifiedrealtime}. It adopts an anchor-free formulation that directly predicts bounding box centers and dimensions from multi-scale feature maps. Its dual-head design eliminates the need for the non-maximum suppression stage in inference, optimizing processing speed and computational latency \citep{jocher2026ultralyticsyolo26unifiedrealtime}. The absence of the NMS stage significantly reduces post-processing time, which is advantageous for real-time applications where every millisecond is critical \citep{jocher2026ultralyticsyolo26unifiedrealtime}. However, one-stage architectures may be more susceptible to insufficient training data compared to two-stage detectors.
+YOLO26 represents the one-stage convolutional architecture designed for real-time inference. It adopts an anchor-free formulation that directly predicts bounding box centers and dimensions from multi-scale feature maps. Its dual-head design eliminates the need for the non-maximum suppression stage in inference, optimizing processing speed and computational latency as established in modern real-time one-stage detectors \citep{wang2024yolov10}. The absence of the NMS stage significantly reduces post-processing time, which is advantageous for real-time applications where every millisecond is critical \citep{wang2024yolov10}. However, one-stage architectures may be more susceptible to insufficient training data compared to two-stage detectors.
 
 RF-DETR represents the Vision Transformer-based architecture optimized for real-time detection \citep{robinson2026rfdetrneuralarchitecturesearch}. It uses bidirectional global self-attention mechanisms to capture long-range spatial dependencies across the entire image surface \citep{zhao2023detrs}. Through Neural Architecture Search, RF-DETR discovers optimal structural configurations on the Pareto frontier between localization precision and processing latency \citep{robinson2026rfdetrneuralarchitecturesearch}. Unlike purely convolutional detectors, transformers process the complete image through tokenization and self-attention layers, enabling them to model global relationships between distant regions \citep{zhao2023detrs}. This capability is particularly relevant for wood inspection, where defects can be distributed sparsely along the plank surface.
 
@@ -208,7 +204,7 @@ The proposed method implements a five-stage experiment pipeline designed to ensu
 \begin{figure*}[t]
 \centering
 \includegraphics[width=\textwidth]{pipeline.png}
-\caption{Overview of the proposed five-stage experimental pipeline for timber defect detection benchmarking.}
+\caption{Overview of the proposed five-stage experimental pipeline for timber defect detection benchmarking}
 \label{fig:pipeline}
 \end{figure*}
 
@@ -224,21 +220,21 @@ The augmentation stage applies three strategies targeting a 33\% minority-to-maj
 
 Standard BoxAug crops tail-class instances from an object bank, applies scale jitter (0.8--1.2), rotation, flipping, cropping, noise, and morphological operations, and pastes them at guide-validated positions (Missing Knot at edges, Quartzite central). Each run regenerates from a clean training copy with capped placement retries. It is chosen as the object-level oversampling arm because copy-paste is data-efficient for rare categories \citep{ghiasi2021simple} and a recommended imbalance remedy \citep{shorten2019augmentation}.
 
-BoxAug with LibCom repeats the same procedure but replaces direct insertion with LibCom neural harmonization \citep{niu2021making}, restricted to scale jitter and flips without pixel noise. It is chosen to test whether harmonized composition with pixel-wise color equalization \citep{Guerreiro_2023_CVPR} removes the pasting discontinuities of the classic arm.
+BoxAug with LibCom repeats the same procedure but replaces direct insertion with neural harmonization \citep{cong2021bargainnet}, restricted to scale jitter and flips without pixel noise. It is chosen to test whether harmonized composition with pixel-wise color equalization \citep{Guerreiro_2023_CVPR} removes the pasting discontinuities of the classic arm.
 
-Cascade R-CNN (ResNet-50 + FPN \citep{cai2018cascade}) is trained for 12 epochs per the canonical MMDetection 1x schedule \citep{mmdetection}, with AdamW (lr 1e-4, wd 1e-4) adapted for single-GPU fine-tuning---the official 1x uses SGD with lr 0.02---batch size 8, $960\times 384$ keep-ratio input, LinearLR warmup plus MultiStepLR, COCO-bbox validation each epoch, patience 8 with min-delta 0.005, keeping the best-mAP checkpoint. The short schedule is justified by the cascaded heads (IoU 0.5/0.6/0.7) gaining about 4 AP points over the FPN baseline \citep{cai2018cascade}, and two-stage detectors are a proven but slower wood-defect option \citep{cwbyolo2024}.
+Cascade R-CNN (ResNet-50 + FPN \citep{cai2018cascade}) is trained for 12 epochs per the canonical 1x schedule \citep{he2019rethinking}, with AdamW (lr 1e-4, wd 1e-4) adapted for single-GPU fine-tuning---the official 1x uses SGD with lr 0.02---batch size 8, $960\times 384$ keep-ratio input, LinearLR warmup plus MultiStepLR, COCO-bbox validation each epoch, patience 8 with min-delta 0.005, keeping the best-mAP checkpoint. The short schedule is justified by the cascaded heads (IoU 0.5/0.6/0.7) gaining about 4 AP points over the FPN baseline \citep{cai2018cascade}, and two-stage detectors are a proven but slower wood-defect option \citep{cwbyolo2024}.
 
-YOLO26m (anchor-free, NMS-free dual-head \citep{jocher2026ultralyticsyolo26unifiedrealtime}) trains for 50 epochs (patience 50, checkpoint every 5) at $960\times 384$, batch size 16, lr0 0.01, AMP FP16. The lr0 value is the Ultralytics default, and 50 epochs is a reduced COCO-pretrained fine-tuning budget (default 100). The regime mirrors CWB-YOLOv8 on wood (lr0 0.01, patience 50, mAP@0.5 of 0.892 without overfitting \citep{cwbyolo2024}) and the YOLOv5m COCO-pretrain plus fine-tune protocol that reached 97.7\% F-score on sawn-timber knots \citep{fang2021yolov5knots}; the budget is ample against the 500--600 epochs needed from scratch \citep{jocher2026ultralyticsyolo26unifiedrealtime}.
+YOLO26m (anchor-free, NMS-free dual-head design \citep{wang2024yolov10}) trains for 50 epochs (patience 50, checkpoint every 5) at $960\times 384$, batch size 16, lr0 0.01, AMP FP16. The lr0 value is the Ultralytics default, and 50 epochs is a reduced COCO-pretrained fine-tuning budget (default 100). The regime mirrors CWB-YOLOv8 on wood (lr0 0.01, patience 50, mAP@0.5 of 0.892 without overfitting \citep{cwbyolo2024}) and the YOLOv5m COCO-pretrain plus fine-tune protocol that reached 97.7\% F-score on sawn-timber knots \citep{fang2021yolov5knots}; the budget is ample against long training schedules from scratch.
 
 RF-DETR-m \citep{robinson2026rfdetrneuralarchitecturesearch} trains on a $960\times 384$ canvas with batch size 8, AdamW with lr 1e-4 and wd 1e-4 (both official defaults), gradient checkpointing, up to 50 epochs with patience 15 and min-delta 0.005 per the official early-stopping example (actual 21--23 epochs, best validation epochs 6--11). The 5-epoch warmup is an explicit fine-tuning stabilizer (official default 0). The learning-rate choice matches the RF-DETR training hyperparameters that reach 48.0 COCO AP at nano scale \citep{robinson2026rfdetrneuralarchitecturesearch}; as a 2026 architecture, this study is the first to report its use on wood.
 
-The differing epoch budgets are intentional: MMDetection 1x (12 epochs) for Cascade R-CNN \citep{mmdetection}, a 50-epoch fine-tuning budget for YOLO26 against Ultralytics defaults, and up to 50 epochs with early stopping for RF-DETR per official guidance \citep{robinson2026rfdetrneuralarchitecturesearch}. Wall-clock budgets are comparable across paradigms (0.38 to 0.80 hours per configuration; see Figure~\ref{fig:tiempo-entrenamiento}) because per-epoch cost differs, so epoch counts cannot be compared directly. All three paradigms share the $960\times 384$ canvas, COCO-pretrained initialization, effective-number class weighting \citep{cui2019classbalanced}, and per-model calibrated operating points.
+The differing epoch budgets are intentional: canonical 1x (12 epochs) for Cascade R-CNN \citep{he2019rethinking}, a 50-epoch fine-tuning budget for YOLO26 against Ultralytics defaults, and up to 50 epochs with early stopping for RF-DETR per official guidance \citep{robinson2026rfdetrneuralarchitecturesearch}. Wall-clock budgets are comparable across paradigms (0.38 to 0.80 hours per configuration; see Figure~\ref{fig:tiempo-entrenamiento}) because per-epoch cost differs, so epoch counts cannot be compared directly. All three paradigms share the $960\times 384$ canvas, COCO-pretrained initialization, effective-number class weighting \citep{cui2019classbalanced}, and per-model calibrated operating points (see Table~\ref{tab:tabla-hiperparametros}).
 
 \begin{table*}[t]
-\caption{Training hyperparameters per paradigm. Each parameter is reported with its value; provenance and deviations from framework defaults are justified in the text.}
+\caption{Training hyperparameters per paradigm. Each parameter is reported with its value; provenance and deviations from framework defaults are justified in the text}
 \label{tab:tabla-hiperparametros}
 \centering
-\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}lll@{}}
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}p{0.28\textwidth}p{0.22\textwidth}p{0.36\textwidth}@{}}
 \toprule
 Model & Parameter & Value \\
 \midrule
@@ -265,7 +261,7 @@ RF-DETR-m (NAS transformer) & Input canvas & $960\times 384$ rectangular \\
 & Warmup & 5 epochs (explicit stabilization; official default 0) \\
 & Memory & Gradient checkpointing \\
 & Epoch budget & max 50, actual 21--23, patience 15, min-delta 0.005 \\
-\bottomrule
+\botrule
 \end{tabular*}
 \end{table*}
 
@@ -282,22 +278,22 @@ Figure~\ref{fig:matrix-map50} presents the mAP@0.5 performance matrix for the 12
 
 \begin{figure*}[t]
 \centering
-\includegraphics[width=0.65\textwidth]{aug_paradigm_map50_heatmap.png}
-\caption{mAP@0.5 performance matrix intersecting three detection paradigms with four augmentation strategies.}
+\includegraphics[width=0.55\textwidth]{aug_paradigm_map50_heatmap.png}
+\caption{mAP@0.5 performance matrix intersecting three detection paradigms with four augmentation strategies}
 \label{fig:matrix-map50}
 \end{figure*}
 
 \begin{figure*}[t]
 \centering
-\includegraphics[width=0.65\textwidth]{aug_paradigm_map50_95_heatmap.png}
-\caption{mAP@0.5:0.95 performance matrix for the same 12 configurations.}
+\includegraphics[width=0.55\textwidth]{aug_paradigm_map50_95_heatmap.png}
+\caption{mAP@0.5:0.95 performance matrix for the same 12 configurations}
 \label{fig:matrix-map5095}
 \end{figure*}
 
 Table~\ref{tab:tabla-principal} summarizes the complete metrics for all 12 configurations. RF-DETR with Albumentations achieves the highest mAP@0.5 (0.717) and the best mAP@0.5:0.95 (0.425), while Cascade R-CNN with BoxAug LibCom achieves the highest precision (0.811) and the best F1 (0.798). YOLO26 baseline is the strongest of its family at mAP@0.5 of 0.618, with all three augmentation strategies scoring 0.592 to 0.604. These results place the transformer paradigm first on ranking metrics and the two-stage paradigm first on operating-point precision. In contrast, the one-stage paradigm shows no augmentation-driven gains under this protocol.
 
 \begin{table*}[t]
-\caption{Performance metrics on the test set for all 12 benchmark configurations.}
+\caption{Performance metrics on the test set for all 12 benchmark configurations}
 \label{tab:tabla-principal}
 \centering
 \begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}llccccc@{}}
@@ -318,7 +314,7 @@ YOLO26        & Albumentations & 0.598 & 0.355 & 0.742 & 0.748 & 0.745 \\
 YOLO26        & Baseline       & 0.618 & 0.363 & 0.769 & 0.738 & 0.753 \\
 YOLO26        & BoxAug LibCom  & 0.592 & 0.349 & 0.760 & 0.740 & 0.750 \\
 YOLO26        & BoxAug Std     & 0.604 & 0.358 & 0.754 & 0.765 & 0.759 \\
-\bottomrule
+\botrule
 \end{tabular*}
 \end{table*}
 
@@ -327,7 +323,7 @@ Figure~\ref{fig:delta-baseline} shows the impact of each augmentation strategy r
 \begin{figure*}[t]
 \centering
 \includegraphics[width=\textwidth]{aug_delta_vs_baseline.png}
-\caption{Impact of augmentation strategies relative to baseline ($\Delta$ mAP@0.5).}
+\caption{Impact of augmentation strategies relative to baseline ($\Delta$ mAP@0.5)}
 \label{fig:delta-baseline}
 \end{figure*}
 
@@ -336,7 +332,7 @@ Figure~\ref{fig:heatmap-clase} presents the average AP per class at AP@0.5 for a
 \begin{figure*}[t]
 \centering
 \includegraphics[width=\textwidth]{per_class_ap_heatmap.png}
-\caption{Heatmap of average precision per defect class (AP@0.5).}
+\caption{Heatmap of average precision per defect class (AP@0.5)}
 \label{fig:heatmap-clase}
 \end{figure*}
 
@@ -345,14 +341,14 @@ Figure~\ref{fig:heatmap-clase-5095} presents the same per-class breakdown under 
 \begin{figure*}[t]
 \centering
 \includegraphics[width=\textwidth]{per_class_ap50_95_heatmap.png}
-\caption{Heatmap of average precision per defect class (AP@0.5:0.95).}
+\caption{Heatmap of average precision per defect class (AP@0.5:0.95)}
 \label{fig:heatmap-clase-5095}
 \end{figure*}
 
 Table~\ref{tab:tabla-bonferroni} and Figure~\ref{fig:recall-bonferroni} report per-class recall with simultaneous 95\% CIs for each paradigm's best configuration. Abundant classes give narrow intervals (Live Knot, $n = 395$: recall 0.729--0.792 with widths 0.111--0.122), while rare classes span tens of points (Quartzite, $n = 15$: 0.400--0.733 with widths 0.533--0.576; Missing Knot, $n = 12$: widths up to 0.614), so rank orders among rare classes are not statistically distinguishable: the Quartzite gap between RF-DETR (0.733) and YOLO26 (0.400) overlaps across all three intervals. Precision shows the same pattern, with Cascade R-CNN keeping the narrowest majority-class intervals (Live Knot 0.853 [0.795, 0.896], Dead Knot 0.905 [0.841, 0.945]) while rare-class intervals overlap.
 
 \begin{table*}[t]
-\caption{Per-class recall with simultaneous 95\% family-wise CIs (Bonferroni) for the best configuration of each paradigm, with test support $n$.}
+\caption{Per-class recall with simultaneous 95\% family-wise CIs (Bonferroni) for the best configuration of each paradigm, with test support $n$}
 \label{tab:tabla-bonferroni}
 \centering
 \begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}lcccc@{}}
@@ -367,14 +363,14 @@ Dead Knot & 0.767 [0.692, 0.828] & 0.763 [0.688, 0.825] & 0.788 [0.715, 0.846] &
 Knot with Crack & 0.787 [0.591, 0.905] & 0.766 [0.568, 0.891] & 0.702 [0.503, 0.846] & 47 \\
 Missing Knot & 0.833 [0.441, 0.969] & 0.750 [0.369, 0.939] & 0.417 [0.142, 0.756] & 12 \\
 Crack & 0.922 [0.758, 0.978] & 0.902 [0.733, 0.969] & 0.706 [0.515, 0.845] & 51 \\
-\bottomrule
+\botrule
 \end{tabular*}
 \end{table*}
 
 \begin{figure*}[t]
 \centering
 \includegraphics[width=\textwidth]{per_class_recall_bonferroni.png}
-\caption{Per-class recall with Bonferroni-corrected simultaneous 95\% family-wise confidence intervals for the best configuration of each paradigm.}
+\caption{Per-class recall with Bonferroni-corrected simultaneous 95\% family-wise confidence intervals for the best configuration of each paradigm}
 \label{fig:recall-bonferroni}
 \end{figure*}
 
@@ -383,7 +379,7 @@ Figure~\ref{fig:inference-panel} shows ground-truth-annotated representative ins
 \begin{figure*}[t]
 \centering
 \includegraphics[width=\textwidth]{inference_panel.png}
-\caption{Ground-truth-annotated representative instances with best AP@0.5 per class.}
+\caption{Ground-truth-annotated representative instances with best AP@0.5 per class}
 \label{fig:inference-panel}
 \end{figure*}
 
@@ -392,7 +388,7 @@ Figure~\ref{fig:velocidad-precision} illustrates the trade-off between inference
 \begin{figure*}[t]
 \centering
 \includegraphics[width=\textwidth]{speed_accuracy_tradeoff.png}
-\caption{Trade-off between inference speed (ms/image) and precision (mAP@0.5).}
+\caption{Trade-off between inference speed (ms/image) and precision (mAP@0.5)}
 \label{fig:velocidad-precision}
 \end{figure*}
 
@@ -401,14 +397,14 @@ Figure~\ref{fig:curvas-convergencia} shows the mAP@0.5 validation convergence cu
 \begin{figure*}[t]
 \centering
 \includegraphics[width=\textwidth]{training_curves_map.png}
-\caption{mAP@0.5 validation convergence curves during training.}
+\caption{mAP@0.5 validation convergence curves during training}
 \label{fig:curvas-convergencia}
 \end{figure*}
 
 \begin{figure*}[t]
 \centering
 \includegraphics[width=\textwidth]{training_curves_loss.png}
-\caption{Training loss progression over epochs for all 12 configurations.}
+\caption{Training loss progression over epochs for all 12 configurations}
 \label{fig:curvas-loss}
 \end{figure*}
 
@@ -417,7 +413,7 @@ Figure~\ref{fig:tiempo-entrenamiento} compares total training time per configura
 \begin{figure*}[t]
 \centering
 \includegraphics[width=\textwidth]{training_time_comparison.png}
-\caption{Comparison of total training time per configuration.}
+\caption{Comparison of total training time per configuration}
 \label{fig:tiempo-entrenamiento}
 \end{figure*}
 
@@ -430,9 +426,9 @@ Figure~\ref{fig:tiempo-entrenamiento} compares total training time per configura
 
 The results from this benchmark reveal patterns that warrant detailed analysis of interactions between detection architectures and data augmentation strategies in the context of severe class imbalance typical of industrial wood inspection. RF-DETR's bidirectional global self-attention captures long-range spatial dependencies across the plank surface \citep{zhao2023detrs}. Cascade R-CNN remains the operating-point precision leader, with precision of 0.811 and F1 of 0.798 under BoxAug LibCom, consistent with cascaded refinement minimizing false positives through detection heads with increasing IoU thresholds \citep{cai2018cascade}. Notably, Cascade is the only paradigm that benefits from every augmentation strategy (+0.008 to +0.033), suggesting two-stage heads exploit synthetic minority instances once the operating point is fixed.
 
-YOLO26 shows no augmentation dividend; the unaugmented baseline at mAP@0.5 (0.618) beats all three augmented arms, which score 0.592 to 0.604. This contradicts the common expectation that one-stage detectors are the primary beneficiaries of training data volume \citep{hussain2023yolo}, at least under rectangular training with a full 50-epoch budget. A plausible mechanism is that YOLO26's anchor-free dense predictions already saturate on the majority distribution, so pasted minority instances add noise rather than signal at this budget. The greater oscillation in YOLO26 convergence curves, particularly in the standard BoxAug configuration, may stem from variability introduced by synthetic samples in a model that lacks Cascade R-CNN's multi-stage refinement mechanism. This result suggests that object augmentation techniques require larger budgets or cleaner synthesis to help one-stage detectors in severe imbalance scenarios. Naively pasted masks create pixel artifacts that detectors learn as shortcuts instead of appearance \citep{dwibedi2017cutpaste}; pasted small objects measurably degrade performance through overfitting to pasting artifacts such as imperfect masks and brightness mismatch \citep{kisantal2019small}, and context-agnostic pasting yields disharmonious, low-benefit samples \citep{guo2024cacp}. The YOLO family recipe itself excludes copy-paste (Mosaic/CutMix instead; copy-paste is off by default and confined to segmentation tasks), so the null dividend is consistent with the architecture's design rather than a protocol bug. No published copy-paste ablation on YOLO26 exists to our knowledge; the cited drops are the closest measured analogs.
+YOLO26 shows no augmentation dividend; the unaugmented baseline at mAP@0.5 (0.618) beats all three augmented arms, which score 0.592 to 0.604. This contradicts the common expectation that one-stage detectors are the primary beneficiaries of training data volume \citep{hussain2023yolo}, at least under rectangular training with a full 50-epoch budget. A plausible mechanism is that YOLO26's anchor-free dense predictions already saturate on the majority distribution, so pasted minority instances add noise rather than signal at this budget. The greater oscillation in YOLO26 convergence curves, particularly in the standard BoxAug configuration, may stem from variability introduced by synthetic samples in a model that lacks Cascade R-CNN's multi-stage refinement mechanism. This result suggests that object augmentation techniques require larger budgets or cleaner synthesis to help one-stage detectors in severe imbalance scenarios. Naively pasted masks create pixel artifacts that detectors learn as shortcuts instead of appearance \citep{dwibedi2017cutpaste}; unharmonized pasting can degrade performance through boundary artifacts, contrast disparities, and context mismatches \citep{dwibedi2017cutpaste,ghiasi2021simple}. The YOLO family recipe itself excludes copy-paste (Mosaic/CutMix instead; copy-paste is off by default and confined to segmentation tasks), so the null dividend is consistent with the architecture's design rather than a protocol bug. No published copy-paste ablation on YOLO26 exists to our knowledge; the cited drops are the closest measured analogs.
 
-RF-DETR shows mixed behavior: Albumentations improves performance by +0.017, but standard BoxAug degrades it by -0.024 and BoxAug LibCom by -0.013. This result is particularly relevant for the research community in transformers for industrial vision \citep{hutten2022vision}. Patch-level noise transformations introduce artifacts that bidirectional global self-attention mechanisms interpret as relevant patterns, generating confusion during training. Unlike convolutional models that process local information through sliding filters, transformers capture long-range spatial dependencies that can amplify the influence of local artifacts \citep{zhao2023detrs}. The mechanism is structural. Standard BoxAug pastes patches with pixel-level noise and morphological perturbations \citep{LEE2022104138}, producing sharp edge gradients and high-frequency textures that do not occur in natural wood grain. During tokenization, these discontinuities become outlier tokens; because every self-attention head computes Query-Key affinities over the full token set, a single anomalous patch can attract attention mass from distant, defect-free regions and propagate spurious correlations across layers. Convolutional detectors attenuate this effect through locality: sliding filters confine the artifact's receptive field, and Cascade R-CNN's staged IoU heads can still reject the proposal. Transformers have no such locality bottleneck, so the same artifact is broadcast globally. Neural harmonization via LibCom \citep{niu2021making} attenuates edge gradients through pixel-level color equalization \citep{Guerreiro_2023_CVPR}, which explains why BoxAug LibCom degrades RF-DETR less ($-$0.013) than the standard variant ($-$0.024): the pasted tokens remain distributionally closer to natural grain. The deflated-score phenomenon, where the same checkpoints collapse at a fixed 0.50 cutoff while ranking quality is preserved, further shows that threshold-then-mAP evaluation is brittle to calibration shifts. This result suggests that object augmentation strategies require careful adaptation when applied to self-attention-based architectures, and that operating points must be tuned per model rather than fixed globally. This asymmetry matches copy-paste's reported limits: it succeeds on two-stage detectors with long schedules, while strong augmentation can cost up to 1 AP point elsewhere \citep{ghiasi2021simple}.
+RF-DETR shows mixed behavior: Albumentations improves performance by +0.017, but standard BoxAug degrades it by -0.024 and BoxAug LibCom by -0.013. This result is particularly relevant for the research community in transformers for industrial vision \citep{hutten2022vision}. Patch-level noise transformations introduce artifacts that bidirectional global self-attention mechanisms interpret as relevant patterns, generating confusion during training. Unlike convolutional models that process local information through sliding filters, transformers capture long-range spatial dependencies that can amplify the influence of local artifacts \citep{zhao2023detrs}. The mechanism is structural. Standard BoxAug pastes patches with pixel-level noise and morphological perturbations \citep{LEE2022104138}, producing sharp edge gradients and high-frequency textures that do not occur in natural wood grain. During tokenization, these discontinuities become outlier tokens; because every self-attention head computes Query-Key affinities over the full token set, a single anomalous patch can attract attention mass from distant, defect-free regions and propagate spurious correlations across layers. Convolutional detectors attenuate this effect through locality: sliding filters confine the artifact's receptive field, and Cascade R-CNN's staged IoU heads can still reject the proposal. Transformers have no such locality bottleneck, so the same artifact is broadcast globally. Neural harmonization \citep{cong2021bargainnet} attenuates edge gradients through pixel-level color equalization \citep{Guerreiro_2023_CVPR}, which explains why BoxAug LibCom degrades RF-DETR less ($-$0.013) than the standard variant ($-$0.024): the pasted tokens remain distributionally closer to natural grain. The deflated-score phenomenon, where the same checkpoints collapse at a fixed 0.50 cutoff while ranking quality is preserved, further shows that threshold-then-mAP evaluation is brittle to calibration shifts. This result suggests that object augmentation strategies require careful adaptation when applied to self-attention-based architectures, and that operating points must be tuned per model rather than fixed globally. This asymmetry matches copy-paste's reported limits: it succeeds on two-stage detectors with long schedules, while strong augmentation can cost up to 1 AP point elsewhere \citep{ghiasi2021simple}.
 
 Per-class analysis reveals counterintuitive results that challenge the assumption that class frequency directly determines detection difficulty. Quartzite, with only 144 annotations (1.6\% of the dataset), obtains the worst performance with AP@0.5 between 0.082 and 0.550, which is expected given its low visual contrast against wood grain. However, marrow, with only 204 annotations, obtains the highest AP, up to 0.910. This disparity indicates that defect visual distinguishability is a determining factor that interacts with class frequency. Defects with distinctive visual patterns, such as marrow with its characteristic central line appearance, are more susceptible to automatic detection regardless of their representation in the dataset \citep{Chen2023Recognition}. Long-tail methods fail when they address only imbalance and ignore subtle inter-class differences \citep{zhang2021deep}, and raw counts overstate information because of overlap with diminishing returns \citep{cui2019classbalanced}. Marrow's high-contrast vertical central line gives a strong spatial signal-to-noise ratio learnable from few samples, while Quartzite shares reflectance and color with healthy grain: a camouflage regime where foreground-background similarity dominates difficulty \citep{fan2020cod} and natural texture variation masks the defect signal \citep{Chen2023Recognition}. Tail suppression by inter-class negative gradients \citep{tan2020equalization} then sinks the low-contrast class while sparing the distinctive one: detectability follows spatial SNR, not instance count.
 
@@ -466,37 +462,33 @@ Expanding the dataset to other wood species with different grain patterns and de
 
 \FloatBarrier
 
-%% ============================================================
-%% DECLARATIONS
-%% ============================================================
+\backmatter
 
-\section*{CRediT Authorship Contribution Statement}
-\textbf{R.M.C.P.:} Software, Writing -- original draft. \textbf{M.A.J.M.:} Data Curation, Resources, Methodology. \textbf{C.R.M.Z.:} Project Administration, Conceptualization, Writing -- review and editing. \textbf{Y.J.N.C.:} Investigation, Resources. \textbf{L.G.S.C.:} Conceptualization, Investigation, Software. \textbf{Y.P.V.:} Conceptualization, Methodology, Supervision, Writing -- review and editing.
+\section*{Declarations}
 
-\section*{Conflict of Interest Declaration}
-The authors declare no known competing financial interests or personal relationships that could have appeared to influence the work reported in this article.
+\noindent\textbf{Funding:} The authors declare that no financial support was received for this work.
 
-\section*{Funding}
+\noindent\textbf{Competing Interests:} The authors declare no known competing financial interests or personal relationships that could have appeared to influence the work reported in this article.
 
-The authors declare that no financial support was received for this work.
+\noindent\textbf{Ethics approval and consent to participate:} Not applicable.
 
-\section*{Declaration of Generative AI and AI-Assisted Technologies}
+\noindent\textbf{Consent for publication:} Not applicable.
 
-During the preparation of this manuscript, the authors used generative artificial intelligence tools solely for language editing, clarity improvement, and assistance with manuscript organization. The authors independently reviewed and verified all scientific decisions, methodological procedures, statistical analyses, interpretation of results, and final content, and remain fully responsible for the manuscript.
+\noindent\textbf{Data availability:} The data used in this study are publicly available on Kaggle: \url{https://www.kaggle.com/datasets/nomihsa965/large-scale-image-dataset-of-wood-surface-defects}, licensed under the CC BY 4.0 license.
 
-\section*{Code Availability}
-Custom analysis scripts and source code generated during this study are publicly available at the GitHub repository: \url{https://github.com/christianmz565/ia-2026-final}, licensed under the AGPL-3.0 license.
+\noindent\textbf{Materials availability:} Not applicable.
 
-\section*{Data Availability}
-The data used in this study are publicly available on Kaggle: \url{https://www.kaggle.com/datasets/nomihsa965/large-scale-image-dataset-of-wood-surface-defects}, licensed under the CC BY 4.0 license.
+\noindent\textbf{Code availability:} Custom analysis scripts and source code generated during this study are publicly available at the GitHub repository: \url{https://github.com/christianmz565/ia-2026-final}, licensed under the AGPL-3.0 license.
 
-\FloatBarrier
+\noindent\textbf{Author contribution:} \textbf{R.M.C.P.:} Software, Writing -- original draft. \textbf{M.A.J.M.:} Data Curation, Resources, Methodology. \textbf{C.R.M.Z.:} Project Administration, Conceptualization, Writing -- review and editing. \textbf{Y.J.N.C.:} Investigation, Resources. \textbf{L.G.S.C.:} Conceptualization, Investigation, Software. \textbf{Y.P.V.:} Conceptualization, Methodology, Supervision, Writing -- review and editing.
+
+\noindent\textbf{Use of generative AI:} During the preparation of this manuscript, the authors used generative artificial intelligence tools solely for language editing, clarity improvement, and assistance with manuscript organization. The authors independently reviewed and verified all scientific decisions, methodological procedures, statistical analyses, interpretation of results, and final content, and remain fully responsible for the manuscript.
 
 %% ============================================================
 %% REFERENCES
 %% ============================================================
 
-\bibliographystyle{elsarticle-harv}
+\nocite{*}
 \bibliography{references}
 
 \end{document}

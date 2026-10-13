@@ -73,7 +73,6 @@
               (texlive.withPackages (
                 ps: with ps; [
                   scheme-medium
-                  elsarticle
                   latexmk
                   orcidlink
                   booktabs
@@ -84,6 +83,13 @@
                   ulem
                   changes
                   latexdiff
+                  sttools
+                  threeparttable
+                  appendix
+                  breakurl
+                  wrapfig
+                  multirow
+                  ncctools
                 ]
               ))
             ])

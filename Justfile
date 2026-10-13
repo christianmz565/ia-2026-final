@@ -75,7 +75,7 @@ typecheck:
 bundle:
     mkdir -p {{ out }}
     7z a {{ out }}/paper.zip \
-      paper/elsearticle \
+      paper/latex/sn-jnl.cls \
       paper/references.bib \
       paper/paper.typ \
       $(find paper/figures -type f \( -name '*.png' -o -name '*.jpg' -o -name '*.svg' \) | sort)
