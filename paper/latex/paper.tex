@@ -1,4 +1,4 @@
-\documentclass[pdflatex,sn-mathphys-num,iicol]{sn-jnl}
+\documentclass[pdflatex,sn-basic,Numbered,iicol]{sn-jnl}
 
 \usepackage{graphicx}%
 \usepackage{multirow}%
@@ -46,7 +46,7 @@
 
 \affil[]{\orgdiv{Systems Engineering Professional Program}, \orgname{Universidad Nacional de San Agust\'in}, \orgaddress{\city{Arequipa}, \postcode{04001}, \state{Arequipa}, \country{Peru}}}
 
-\abstract{Automated inspection of surface defects in wood faces challenges arising from severe long-tail class imbalance and high intra-class variability of organic anomalies. This article presents a comparative benchmark evaluating three object-detection paradigms, one-stage, two-stage, and transformers, and four data augmentation strategies: no augmentation, Albumentations with class balancing, BoxAug with noise transformations, and BoxAug with neural harmonization via LibCom. The study uses a dataset of 4,000 images with 8,888 annotations across 8 defect categories and employs a reproducible five-stage pipeline with step caching. Experimental results demonstrate that RF-DETR achieves the highest ranking precision with mAP@0.5 of 0.717 under per-model calibrated confidence thresholds. At the same time, Cascade R-CNN with BoxAug LibCom reaches the best operating-point F1 of 0.798. Augmentation effects are paradigm-specific: BoxAug LibCom improves Cascade R-CNN by +0.033 mAP@0.5, whereas all three augmentation strategies leave YOLO26 at or below its unaugmented baseline (0.592 to 0.604 versus 0.618). Per-class analysis at AP@0.5 shows marrow reaching 0.910 while quartzite peaks at 0.550, confirming that visual distinguishability interacts with class frequency. The calibrated-threshold protocol and the paradigm-dependent augmentation response are discussed, and future directions are proposed, including extended training budgets and diffusion-based augmentation.}
+\abstract{Automated inspection of surface defects in wood faces challenges arising from severe long-tail class imbalance and high intra-class variability of organic anomalies. This article presents a comparative benchmark evaluating three object-detection paradigms, one-stage, two-stage, and transformers, and four data augmentation strategies: no augmentation, Albumentations with class balancing, BoxAug with noise transformations, and BoxAug with neural harmonization via LibCom. The study uses a dataset of 4,000 images with 8,888 annotations across 8 defect categories and employs a reproducible five-stage pipeline with step caching. Experimental results demonstrate that RF-DETR achieves the highest ranking precision with mean average precision at IoU 0.5 (mAP@0.5) of 0.717 under per-model calibrated confidence thresholds. At the same time, Cascade R-CNN with BoxAug LibCom reaches the best operating-point F1-score of 0.798. Augmentation effects are paradigm-specific: BoxAug LibCom improves Cascade R-CNN by +0.033 mAP@0.5, whereas all three augmentation strategies leave YOLO26 at or below its unaugmented baseline (0.592 to 0.604 versus 0.618). Per-class analysis at average precision (AP@0.5) shows marrow reaching 0.910 while quartzite peaks at 0.550, confirming that visual distinguishability interacts with class frequency. The calibrated-threshold protocol and the paradigm-dependent augmentation response are discussed, and future directions are proposed, including extended training budgets and diffusion-based augmentation.}
 
 \keywords{defect detection, computer vision, deep learning, wood processing, comparative benchmark}
 
@@ -175,7 +175,7 @@ The study uses the filtered and annotated version in YOLO format available on Ka
 \begin{figure*}[t]
 \centering
 \includegraphics[width=\textwidth]{barchart_classes.png}
-\caption{Defect class distribution in the filtered dataset \citep{Nomihsa2024KaggleWood}: Live Knot, Dead Knot, Resin, Crack, Knot with Crack, Marrow, Quartzite, and Missing Knot.}
+\caption{Defect class distribution in the filtered dataset \citep{Nomihsa2024KaggleWood}: Live Knot, Dead Knot, Resin, Crack, Knot with Crack, Marrow, Quartzite, and Missing Knot}
 \label{fig:piechart-clases}
 \end{figure*}
 
@@ -191,7 +191,7 @@ The annotations provide normalized bounding box coordinates in YOLO format. The 
 \includegraphics[width=0.24\textwidth]{Marrow.jpg}\hfill
 \includegraphics[width=0.24\textwidth]{Quartzity.jpg}\hfill
 \includegraphics[width=0.24\textwidth]{Knot_missing.jpg}
-\caption{Examples of the eight defect classes annotated in the wood dataset \citep{Nomihsa2024KaggleWood}: Live Knot, Dead Knot, Resin, Knot with Crack, Crack, Marrow, Quartzite, and Missing Knot (left to right, top to bottom).}
+\caption{Examples of the eight defect classes annotated in the wood dataset \citep{Nomihsa2024KaggleWood}: Live Knot, Dead Knot, Resin, Knot with Crack, Crack, Marrow, Quartzite, and Missing Knot (left to right, top to bottom)}
 \label{fig:defectos-ejemplo}
 \end{figure*}
 
@@ -463,7 +463,7 @@ Expanding the dataset to other wood species with different grain patterns and de
 
 \backmatter
 
-\section*{Declarations}
+\section*{Statements and Declarations}
 
 \noindent\textbf{Funding:} The authors declare that no financial support was received for this work.
 
@@ -481,13 +481,10 @@ Expanding the dataset to other wood species with different grain patterns and de
 
 \noindent\textbf{Author Contributions:} C.R.M.Z., L.G.S.C., and Y.P.V. conceived and designed the study. M.A.J.M. and Y.P.V. developed the methodology. L.G.S.C. developed the software. M.A.J.M. curated the dataset. Y.J.N.C. and M.A.J.M. acquired the resources. Y.J.N.C. and L.G.S.C. conducted the investigation. C.R.M.Z. administered the project and wrote the main manuscript text. Y.P.V. supervised the research. C.R.M.Z. and Y.P.V. reviewed and edited the manuscript. All authors reviewed and approved the final manuscript.
 
-\noindent\textbf{Use of generative AI:} During the preparation of this manuscript, the authors used generative artificial intelligence tools solely for language editing, clarity improvement, and assistance with manuscript organization. The authors independently reviewed and verified all scientific decisions, methodological procedures, statistical analyses, interpretation of results, and final content, and remain fully responsible for the manuscript.
-
 %% ============================================================
 %% REFERENCES
 %% ============================================================
 
-\nocite{*}
 \bibliography{references}
 
 \end{document}
